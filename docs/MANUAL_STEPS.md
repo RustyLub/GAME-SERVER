@@ -74,7 +74,7 @@ Firestore rules allow a user to read only their own profile, update only `custom
    Add the exact DNS records returned by Google at REG.RU and wait for the custom-domain certificate. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run the deployment script a second time. This makes Steam/Discord state cookies same-site with the website. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
 8. Add the six Firebase Web App variables from section 1 to GitHub Actions Variables.
 9. Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
-10. Open `https://auth.rusty-lub.online/healthz`; expect `{"ok":true}`.
+10. Open `https://auth.rusty-lub.online/health`; expect `{"ok":true}`.
 
 The Cloud Run service must allow unauthenticated invocation because Steam and Discord redirect callbacks arrive without a Firebase bearer token. Protected JSON endpoints still verify Firebase ID tokens, exact browser Origin, OAuth state and one-time codes. Server secrets stay in Secret Manager / Cloud Run.
 
