@@ -67,6 +67,10 @@ The static frontend and backend are separate deployments. The public `auth.rusty
 
 GitHub Pages accepts one configured custom domain and cannot independently serve both apex domains without redirect behavior. The final no-redirect setup uses one Cloudflare Pages project attached to both apex domains; its Pages middleware keeps canonical, Open Graph, sitemap and robots URLs on the requested hostname. The current GitHub Pages `.online` configuration is an interim endpoint only. See `docs/MANUAL_STEPS.md` for the Cloudflare migration and DNS-preservation procedure.
 
+## Firebase configuration
+
+The existing Firebase Web App for project `rustylub` is configured as the frontend default. The API origin remains intentionally blank until the Firebase Hosting auth proxy and its custom domain are deployed; account sign-in and live server status stay disabled until then. Add both website domains to Firebase Authentication authorized domains.
+
 ## Security and secrets
 
 Root `.env.example` and `backend/.env.example` contain the existing public Firebase Web App configuration and non-secret deployment defaults. Firebase Web App config and `VITE_API_BASE_URL` are public client values. Firebase Admin identity, Steam/Discord/Platega credentials and RCON password stay in Cloud Run / Google Secret Manager. Never place secrets in VITE_ variables or source control.
