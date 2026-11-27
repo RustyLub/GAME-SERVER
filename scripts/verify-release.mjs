@@ -1,12 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 
 const dist = path.resolve("dist");
+const { serverRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
 const routes = [
   ["/", "index.html", "ru"],
   ["/servers", "servers/index.html", "ru"],
-  ["/servers/eu-long", "servers/eu-long/index.html", "ru"],
   ["/wipes", "wipes/index.html", "ru"],
   ["/rules", "rules/index.html", "ru"],
   ["/support", "support/index.html", "ru"],
@@ -19,7 +20,6 @@ const routes = [
   ["/store", "store/index.html", "ru"],
   ["/en", "en/index.html", "en"],
   ["/en/servers", "en/servers/index.html", "en"],
-  ["/en/servers/eu-long", "en/servers/eu-long/index.html", "en"],
   ["/en/wipes", "en/wipes/index.html", "en"],
   ["/en/rules", "en/rules/index.html", "en"],
   ["/en/support", "en/support/index.html", "en"],
@@ -31,6 +31,7 @@ const routes = [
   ["/en/leaderboards", "en/leaderboards/index.html", "en"],
   ["/en/store", "en/store/index.html", "en"],
 ];
+routes.push(...serverRoutes.map((route) => [route, path.join(route.slice(1), "index.html"), route.startsWith("/en/") ? "en" : "ru"]));
 
 for (const [route, file, language] of routes) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
@@ -71,7 +72,10 @@ for (const image of ["og-ru.png", "og-en.png"]) {
 
 const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");
 assert.ok(sitemap.includes("https://rusty-lub.online/en"));
-assert.equal((sitemap.match(/<url>/g) || []).length, 18, "sitemap must contain the 18 public RU/EN routes");
+assert.ok((sitemap.match(/<url>/g) || []).length >= 18, "sitemap must contain the public RU/EN routes");
+for (const route of serverRoutes) {
+  assert.ok(sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must be present in sitemap");
+}
 
 const allAssets = (await fs.readdir(path.join(dist, "assets"))).filter((name) => name.endsWith(".js"));
 for (const asset of allAssets) {
