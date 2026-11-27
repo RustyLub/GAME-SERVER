@@ -10,13 +10,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+        with:
+          node-version-file: .nvmrc
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
-      - run: npm install
+      - run: npm install --no-audit --no-fund
       - run: npm run build
       - name: Test Steam auth backend
         run: |
-          npm install --prefix backend
+          npm install --prefix backend --no-audit --no-fund
           npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
