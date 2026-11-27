@@ -2,11 +2,11 @@
 
 ## Project boundary
 
-Use a dedicated Firebase project for Rusty.Lub GAME-SERVER. Do not assume or silently reuse the legacy Rusty.Lub project. The browser Firebase SDK remains uninitialized until the six Web App configuration variables are supplied.
+For this rollout, reuse the existing Rusty.Lub Firebase project `rustylub` and its existing Web App configuration exactly as previously supplied. Do not create a replacement project or rotate these public client values. The code and `.env.example` include these defaults; GitHub Actions Variables and local `.env` values may override them later.
 
 ## Firebase Web App
 
-Create/select the Web App in Firebase Console → Project settings → General. Set these GitHub Actions repository Variables:
+Create/select the Web App in Firebase Console → Project settings → General. The current values are already wired into the frontend defaults. If you prefer to manage them through GitHub Actions repository Variables, set:
 - VITE_FIREBASE_API_KEY
 - VITE_FIREBASE_AUTH_DOMAIN
 - VITE_FIREBASE_PROJECT_ID
@@ -18,17 +18,17 @@ These values are public browser configuration, not secrets. Never place Firebase
 
 ## Authentication
 
-Enable Firebase Authentication. Steam sign-in uses server-verified Steam OpenID and Firebase Custom Tokens. No Email/Password provider is required. Add rusty-lub.online to Authentication → Settings → Authorized domains.
+Enable Firebase Authentication. Steam sign-in uses server-verified Steam OpenID and Firebase Custom Tokens. No Email/Password provider is required. Add both `rusty-lub.online` and `rusty-lub.ru` to Authentication → Settings → Authorized domains. Keep the existing `rustylub.firebaseapp.com` auth domain.
 
 The backend creates stable UIDs in the form steam_<SteamID64>. Discord is linked as an additional profile identity, not a second login provider.
 
 ## Firestore
 
-Create Cloud Firestore in Production mode, then publish the committed rules and indexes from the repository root:
+Use the existing Cloud Firestore database in project `rustylub`. Before deploying the repository rules, export/backup the current rules and inspect existing data because deployment replaces the active rules. Then publish the reviewed rules and indexes from the repository root:
 
     firebase login
     firebase use --add
-    firebase deploy --only firestore:rules,firestore:indexes --project YOUR_FIREBASE_PROJECT_ID
+    firebase deploy --only firestore:rules,firestore:indexes --project rustylub
 
 Rules permit:
 - get only users/{uid} where request.auth.uid == uid;
