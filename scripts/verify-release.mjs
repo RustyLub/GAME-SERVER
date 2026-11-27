@@ -83,7 +83,7 @@ for (const route of serverRoutes) {
   assert.ok(sitemap.includes("<loc>" + SITE_ORIGIN + route + "</loc>"), route + " must be present in sitemap");
 }
 for (const route of noindexRoutes) {
-  assert.ok(!sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must not be present in sitemap");
+  assert.ok(!sitemap.includes("<loc>" + SITE_ORIGIN + route + "</loc>"), route + " must not be present in sitemap");
 }
 const robots = await fs.readFile(path.join(dist, "robots.txt"), "utf8");
 assert.ok(robots.includes("Sitemap: " + SITE_ORIGIN + "/sitemap.xml"), "robots.txt must advertise the production sitemap");
