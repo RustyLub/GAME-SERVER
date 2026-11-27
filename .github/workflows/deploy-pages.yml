@@ -26,8 +26,6 @@ jobs:
           node-version-file: .nvmrc
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
-      - name: Audit production frontend dependencies
-        run: npm audit --omit=dev --audit-level=high
       - name: Type-check and build
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
@@ -60,11 +58,22 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Test backend and Firestore rules
+      - name: Install backend dependencies
+        run: npm install --prefix backend --no-audit --no-fund
+      - name: Upload generated npm lockfiles
+        uses: actions/upload-artifact@v5
+        with:
+          name: npm-lockfiles
+          path: |
+            package-lock.json
+            backend/package-lock.json
+          if-no-files-found: error
+      - name: Audit production dependencies
         run: |
-          npm install --prefix backend --no-audit --no-fund
+          npm audit --omit=dev --audit-level=high
           npm audit --prefix backend --omit=dev --audit-level=high
-          npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
+      - name: Test backend and Firestore rules
+        run: npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
