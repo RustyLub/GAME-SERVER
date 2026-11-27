@@ -6,7 +6,8 @@ const AccountPanel = lazy(() => import("../AccountPanel"));
 
 export const pageMeta: Record<string, { title: string; description: string }> = {
   "/": { title: "Rusty.Lub — сеть серверов Rust и игровое сообщество", description: "Официальный сайт проекта Rusty.Lub: игровые серверы Rust, сообщество, новости, гайды и полезные инструменты." },
-  "/servers": { title: "Сервер — Rusty.Lub EU Long", description: "Параметры Rusty.Lub EU Long: Europe, Vanilla x1, процедурная карта, команды до 12 игроков." },
+  "/servers": { title: "Серверы Rusty.Lub — каталог игровых серверов", description: "Каталог серверов проекта Rusty.Lub. Сравните режимы и выберите игровой сервер." },
+  "/servers/eu-long": { title: "Rusty.Lub EU Long — информация о сервере", description: "Параметры, онлайн, расписание вайпов и подключение к Rusty.Lub EU Long." },
   "/wipes": { title: "Вайпы — Rusty.Lub EU Long", description: "Расписание ежемесячных вайпов Rusty.Lub EU Long." },
   "/rules": { title: "Правила — Rusty.Lub", description: "Правила честной игры и поведения в сообществе Rusty.Lub." },
   "/support": { title: "Поддержка — Rusty.Lub", description: "Ответы на вопросы и способы связаться с командой Rusty.Lub." },
@@ -18,7 +19,8 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/leaderboards": { title: "Рейтинг игроков — скоро | Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long скоро появится." },
   "/store": { title: "VIP Queue Pass — Магазин Rusty.Lub", description: "Разовый VIP Queue Pass на 7 дней для Rusty.Lub EU Long." },
   "/en": { title: "Rusty.Lub — Rust server network and gaming community", description: "Official Rusty.Lub project website: Rust game servers, community, news, guides and useful tools." },
-  "/en/servers": { title: "Server — Rusty.Lub EU Long", description: "Rusty.Lub EU Long server details: Europe, Vanilla x1, procedural map and teams of up to 12." },
+  "/en/servers": { title: "Rusty.Lub Servers — Game Server Directory", description: "Browse the Rusty.Lub server network and choose a game server." },
+  "/en/servers/eu-long": { title: "Rusty.Lub EU Long — Server Details", description: "Server settings, live status, wipe schedule and connection details for Rusty.Lub EU Long." },
   "/en/wipes": { title: "Wipes — Rusty.Lub EU Long", description: "Monthly wipe schedule for Rusty.Lub EU Long." },
   "/en/rules": { title: "Rules — Rusty.Lub", description: "Fair play and community rules for Rusty.Lub." },
   "/en/support": { title: "Support — Rusty.Lub", description: "Answers to common questions and ways to contact Rusty.Lub." },
@@ -56,6 +58,13 @@ export function HomePage() {
  </>;
 }
 export function ServersPage() {
+ return <section className="content-section page-section">
+  <PageTitle eyebrow="RUSTY.LUB / SERVER NETWORK" title={<>НАШИ <em>СЕРВЕРЫ.</em></>} subtitle="Выбирай игровой мир по режиму и особенностям. Список будет расширяться вместе с проектом." />
+  <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Классический Rust · процедурная карта · команда до 12 игроков</p></div><div className="network-server-live"><ServerStatus /><small>200 СЛОТОВ</small></div><div className="network-server-actions"><a className="btn btn-red" href="/servers/eu-long">ПОДРОБНЕЕ ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>ПОДКЛЮЧИТЬСЯ</a></div></article></div>
+  <p className="page-lead">Сейчас в сети представлен один действующий сервер. Новые серверы будут добавляться сюда отдельными позициями, не меняя общую структуру сайта.</p>
+ </section>;
+}
+export function ServerDetailsPage() {
  return <section className="content-section page-section"><PageTitle eyebrow="RUSTY.LUB / EU LONG" title={<>ОДИН СЕРВЕР.<br /><em>ЧИСТЫЙ RUST.</em></>} subtitle="Основные параметры и подключение к Rusty.Lub EU Long." /><Panel><div className="server-card-top"><div className="server-region"><span className="region-flag">EU</span><span>EUROPE</span><b>MONTHLY WIPE</b></div><ServerStatus /></div><div className="server-main"><div className="server-title"><h2>Rusty.Lub EU Long</h2><p>CLASSIC SURVIVAL · PROCEDURAL MAP · VANILLA</p></div><div className="server-capacity"><strong>— <small>/ 200</small></strong><span>ИГРОКОВ ОНЛАЙН</span></div></div><div className="server-facts"><div><small>КАРТА</small><b>PROCEDURAL</b></div><div><small>РЕЙТЫ</small><b>VANILLA X1</b></div><div><small>ЛИМИТ ГРУППЫ</small><b>12 ИГРОКОВ</b></div><div><small>РЕГИОН</small><b>EUROPE</b></div></div><div className="server-details"><div className="server-address"><small>АДРЕС СЕРВЕРА</small><code>{SITE_CONFIG.server.address}</code></div><a className="copy-button" href={"steam://connect/" + SITE_CONFIG.server.address}>ПОДКЛЮЧИТЬСЯ ЧЕРЕЗ STEAM ↗</a><div className="server-connect-command"><small>КОМАНДА ДЛЯ КОНСОЛИ F1</small><code>client.connect 202.36.95.125:26227</code></div></div></Panel><p className="page-lead">Кланы и альянсы разрешены. Лимит одной команды — 12 игроков.</p></section>;
 }
 export function WipesPage() {
