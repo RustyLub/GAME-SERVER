@@ -304,6 +304,7 @@ app.get("/vip/config", async (_req, res) => {
 app.post("/vip/order", requireSteamUser, async (req, res) => {
   if (!PLATEGA_CONFIGURED) return res.status(503).json({ error: "vip_checkout_not_configured" });
   try {
+    if (!await isCarbonBridgeOnline()) return res.status(503).json({ error: "carbon_bridge_offline" });
     const orderId = crypto.randomUUID();
     const paymentBody = buildPlategaPaymentBody({
       price: VIP_PRICE_RUB,
