@@ -45,3 +45,52 @@ test("leaves unapproved host responses untouched", async () => {
   });
   assert.equal(result, response);
 });
+
+test("rewrites canonical and social image metadata on HTML responses", async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "HTMLRewriter");
+  class TestHTMLRewriter {
+    handlers = [];
+    on(selector, handler) {
+      this.handlers.push({ selector, handler });
+      return this;
+    }
+    transform(response) {
+      const nodes = [
+        { selector: 'link[rel="canonical"]', attributes: { href: "https://rusty-lub.online/servers/eu-long" } },
+        { selector: 'meta[property="og:url"]', attributes: { content: "https://rusty-lub.online/servers/eu-long" } },
+        { selector: 'meta[property="og:image"]', attributes: { content: "https://rusty-lub.online/og-ru.png" } },
+        { selector: 'meta[property="og:image:secure_url"]', attributes: { content: "https://rusty-lub.online/og-ru.png" } },
+        { selector: 'meta[name="twitter:image"]', attributes: { content: "https://rusty-lub.online/og-ru.png" } },
+      ];
+      for (const node of nodes) {
+        const registration = this.handlers.find((item) => item.selector === node.selector);
+        const element = {
+          getAttribute: (name) => node.attributes[name] ?? null,
+          setAttribute: (name, value) => { node.attributes[name] = value; },
+        };
+        registration?.handler.element(element);
+      }
+      return new Response(JSON.stringify(nodes.map((node) => node.attributes)), {
+        status: response.status,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  }
+  globalThis.HTMLRewriter = TestHTMLRewriter;
+  try {
+    const response = new Response("<html></html>", { headers: { "content-type": "text/html; charset=utf-8" } });
+    const rewritten = await onRequest({
+      request: new Request("https://rusty-lub.ru/servers/eu-long"),
+      next: async () => response,
+    });
+    const [canonical, ogUrl, ogImage, secureImage, twitterImage] = await rewritten.json();
+    assert.equal(canonical.href, "https://rusty-lub.ru/servers/eu-long");
+    assert.equal(ogUrl.content, "https://rusty-lub.ru/servers/eu-long");
+    assert.equal(ogImage.content, "https://rusty-lub.ru/og-ru.png");
+    assert.equal(secureImage.content, "https://rusty-lub.ru/og-ru.png");
+    assert.equal(twitterImage.content, "https://rusty-lub.ru/og-ru.png");
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "HTMLRewriter", previous);
+    else delete globalThis.HTMLRewriter;
+  }
+});
