@@ -290,3 +290,35 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Firebase account */
+.login-button { display: inline-flex; align-items: center; }
+.account-band { align-items: start; }
+.account-band > div:first-child { padding-top: 12px; }
+.account-panel { min-width: 0; padding: 25px; border: 1px solid #45443d; background: #171815; }
+.account-tabs { display: flex; gap: 8px; margin-bottom: 22px; border-bottom: 1px solid var(--line); }
+.account-tabs button { padding: 11px 13px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #888; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.account-tabs button.active { border-bottom-color: var(--red); color: #fff; }
+.account-form { display: flex; flex-direction: column; gap: 15px; }
+.account-form label { display: flex; flex-direction: column; gap: 8px; color: #aaa; font-size: 8px; font-weight: 800; letter-spacing: .14em; }
+.account-form input { width: 100%; padding: 13px 14px; border: 1px solid #41423b; border-radius: 0; outline: none; background: #191a17; color: #f3f1eb; font: 11px Inter; }
+.account-form input:focus { border-color: var(--red); }
+.account-form input::placeholder { color: #6f7069; }
+.account-form .btn { width: 100%; margin-top: 4px; }
+.account-reset { margin-top: 17px; padding: 0; border: 0; background: transparent; color: #c7a093; font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.account-disclaimer { margin: 17px 0 0; color: #777; font-size: 8px; line-height: 1.7; }
+.account-message { margin: 14px 0 0; color: #a9d69b; font-size: 9px; line-height: 1.7; }
+.account-profile { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.account-avatar { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid #714333; background: #30201b; color: #f0a18a; font: 800 24px var(--display); }
+.account-profile small, .account-profile strong, .account-profile span { display: block; }
+.account-profile small { margin-bottom: 5px; color: var(--red); font-size: 7px; font-weight: 900; letter-spacing: .15em; }
+.account-profile strong { color: #fff; font: 700 22px var(--display); }
+.account-profile span { margin-top: 4px; color: #999; font-size: 9px; overflow-wrap: anywhere; }
+.account-profile-meta { display: flex; flex-direction: column; gap: 7px; padding: 13px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.account-profile-meta span { color: #888; font-size: 7px; font-weight: 800; letter-spacing: .12em; }
+.account-profile-meta code { color: #ddd; font-size: 9px; overflow-wrap: anywhere; }
+.account-panel > .btn { margin-top: 18px; }
+@media (max-width: 700px) {
+  .account-panel { padding: 19px; }
+}
