@@ -392,6 +392,7 @@ app.get("/auth/steam/callback", async (req, res) => {
       if (!snapshot.exists) return null;
       const data = snapshot.data();
       transaction.delete(stateRef);
+      if (FRONTEND_ORIGINS.includes(data?.frontendOrigin)) frontendOrigin = data.frontendOrigin;
       if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() ||
           !FRONTEND_ORIGINS.includes(data.frontendOrigin)) return null;
       return data;
@@ -491,6 +492,7 @@ app.get("/auth/discord/callback", async (req, res) => {
       if (!snapshot.exists) return null;
       const data = snapshot.data();
       transaction.delete(stateRef);
+      if (FRONTEND_ORIGINS.includes(data?.frontendOrigin)) frontendOrigin = data.frontendOrigin;
       if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() ||
           !/^steam_\d{17}$/.test(data.uid || "") || !FRONTEND_ORIGINS.includes(data.frontendOrigin)) return null;
       return data;
