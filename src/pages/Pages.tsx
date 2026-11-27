@@ -32,6 +32,12 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/en/leaderboards": { title: "Player Leaderboards — coming soon | Rusty.Lub", description: "A combined player leaderboard for the Rusty.Lub server network is coming soon." },
   "/en/store": { title: "Store — Rusty.Lub", description: "Information about Rusty.Lub store availability." },
 };
+
+for (const server of SITE_CONFIG.servers) {
+  const serverPath = "/servers/" + server.slug;
+  pageMeta[serverPath] = { title: server.name + " — информация о сервере", description: "Параметры, онлайн, расписание вайпов и подключение к " + server.name + "." };
+  pageMeta["/en" + serverPath] = { title: server.name + " — Server Details", description: "Server settings, live status, wipe schedule and connection details for " + server.name + "." };
+}
 function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
   return <div className="section-heading page-heading"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{subtitle && <p className="page-lead">{subtitle}</p>}</div></div>;
 }
@@ -73,8 +79,8 @@ export function ServersPage() {
   <p className="page-lead">Сейчас в сети представлен один действующий сервер. Новые серверы будут добавляться сюда отдельными позициями, не меняя общую структуру сайта.</p>
  </section>;
 }
-export function ServerDetailsPage() {
- const server = SITE_CONFIG.server;
+export function ServerDetailsPage({ slug = SITE_CONFIG.server.slug }: { slug?: string }) {
+ const server = SITE_CONFIG.servers.find((item) => item.slug === slug) ?? SITE_CONFIG.server;
  return <section className="content-section page-section"><PageTitle eyebrow={"RUSTY.LUB / " + server.region.toUpperCase()} title={<>RUSTY.LUB <em>{server.name.replace("Rusty.Lub ", "").toUpperCase()}.</em></>} subtitle="Отдельная страница сервера в сети Rusty.Lub: режим, особенности мира и способы подключения." /><Panel><div className="server-card-top"><div className="server-region"><span className="region-flag">{server.region.slice(0, 2).toUpperCase()}</span><span>{server.region.toUpperCase()}</span><b>{server.wipe.toUpperCase()} WIPE</b></div><ServerStatus /></div><div className="server-main"><div className="server-title"><h2>{server.name}</h2><p>CLASSIC SURVIVAL · {server.map.toUpperCase()} MAP · {server.rates.toUpperCase()}</p></div><div className="server-capacity"><strong>— <small>/ {server.maxPlayers}</small></strong><span>ИГРОКОВ ОНЛАЙН</span></div></div><div className="server-facts"><div><small>КАРТА</small><b>{server.map.toUpperCase()}</b></div><div><small>РЕЙТЫ</small><b>{server.rates.toUpperCase()}</b></div><div><small>ЛИМИТ ГРУППЫ</small><b>{server.teamLimit} ИГРОКОВ</b></div><div><small>РЕГИОН</small><b>{server.region.toUpperCase()}</b></div></div><div className="server-details"><div className="server-address"><small>АДРЕС СЕРВЕРА</small><code>{server.address}</code></div><a className="copy-button" href={"steam://connect/" + server.address}>ПОДКЛЮЧИТЬСЯ ЧЕРЕЗ STEAM ↗</a><div className="server-connect-command"><small>КОМАНДА ДЛЯ КОНСОЛИ F1</small><code>{"client.connect " + server.address}</code></div></div></Panel><p className="page-lead">Кланы и альянсы разрешены. Лимит одной команды — {server.teamLimit} игроков.</p></section>;
 }
 export function WipesPage() {
