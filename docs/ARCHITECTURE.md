@@ -1,67 +1,71 @@
-# Rusty.Lub GAME-SERVER — architecture
+# Rusty.Lub GAME-SERVER — architecture and release boundary
 
-## Product boundary
+## Product
 
-This repository contains the public Rusty.Lub EU Long website. It is independent from the legacy Rusty.Lub website and must use a dedicated Firebase project. The production frontend is a static React application hosted on GitHub Pages at https://rusty-lub.online/.
+The public site serves Rusty.Lub EU Long in Russian and English. It is a React 19 + TypeScript + Vite static application hosted by GitHub Pages. The game server is strictly Vanilla: no Carbon, Oxide/uMod or other plugins are installed or required.
 
-The Rust game server remains strictly Vanilla. This repository's production branch does not install, deploy or require Carbon, Oxide/uMod or any game-server plugin.
+## Runtime
 
-## Runtime and delivery
+- Frontend: React 19, TypeScript, Vite 8 and Firebase Web SDK.
+- Static hosting: GitHub Pages through .github/workflows/deploy-pages.yml.
+- Trusted backend: Node.js 22+, Express and Firebase Admin on Google Cloud Run.
+- Data: Firebase Authentication and Cloud Firestore.
+- Steam authentication: server-side Steam OpenID 2.0 verification followed by Firebase Custom Token issuance.
+- Discord linking: server-side OAuth2 authorization-code flow, identify scope only.
+- Live server status: read-only Rust WebRCON serverinfo command, optional until RCON is configured.
+- VIP queue: native Rust queue permission through backend RCON only; no game plugin.
 
-- Node.js 22 is the development and CI runtime.
-- React 19 + TypeScript + Vite build the browser application.
-- npm run build runs TypeScript checks, creates dist/, and prerenders public routes.
-- .github/workflows/deploy-pages.yml builds and deploys main to GitHub Pages.
-- public/CNAME records the intended custom domain in the repository; with this custom GitHub Actions workflow, the actual Pages custom-domain setting must be configured separately in repository Settings → Pages.
-- backend/ is a separate Node.js service intended for Google Cloud Run.
+GitHub Pages cannot run backend code or store server secrets. It only serves static files.
 
-GitHub Pages is static hosting. It does not run Express, API routes, Steam OpenID callbacks, background jobs or privileged game-server commands.
+## Identity and data access
 
-## Trust boundaries
+Firebase user IDs are stable and derived from the verified SteamID64: steam_<SteamID64>. The backend creates and updates users/{uid}. The browser may:
+- read only its own profile;
+- update only its own customDisplayName (2–24 characters);
+- read only order documents whose userId equals the authenticated UID.
 
-1. Browser: public content, UI state, Firebase Web SDK and calls to the public Steam auth endpoints. Every VITE_ value is public.
-2. Firebase Authentication and Firestore: session identity and narrowly scoped profile reads. Browser writes are denied.
-3. Trusted Cloud Run backend: Steam OpenID verification, Firebase Admin user creation, custom-token issuance and one-time token exchange.
-4. Rust server: remains Vanilla. No plugin is installed or required by the website.
+The browser cannot create, delete or modify orders, entitlements, payment events, OAuth state, nonces or other internal documents. Firestore rules deny all other client access. The backend uses Firebase Admin under a dedicated Cloud Run service account.
 
-Payments, Platega, webhooks, VIP entitlements and payment-related legal drafts are isolated to the separate payments/platega-drafts branch and are not part of main. No payment endpoint is deployed from main.
+Steam OpenID assertions are checked server-to-server, signed fields and claimed identity are validated, response nonces are one-time, and the browser receives only a short-lived one-time code. The Firebase Custom Token remains in Firestore and is exchanged once by the frontend.
 
-## Current implementation status
+Discord linking uses an expiring state cookie plus a one-time Firestore state record bound to the authenticated Steam UID. Discord identity is unique across Rusty.Lub accounts. Access tokens are discarded after fetching the Discord identity; no bot permissions are requested.
 
-- The React application contains Russian and English routes.
-- Steam is the only intended sign-in method; email/password registration is not provided.
-- Firebase Web SDK initializes only when all dedicated-project Web App variables are supplied. There is no hard-coded fallback to a potentially unrelated Firebase project.
-- Firestore rules allow a signed-in user to get only their own profile and update only customDisplayName. Users may read only their own orders; client order writes and all other internal collection access are denied.
-- The backend verifies Steam OpenID server-to-server, creates Firebase identities with stable Steam UIDs, writes profiles through Firebase Admin and exchanges short-lived one-time codes for Firebase custom tokens.
-- The backend is not live until it is deployed to Cloud Run, configured with the correct dedicated Firebase project and tested end-to-end.
-- Player leaderboards remain a “Скоро” placeholder until a verified source of game statistics exists.
+## Secrets
 
-## Configuration and secrets
+Public browser configuration:
+- VITE_FIREBASE_* (Firebase Web App public config)
+- VITE_API_BASE_URL (public backend URL)
 
-### Public browser build variables
+Server-only values:
+- Firebase Admin IAM identity
+- Steam Web API key (optional)
+- Discord client secret
+- RCON password
+- Platega secret and other payment credentials when the payment branch is approved and merged
 
-The Firebase Web App configuration and the public backend base URL are not secrets. They may be provided as VITE_FIREBASE_* and VITE_API_BASE_URL build variables. Do not place privileged credentials in frontend variables.
+Never place server secrets in frontend code, VITE_ variables, GitHub Actions Variables, source files or committed .env files. Use Cloud Run secret mappings / Google Secret Manager. The repository contains empty .env.example templates only.
 
-### Server-only configuration
+## Routes and SEO
 
-Keep Firebase Admin IAM identity, Steam Web API key (if used), and any future RCON credentials in Cloud Run environment configuration or Google Secret Manager. Do not commit service-account JSON, private keys or secret values. No payment or Carbon secrets are configured on main.
+The site prerenders all public Russian and English routes, with per-route title, description, canonical, Open Graph and Twitter metadata. Account, account-linking, store and leaderboard routes are noindex where appropriate. RU and EN 404 pages are generated separately. Sitemap contains public pages only. The leaderboard remains a clear “Скоро” placeholder until verified game statistics are available.
 
-## Repository layout
+## Payment isolation
 
-- src/ — React application and browser integrations.
-- backend/ — standalone Node.js Steam OpenID verification and Firebase Admin service.
-- public/ — static public assets, CNAME, robots and sitemap.
-- docs/ — architecture and operational decisions.
-- firestore.rules — deny-by-default Firestore policy with owner-only profile get.
-- .github/workflows/ — validation and Pages deployment.
+Payment, Platega, webhook and VIP entitlement implementation is developed in a dedicated payment branch. It may be merged into main only after the full build and payment test suite are green. The game server remains Vanilla; VIP uses native Rust commands through RCON.
 
-## Release checklist
+## Current release limitations
 
-- [ ] Confirm the dedicated GAME-SERVER Firebase project in Firebase Console.
-- [ ] Create the Firebase Web App and supply the six public configuration values.
-- [ ] Create Firestore in Production mode and publish firestore.rules to that exact project.
-- [ ] Add rusty-lub.online to Firebase Authentication authorized domains.
-- [ ] Deploy backend/ to Cloud Run with a dedicated runtime service account and server-only configuration.
-- [ ] Set VITE_API_BASE_URL to the public HTTPS Cloud Run URL as a GitHub Actions Variable.
-- [ ] Verify new Steam registration, repeat login, invalid assertions, replay protection and logout.
-- [ ] Verify the custom domain DNS and HTTPS certificate before declaring the site production-ready.
+- Firebase and Cloud Run are not live until the project and console setup in docs/MANUAL_STEPS.md is completed.
+- Discord OAuth requires a registered application and Cloud Run secret.
+- Live online status requires WebRCON to be enabled and its server-only credentials configured.
+- Platega checkout requires merchant approval, secrets, callback configuration and completed legal operator details.
+- DNS, custom domain and HTTPS must be verified in GitHub Pages and REG.RU.
+
+## Repository map
+
+- src/ — bilingual website, Firebase client, account UI.
+- backend/ — Steam/Discord auth and read-only WebRCON status service.
+- public/ — favicon, OG artwork, CNAME, robots.txt and sitemap.xml.
+- scripts/ — prerendering and release checks.
+- firestore.rules / firestore.indexes.json — client security and query index definitions.
+- docs/MANUAL_STEPS.md — external console, DNS, legal and release actions.

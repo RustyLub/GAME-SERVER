@@ -49,12 +49,17 @@ Firestore rules allow each user to read their own profile, update only customDis
    export RCON_PORT=YOUR_RUST_RCON_PORT
    export RCON_PASSWORD_SECRET_NAME=YOUR_RCON_SECRET_NAME
    export DISCORD_CLIENT_SECRET_SECRET_NAME=YOUR_DISCORD_SECRET_NAME
-   export BACKEND_PUBLIC_URL=https://auth.rusty-lub.online
+   # Optional: set BACKEND_PUBLIC_URL only after the Cloud Run custom domain mapping is created.
    # Optional:
    export STEAM_API_KEY_SECRET_NAME=YOUR_STEAM_API_SECRET_NAME
    bash backend/deploy-cloud-run.sh
    ```
-7. Create a Cloud Run custom domain mapping for `auth.rusty-lub.online` to the service and add the DNS records Google provides. Set BACKEND_PUBLIC_URL=https://auth.rusty-lub.online before running the script. This keeps the OAuth state cookie same-site with the website. The script still reads the generated run.app URL but uses BACKEND_PUBLIC_URL for callbacks when provided. Set the same public URL as GitHub Actions Variable VITE_API_BASE_URL.
+7. The first run without BACKEND_PUBLIC_URL creates the Cloud Run service and prints its run.app URL. Then create the custom domain mapping:
+   ```bash
+   gcloud run domain-mappings create --service rusty-lub-auth --domain auth.rusty-lub.online --region YOUR_REGION --project YOUR_GCP_PROJECT_ID
+   gcloud run domain-mappings describe --domain auth.rusty-lub.online --region YOUR_REGION --project YOUR_GCP_PROJECT_ID
+   ```
+   Add the exact DNS records returned by Google at REG.RU and wait until the custom domain certificate is ready. Then set BACKEND_PUBLIC_URL=https://auth.rusty-lub.online and run the deploy script a second time. This keeps OAuth state cookies same-site with the website. Set the same public URL as GitHub Actions Variable VITE_API_BASE_URL.
 8. Configure Firestore TTL policies on the expiresAt field in steamAuthExchanges, steamOpenIdNonces and discordAuthStates. Application code independently enforces expiration.
 
 The Cloud Run service must allow unauthenticated invocation because Steam and Discord redirect callbacks arrive without a Firebase bearer token. Protected JSON endpoints still verify Firebase ID tokens, exact browser Origin, OAuth state and one-time codes. All credentials remain server-side.
@@ -62,7 +67,7 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
 ## 3. Steam authentication
 
 1. Deploy Cloud Run as above.
-2. Open `https://YOUR_CLOUD_RUN_URL/healthz`; expect `{"ok":true}`.
+2. Open `https://auth.rusty-lub.online/healthz` (or your configured backend URL); expect `{"ok":true}`.
 3. Test sign-in from `https://rusty-lub.online/account`: a first login should create Firebase UID `steam_<SteamID64>` and `users/{uid}`; a repeat login should resolve to the same account.
 4. Verify logout, invalid OpenID response rejection, replayed nonce rejection and one-time exchange code rejection.
 5. If a Steam Web API key is used, keep it in Secret Manager and map it only to server variable STEAM_API_KEY.
@@ -88,7 +93,7 @@ The code is isolated in the payment release branch until its tests pass and the 
 
 1. Obtain Merchant ID and API secret from Platega. Store the secret in Secret Manager as PLATEGA_SECRET; set PLATEGA_MERCHANT_ID and PLATEGA_API_BASE as Cloud Run environment variables.
 2. Confirm with Platega the required payment method and the stable customer identifier for metadata.user_email. Steam accounts do not provide an email address; do not invent a customer's real email. The implementation uses a stable internal Steam-based identifier in the format required by Platega only after this is accepted by the provider.
-3. Set the merchant callback URL to `https://YOUR_CLOUD_RUN_URL/payments/platega/callback`.
+3. Set the merchant callback URL to `https://auth.rusty-lub.online/payments/platega/callback`.
 4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then verifies transaction status, merchant, amount, currency and order binding server-side before granting anything.
 5. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
 6. Confirm the seven-day VIP Queue Pass wording, price, tax and operator details on the legal pages before opening checkout.

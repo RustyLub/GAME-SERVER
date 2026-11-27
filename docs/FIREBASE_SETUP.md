@@ -1,18 +1,12 @@
-# Firebase setup for Rusty.Lub GAME-SERVER
+# Firebase setup — GAME-SERVER
 
-The website supports Steam-only sign-in. Registration is automatic after a successful Steam OpenID login. Email/password registration is not part of this project.
+## Project boundary
 
-## 1. Select the correct Firebase project
+Use a dedicated Firebase project for Rusty.Lub GAME-SERVER. Do not assume or silently reuse the legacy Rusty.Lub project. The browser Firebase SDK remains uninitialized until the six Web App configuration variables are supplied.
 
-This repository must use a dedicated Firebase project for GAME-SERVER, separate from the legacy Rusty.Lub website project. Do not use a remembered project ID or copy a config from another site without confirming it in Firebase Console.
+## Firebase Web App
 
-The repository intentionally has no hard-coded Firebase project fallback. Until the dedicated project is confirmed and its Web App config is supplied, Firebase Auth and Firestore remain uninitialized in the browser.
-
-## 2. Firebase Web App
-
-In Firebase Console, open Project settings → General → Your apps and create or select the Web App belonging to the dedicated GAME-SERVER project.
-
-The Web App configuration values are public client configuration. Set the following GitHub repository Actions Variables for production builds, or place them in a local untracked .env.local file:
+Create/select the Web App in Firebase Console → Project settings → General. Set these GitHub Actions repository Variables:
 - VITE_FIREBASE_API_KEY
 - VITE_FIREBASE_AUTH_DOMAIN
 - VITE_FIREBASE_PROJECT_ID
@@ -20,45 +14,48 @@ The Web App configuration values are public client configuration. Set the follow
 - VITE_FIREBASE_MESSAGING_SENDER_ID
 - VITE_FIREBASE_APP_ID
 
-These values are visible in the browser bundle and are not secrets. Never place Firebase Admin credentials, service-account JSON, private keys, Steam API keys or RCON credentials in VITE_ variables.
+These values are public browser configuration, not secrets. Never place Firebase Admin credentials, service-account JSON, Steam API keys, Discord client secret, Platega secret or RCON password in VITE_ variables.
 
-## 3. Firebase Authentication
+## Authentication
 
-Firebase Authentication is the session layer for Firebase Custom Tokens issued by the trusted backend after Steam OpenID verification.
+Enable Firebase Authentication. Steam sign-in uses server-verified Steam OpenID and Firebase Custom Tokens. No Email/Password provider is required. Add rusty-lub.online to Authentication → Settings → Authorized domains.
 
-- Add rusty-lub.online to Authentication → Settings → Authorized domains.
-- Do not enable Email/Password for Rusty.Lub login.
-- The backend creates Firebase users with stable UIDs steam_<SteamID64>.
-- Steam is not a built-in Firebase OAuth provider in this flow; the backend validates Steam OpenID and then issues a Firebase Custom Token.
+The backend creates stable UIDs in the form steam_<SteamID64>. Discord is linked as an additional profile identity, not a second login provider.
 
-## 4. Cloud Firestore
+## Firestore
 
-Create Firestore Database in Production mode. The committed firestore.rules file allows a signed-in user to get only their own users/{uid} profile. Listing users, writing profiles, and all other client reads/writes are denied.
+Create Cloud Firestore in Production mode, then publish the committed rules and indexes from the repository root:
 
-Publish rules only after confirming the correct Firebase project:
-- firebase use --add
-- select the dedicated GAME-SERVER project
-- firebase deploy --only firestore:rules
+    firebase login
+    firebase use --add
+    firebase deploy --only firestore:rules,firestore:indexes --project YOUR_FIREBASE_PROJECT_ID
 
-The trusted backend uses Firebase Admin SDK and IAM. Admin SDK access bypasses client rules and is restricted by the Cloud Run runtime service account's IAM permissions.
+Rules permit:
+- get only users/{uid} where request.auth.uid == uid;
+- update only the user's customDisplayName field, with a 2–24 character limit;
+- read only orders whose userId equals the signed-in UID.
 
-## 5. Required backend collections
+Rules deny browser profile creation/deletion, all order writes, payment and entitlement writes, OAuth state, nonce, Discord mapping and all other internal collection access. Firebase Admin in Cloud Run performs trusted writes.
 
-The Steam authentication service uses:
-- users/{uid} for the profile created by the trusted backend;
-- steamAuthExchanges/{sha256(code)} for one-time Firebase Custom Token exchange records;
-- steamOpenIdNonces/{sha256(nonce)} to prevent replay of a previously accepted Steam assertion.
+## Backend collections
 
-Configure Firestore TTL on expiresAt for steamAuthExchanges and steamOpenIdNonces. Application code still checks expiration and does not rely on TTL timing.
+- users/{uid} — Steam profile and optional Discord link.
+- steamAuthExchanges/{sha256(code)} — one-time Firebase token exchange.
+- steamOpenIdNonces/{sha256(nonce)} — Steam OpenID replay protection.
+- discordAuthStates/{sha256(state)} — one-time Discord OAuth state.
+- discordLinks/{discordId} — unique Discord-to-Steam UID mapping.
+- orders/{orderId} — server-created orders; owner-readable, client-write denied.
 
-## 6. Verification
+Configure Firestore TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces and discordAuthStates. TTL is cleanup only; backend code independently checks expiration.
 
-- A first successful Steam login creates one Firebase identity and one profile.
-- A repeat login resolves to the same identity.
-- A modified or non-canonical claimed_id is rejected.
-- A replayed nonce or exchange code is rejected.
-- A signed-in user can read only their own profile.
-- Client writes to users and all access to internal collections are denied.
-- Logout clears the Firebase client session.
+## Acceptance checks
 
-Do not mark Firebase as connected until the project selection, Authentication domain, Firestore database, published rules and end-to-end login have all been checked in the actual Firebase project.
+- First Steam login creates one Firebase identity and profile.
+- Repeated login resolves to the same UID.
+- A user can read only their own profile and orders.
+- A user can update only their own customDisplayName.
+- A user cannot create, delete or alter order documents.
+- A user cannot read another profile, internal state, entitlements or payment events.
+- Discord identity is unique and cannot be linked to another UID.
+- Logout ends the Firebase session.
+

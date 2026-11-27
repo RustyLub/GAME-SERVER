@@ -1,20 +1,20 @@
 # Rusty.Lub — GAME-SERVER
 
-Production website for Rusty.Lub EU Long.
+Bilingual public website for Rusty.Lub EU Long.
 
 - Production domain: https://rusty-lub.online
 - Repository: https://github.com/RustyLub/GAME-SERVER
-- Hosting: GitHub Pages (GitHub Actions deployment)
-- Frontend: React 19 + TypeScript + Vite
-- Steam/Discord auth backend: Node.js + Firebase Admin, intended for Google Cloud Run
+- Frontend hosting: GitHub Pages via GitHub Actions
+- Frontend: React 19 + TypeScript + Vite 8
+- Trusted backend: Node.js + Firebase Admin on Google Cloud Run
 
-## Server configuration
+## Game server
 
 | Setting | Value |
 | --- | --- |
 | Server | Rusty.Lub EU Long |
 | Address | 202.36.95.125:26227 |
-| Connect command | client.connect 202.36.95.125:26227 |
+| Console command | client.connect 202.36.95.125:26227 |
 | Region | Europe |
 | Mode | Classic Vanilla x1 |
 | Map | Procedural |
@@ -22,68 +22,46 @@ Production website for Rusty.Lub EU Long.
 | Team limit | 12 |
 | Wipe | First Thursday of each month |
 
-The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins are installed or required by this project.
+The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins are installed or required.
 
-## Local development
+## Website features
 
-Requirements: Node.js 22 (see .nvmrc) and npm.
+- Russian and English route sets with language switching.
+- Server connection address, copy action, Steam connect link, live status indicator and next wipe date.
+- Server, wipe, rules, support, privacy, terms, account, account-linking, store and leaderboard pages.
+- Steam OpenID sign-in with server verification and Firebase Custom Tokens.
+- Discord account linking through server-side OAuth2.
+- Owner-scoped Firestore profile and read-only order history.
+- Native-Rust VIP Queue Pass flow is implemented separately from the website's game runtime; no game plugin is used.
+- Player leaderboard remains “Скоро” until a trusted game statistics source is connected.
+- Route prerendering, sitemap, robots, canonical URLs and separate RU/EN OG artwork.
+
+## Local checks
+
+Requirements: Node.js 22+ and npm.
 
 - npm install
-- npm run dev
 - npm run build
-- npm run preview
+- npm run verify:release
+- npm install --prefix backend
+- npm test --prefix backend
+- bash -n backend/deploy-cloud-run.sh
 
-## Deployment
+## Deployments
 
-Every push to main runs the GitHub Pages workflow:
-1. Install dependencies.
-2. Run TypeScript checks and the Vite production build.
-3. Run backend Steam-auth tests.
-4. Upload dist/ as a Pages artifact.
-5. Deploy the artifact to GitHub Pages.
+Pushes to main run .github/workflows/deploy-pages.yml. CI installs frontend dependencies, type-checks and builds, prerenders all routes, verifies SEO/404 output, checks backend syntax and runs backend unit tests before deploying GitHub Pages.
 
-GitHub Pages serves the static frontend only. Steam OpenID callbacks and Firebase Admin operations run in the separate backend service.
+The static frontend and Cloud Run backend are separate deployments. Steam/Discord callbacks, Firebase Admin, Platega webhooks and privileged RCON commands never run in GitHub Pages.
 
-## Custom domain
+## Domain
 
-The intended canonical host is rusty-lub.online. public/CNAME records the intended hostname in the repository, but this custom GitHub Actions deployment does not set the Pages custom-domain setting. Confirm rusty-lub.online manually in repository Settings → Pages, then verify registrar DNS independently. For the apex domain, GitHub Pages normally requires the four A records:
-- 185.199.108.153
-- 185.199.109.153
-- 185.199.110.153
-- 185.199.111.153
+The apex domain must be set manually in repository Settings → Pages. The public/CNAME file is not sufficient for a custom GitHub Actions workflow. See docs/MANUAL_STEPS.md for GitHub Pages A records, optional www CNAME, backend auth subdomain, HTTPS and redirect verification.
 
-The www host may use a CNAME to RustyLub.github.io. Do not change unrelated mail records or the separate game-server subdomain. Enable Enforce HTTPS only after GitHub Pages has issued a valid certificate for the custom domain.
+## Security and secrets
 
-## Firebase and security
+Root .env.example and backend/.env.example contain empty variable names only. Firebase Web App config and VITE_API_BASE_URL are public client values. Firebase Admin identity, Steam/Discord/Platega credentials and RCON password stay in Cloud Run / Google Secret Manager. Never place secrets in VITE_ variables or source control.
 
-This repository must use a dedicated Firebase project for GAME-SERVER, separate from the legacy Rusty.Lub website project. The project ID must be confirmed before deployment; the frontend intentionally has no hard-coded Firebase fallback.
+## Manual actions
 
-The Firebase Web App configuration is public client configuration. Provide the six VITE_FIREBASE_* values through local untracked environment or GitHub Actions Variables. The public Cloud Run base URL may be provided as VITE_API_BASE_URL. These are not secrets.
+Some steps require the project owner: choosing the dedicated Firebase project, enabling Authentication and Firestore, publishing rules, configuring Google Cloud IAM/Cloud Run, creating Discord and Platega applications, enabling WebRCON, setting REG.RU DNS and completing seller details for legal pages. They are listed in docs/MANUAL_STEPS.md.
 
-Firestore rules allow users to get only their own profile. Browser writes and all access to internal collections are denied. The trusted backend uses Firebase Admin through a dedicated Cloud Run runtime service account and IAM.
-
-Never commit .env files, service-account JSON, private keys, Steam API keys or RCON credentials. Keep all privileged values in Cloud Run environment configuration or Google Secret Manager. Never use VITE_ variables for secrets.
-
-See docs/FIREBASE_SETUP.md and backend/README.md.
-
-## Authentication
-
-The account area uses Steam OpenID verified server-side. The backend creates Firebase identities with stable Steam-based UIDs and returns a short-lived, one-time custom-token exchange code. Steam sign-in is not considered live until Cloud Run is deployed, the dedicated Firebase project is configured and end-to-end tests pass.
-
-## Payments and VIP
-
-Payment implementation and draft legal documents are isolated in the payments/platega-drafts branch. They are not part of main and must not be deployed or activated without explicit approval. The Rust game server remains Vanilla; a no-plugin VIP approach using Rust's native queue permissions may be evaluated separately after approval.
-
-## Current feature boundaries
-
-- Player leaderboard: “Скоро” until a verified game-statistics source is available.
-- Discord account linking: not connected.
-- Live player counts: not connected until a trusted server query is available.
-- No payment is accepted by the production branch.
-
-## Project documentation
-
-- Architecture and integration boundaries: docs/ARCHITECTURE.md
-- Firebase setup: docs/FIREBASE_SETUP.md
-- Cloud Run backend setup: backend/README.md
-- Security policy: SECURITY.md
