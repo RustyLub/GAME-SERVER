@@ -20,6 +20,15 @@ const SITE_ORIGIN = parsedSiteOrigin.origin;
 assert.ok(["https://rusty-lub.online", "https://rusty-lub.ru"].includes(SITE_ORIGIN), "SITE_ORIGIN must be an approved Rusty.Lub domain");
 assert.equal(resolveSiteOrigin(parsedSiteOrigin.hostname), SITE_ORIGIN, "SITE_ORIGIN must be one of the supported independent production domains");
 const dist = path.resolve("dist");
+const pagesRoutes = JSON.parse(await fs.readFile(path.join(dist, "_routes.json"), "utf8"));
+assert.equal(pagesRoutes.version, 1, "Cloudflare Pages routes config must use version 1");
+assert.ok(pagesRoutes.include.includes("/*"), "Cloudflare middleware must cover document and SEO routes");
+for (const assetRoute of ["/assets/*", "/*.svg", "/*.png", "/*.webp", "/*.css", "/*.js", "/CNAME", "/_routes.json"]) {
+  assert.ok(pagesRoutes.exclude.includes(assetRoute), "Cloudflare middleware should skip static asset route " + assetRoute);
+}
+assert.ok(!pagesRoutes.exclude.includes("/robots.txt"), "robots.txt must pass through host metadata middleware");
+assert.ok(!pagesRoutes.exclude.includes("/sitemap.xml"), "sitemap.xml must pass through host metadata middleware");
+await fs.access(path.resolve("functions/_middleware.js"));
 const { serverRoutes, noindexRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
 const routes = [
   ["/", "index.html", "ru"],
