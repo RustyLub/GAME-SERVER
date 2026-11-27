@@ -55,11 +55,11 @@ The service cannot be considered live until it has been deployed and these check
 
 ## VIP Queue Pass and Platega
 
-The backend includes a seven-day VIP Queue Pass checkout flow. The pass is tied to the SteamID64 in the verified Firebase custom-token claims; the browser cannot choose another player's SteamID. The configured price is read only from `VIP_PRICE_RUB`. Checkout stays disabled until all three values are present:
+The backend includes a seven-day VIP Queue Pass checkout flow. The pass is tied to the SteamID64 in the verified Firebase custom-token claims; the browser cannot choose another player's SteamID. The configured price is read only from `VIP_PRICE_RUB`. Checkout stays disabled until all four values are present and the Carbon plugin has sent a recent heartbeat:
 
 - `PLATEGA_MERCHANT_ID`
 - `PLATEGA_SECRET`
-- `VIP_PRICE_RUB` (whole RUB amount)
+- `VIP_PRICE_RUB` (whole RUB amount)\n- `CARBON_SYNC_SECRET` (same long random value as the Carbon plugin config)
 
 Also set `PLATEGA_API_BASE=https://api.eu.payplatform.cc` (the European Platega API host). Do not place any Platega credential in Vite variables or the frontend.
 
@@ -97,7 +97,7 @@ The backend exposes a narrow queue API for the Rust server plugin:
 
 Both require `Authorization: Bearer <CARBON_SYNC_SECRET>`. Set the same long random value in the backend secret manager and the Carbon plugin config. This secret is never sent to the website. The backend leases jobs for 60 seconds and retries unacknowledged jobs after the lease expires.
 
-The plugin file is `carbon/RustyLubVipQueue.cs`. Install it in the server's `carbon/plugins` directory, configure its API URL and shared secret, then watch the Carbon console logs. It executes only fixed Rust commands with a validated 17-digit SteamID64:
+The plugin file is `carbon/RustyLubVipQueue.cs`. Install it in the server's `carbon/plugins` directory, configure its API URL and shared secret, then watch the Carbon console logs. The plugin polls every 15 seconds; each authenticated poll refreshes a backend heartbeat. VIP checkout remains disabled unless that heartbeat is newer than 90 seconds, so the website will not accept a new payment while the Carbon bridge is offline. It executes only fixed Rust commands with a validated 17-digit SteamID64:
 
 - Grant: `global.skipqueueid <SteamID64> "Rusty.Lub VIP" "7-day pass"`
 - Expire: `global.removeskipqueue <SteamID64>`
