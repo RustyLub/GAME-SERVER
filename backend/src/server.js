@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import express from "express";
+import { OAuth2Client } from "google-auth-library";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -42,7 +43,8 @@ const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID?.trim() || "";
 const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
 const VIP_PRICE_RUB = Number(process.env.VIP_PRICE_RUB || 0);
 const PLATEGA_PAYMENT_METHOD = Number(process.env.PLATEGA_PAYMENT_METHOD || 2);
-const VIP_WORKER_SECRET = process.env.VIP_WORKER_SECRET || "";
+const VIP_SCHEDULER_SERVICE_ACCOUNT = process.env.VIP_SCHEDULER_SERVICE_ACCOUNT?.trim() || "";
+const googleAuthClient = new OAuth2Client();
 const VIP_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 
@@ -552,7 +554,7 @@ function isVipCheckoutEnabled() {
     const api = new URL(PLATEGA_API_BASE);
     return api.protocol === "https:" &&
       ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
-      Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_WORKER_SECRET &&
+      Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_SCHEDULER_SERVICE_ACCOUNT &&
         RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD &&
         Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 &&
         [2, 3, 11, 12, 13, 14].includes(PLATEGA_PAYMENT_METHOD));
@@ -819,8 +821,22 @@ app.post("/payments/platega/callback", async (req, res) => {
   }
 });
 
+async function isVipSchedulerRequest(req) {
+  if (!VIP_SCHEDULER_SERVICE_ACCOUNT) return false;
+  const match = /^Bearer\\s+(.+)$/i.exec(String(req.headers.authorization || ""));
+  if (!match) return false;
+  try {
+    const ticket = await googleAuthClient.verifyIdToken({
+      idToken: match[1],
+      audience: BACKEND_PUBLIC_URL + "/internal/vip/reconcile",
+    });
+    const payload = ticket.getPayload();
+    return payload?.email === VIP_SCHEDULER_SERVICE_ACCOUNT && payload.email_verified === true;
+  } catch { return false; }
+}
+
 app.post("/internal/vip/reconcile", async (req, res) => {
-  if (!VIP_WORKER_SECRET || !constantTimeEqual(VIP_WORKER_SECRET, String(req.headers["x-job-secret"] || ""))) return res.sendStatus(401);
+  if (!await isVipSchedulerRequest(req)) return res.sendStatus(401);
   try {
     const processed = await processVipQueueWorker();
     return res.status(200).json({ ok: true, processed });
@@ -836,4 +852,4 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
-export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, processVipEntitlement, processVipQueueWorker, isVipCheckoutEnabled };
+export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, processVipEntitlement, processVipQueueWorker, isVipCheckoutEnabled, isVipSchedulerRequest };
