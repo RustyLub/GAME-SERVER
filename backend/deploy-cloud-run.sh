@@ -27,8 +27,8 @@ secret_bindings=()
 [[ -n "$DISCORD_CLIENT_SECRET_SECRET_NAME" ]] && secret_bindings+=("DISCORD_CLIENT_SECRET=$DISCORD_CLIENT_SECRET_SECRET_NAME:latest")
 [[ -n "$RCON_PASSWORD_SECRET_NAME" ]] && secret_bindings+=("RCON_PASSWORD=$RCON_PASSWORD_SECRET_NAME:latest")
 secret_flags=()
-if (( \${#secret_bindings[@]} > 0 )); then
-  secret_value="$(IFS=,; printf '%s' "\${secret_bindings[*]}")"
+if (( ${#secret_bindings[@]} > 0 )); then
+  secret_value="$(IFS=,; printf '%s' "${secret_bindings[*]}")"
   secret_flags=(--set-secrets "$secret_value")
 fi
 
@@ -45,7 +45,7 @@ deploy_service() {
     --max 3 \
     --timeout 30 \
     --set-env-vars "FRONTEND_ORIGIN=$FRONTEND_ORIGIN,BACKEND_PUBLIC_URL=$backend_url,FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID,FIREBASE_SERVICE_ACCOUNT_EMAIL=$RUNTIME_SERVICE_ACCOUNT,DISCORD_CLIENT_ID=$DISCORD_CLIENT_ID,DISCORD_REDIRECT_URI=$backend_url/auth/discord/callback,RCON_HOST=$RCON_HOST,RCON_PORT=$RCON_PORT" \
-    "\${secret_flags[@]}"
+    "${secret_flags[@]}"
 }
 
 echo "Deploying Rusty.Lub backend to Cloud Run..."

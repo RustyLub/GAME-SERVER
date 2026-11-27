@@ -12,10 +12,10 @@ export default defineConfig({
       output: {
         codeSplitting: {
           groups: [
-            { test: /node_modules\\/(react|react-dom|scheduler)\\//, name: "framework" },
-            { test: /node_modules\\/@firebase\\/auth\\//, name: "firebase-auth" },
-            { test: /node_modules\\/@firebase\\/firestore\\//, name: "firebase-firestore" },
-            { test: /node_modules\\/@firebase\\/util\\//, name: "firebase-core" },
+            { test: /node_modules\/(react|react-dom|scheduler)\//, name: "framework" },
+            { test: /node_modules\/@firebase\/auth\//, name: "firebase-auth" },
+            { test: /node_modules\/@firebase\/firestore\//, name: "firebase-firestore" },
+            { test: /node_modules\/@firebase\/util\//, name: "firebase-core" },
           ],
         },
       },
