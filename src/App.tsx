@@ -1,27 +1,31 @@
-import { useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { isFirebaseConfigured } from "./lib/firebase";
-
-type Tab = "all" | "monthly" | "vanilla";
 
 const SERVER = {
   name: "Rusty.Lub EU Long",
   address: "202.36.95.125:26227",
   connect: "client.connect 202.36.95.125:26227",
-  region: "EUROPE",
-  mode: "VANILLA",
-  rate: "x1",
   slots: 200,
   team: 12,
-  wipe: "Первый четверг месяца",
 };
 
-function App() {
-  const [tab, setTab] = useState<Tab>("all");
-  const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  const [activeSection, setActiveSection] = useState("servers");
+const navigation = [
+  ["servers", "Сервер"],
+  ["wipe", "Вайп"],
+  ["features", "Особенности"],
+  ["rules", "Правила"],
+  ["faq", "FAQ"],
+  ["contact", "Контакты"],
+] as const;
 
-  const copyConnect = async () => {
+function App() {
+  const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [formError, setFormError] = useState("");
+  const [formReady, setFormReady] = useState(false);
+
+  async function copyConnect() {
     try {
       await navigator.clipboard.writeText(SERVER.connect);
       setCopied(true);
@@ -29,37 +33,40 @@ function App() {
     } catch {
       window.location.href = "steam://connect/202.36.95.125:26227";
     }
-  };
+  }
 
-  const sections = useMemo(() => [
-    { id: "servers", label: "Серверы" },
-    { id: "wipe", label: "Вайпы" },
-    { id: "stats", label: "Статистика" },
-    { id: "maps", label: "Карты" },
-    { id: "store", label: "Магазин" },
-    { id: "rules", label: "Правила" },
-  ], []);
+  function submitContact(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!form.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) || form.message.trim().length < 10) {
+      setFormError("Заполни имя, укажи корректную почту и напиши сообщение не короче 10 символов.");
+      setFormReady(false);
+      return;
+    }
+    setFormError("");
+    setFormReady(true);
+    const subject = encodeURIComponent("Сообщение с сайта Rusty.Lub");
+    const body = encodeURIComponent(`Имя: ${form.name}\nEmail: ${form.email}\n\n${form.message}`);
+    window.location.href = `mailto:rusty.lub-slq@inbox.ru?subject=${subject}&body=${body}`;
+  }
 
   return (
     <div className="app-shell">
       <div className="topline">
-        <span><i className="live-dot" /> RUSTY.LUB NETWORK</span>
-        <span className="topline-center">EUROPE · RUST COMMUNITY</span>
-        <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD <b>↗</b></a>
+        <span><i className="live-dot" /> RUSTY.LUB COMMUNITY</span>
+        <span className="topline-center">EUROPE · CLASSIC RUST</span>
+        <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">НАШ DISCORD <b>↗</b></a>
       </div>
 
       <header className="header">
-        <a className="logo" href="#home" aria-label="Rusty.Lub home">
+        <a className="logo" href="#home" aria-label="Rusty.Lub — главная">
           <span className="logo-symbol">R<span>.</span></span>
-          <span className="logo-word">RUSTY<span>.LUB</span><small>GAME SERVERS</small></span>
+          <span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span>
         </a>
-        <nav className="main-nav">
-          {sections.map((item) => (
-            <a key={item.id} className={activeSection === item.id ? "active" : ""} href={`#${item.id}`} onClick={() => setActiveSection(item.id)}>{item.label}</a>
-          ))}
+        <nav className={`main-nav ${menuOpen ? "nav-open" : ""}`} aria-label="Основная навигация">
+          {navigation.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
-        <a className="login-button" href="#account">ВОЙТИ ЧЕРЕЗ STEAM <span>↗</span></a>
-        <button className="mobile-menu" onClick={() => setExpanded(!expanded)} aria-label="Открыть меню">☰</button>
+        <button className="login-button" type="button" disabled title="Steam OpenID будет подключён на следующем этапе">ЛИЧНЫЙ КАБИНЕТ <span>↗</span></button>
+        <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen}>{menuOpen ? "✕" : "☰"}</button>
       </header>
 
       <main id="home">
@@ -67,95 +74,102 @@ function App() {
           <div className="hero-image" />
           <div className="hero-shade" />
           <div className="hero-inner">
-            <div className="kicker"><span /> OFFICIAL RUSTY.LUB SERVER</div>
-            <h1>YOUR NEXT<br /><em>WIPE</em> STARTS HERE.</h1>
-            <p>Чистый Rust. Честная игра. Твоё место в мире Rusty.Lub.</p>
+            <div className="kicker"><span /> RUSTY.LUB EU LONG / OFFICIAL SERVER</div>
+            <h1>ТВОЙ СЛЕДУЮЩИЙ<br /><em>WIPE.</em> ТВОИ ПРАВИЛА.</h1>
+            <p>Классический Rust без модифицированных рейтов. Собирай команду, строй базу и начинай новую историю на Rusty.Lub.</p>
             <div className="hero-cta">
-              <button className="btn btn-red" onClick={copyConnect}>{copied ? "КОМАНДА СКОПИРОВАНА ✓" : "ПОДКЛЮЧИТЬСЯ К СЕРВЕРУ ↗"}</button>
-              <a className="btn btn-ghost" href="#servers">ПОДРОБНЕЕ ↓</a>
+              <button className="btn btn-red" onClick={copyConnect}>{copied ? "КОМАНДА СКОПИРОВАНА ✓" : "ПОДКЛЮЧИТЬСЯ ↗"}</button>
+              <a className="btn btn-ghost" href="#servers">О СЕРВЕРЕ ↓</a>
             </div>
-            <div className="hero-meta"><span><i className="live-dot" /> SERVER CONFIGURED</span><span>EUROPE / MONTHLY / VANILLA X1</span></div>
+            <div className="hero-meta"><span><i className="live-dot" /> EU LONG SERVER</span><span>VANILLA X1 / MONTHLY WIPE</span></div>
           </div>
           <div className="hero-vertical">SURVIVE&nbsp; / &nbsp;BUILD&nbsp; / &nbsp;DOMINATE</div>
         </section>
 
-        <section className="quick-stats">
-          <div><small>NETWORK</small><strong>EUROPE</strong><span>Европейский регион</span></div>
-          <div><small>GAME MODE</small><strong>VANILLA X1</strong><span>Классический Rust</span></div>
-          <div><small>TEAM LIMIT</small><strong>12 PLAYERS</strong><span>Максимум в команде</span></div>
-          <div><small>WIPE CYCLE</small><strong>MONTHLY</strong><span>Первый четверг месяца</span></div>
+        <section className="quick-stats" aria-label="Параметры сервера">
+          <div><small>РЕГИОН</small><strong>EUROPE</strong><span>Европейский сервер</span></div>
+          <div><small>РЕЖИМ</small><strong>VANILLA X1</strong><span>Классический Rust</span></div>
+          <div><small>КОМАНДА</small><strong>12 ИГРОКОВ</strong><span>Лимит группы</span></div>
+          <div><small>ВАЙП</small><strong>MONTHLY</strong><span>Первый четверг месяца</span></div>
         </section>
 
         <section className="content-section server-section" id="servers">
           <div className="section-heading">
-            <div><div className="eyebrow">RUSTY.LUB / SERVERS</div><h2>НАШИ <em>СЕРВЕРЫ</em></h2></div>
-            <div className="section-note">Выбери сервер и присоединяйся к игре.</div>
+            <div><div className="eyebrow">RUSTY.LUB / EU LONG</div><h2>ОДИН СЕРВЕР.<br /><em>ЧИСТЫЙ RUST.</em></h2></div>
+            <div className="section-note">Без лишних модификаций. Только вы, ваша команда и остров.</div>
           </div>
-          <div className="server-toolbar">
-            <div className="tabs">
-              <button className={tab === "all" ? "selected" : ""} onClick={() => setTab("all")}>ВСЕ СЕРВЕРЫ <b>01</b></button>
-              <button className={tab === "monthly" ? "selected" : ""} onClick={() => setTab("monthly")}>MONTHLY</button>
-              <button className={tab === "vanilla" ? "selected" : ""} onClick={() => setTab("vanilla")}>VANILLA</button>
+          <article className="server-card">
+            <div className="server-card-top">
+              <div className="server-region"><span className="region-flag">EU</span><span>EUROPE</span><b>MONTHLY WIPE</b></div>
+              <span className="server-status"><i className="status-neutral" /> ДАННЫЕ ОНЛАЙНЕ НЕ ПОДКЛЮЧЕНЫ</span>
             </div>
-            <button className="expand-button" onClick={() => setExpanded(!expanded)}>{expanded ? "СВЕРНУТЬ −" : "РАЗВЕРНУТЬ +"}</button>
-          </div>
-          {(tab === "all" || tab === "monthly" || tab === "vanilla") && (
-            <article className="server-card">
-              <div className="server-card-top">
-                <div className="server-region"><span className="region-flag">EU</span><span>EUROPE</span><b>MONTHLY WIPE</b></div>
-                <span className="server-status"><i className="live-dot" /> STATUS DATA PENDING</span>
-              </div>
-              <div className="server-main">
-                <div className="server-title"><h3>{SERVER.name}</h3><p>CLASSIC SURVIVAL · NO MODIFIED GATHER</p></div>
-                <div className="server-capacity"><strong>— <small>/ {SERVER.slots}</small></strong><span>PLAYERS ONLINE</span></div>
-              </div>
-              <div className="server-facts">
-                <div><small>MAP</small><b>PROCEDURAL</b></div>
-                <div><small>GATHER RATE</small><b>{SERVER.rate.toUpperCase()}</b></div>
-                <div><small>TEAM LIMIT</small><b>{SERVER.team}</b></div>
-                <div><small>WIPE</small><b>MONTHLY</b></div>
-              </div>
-              {expanded && <div className="server-details">
-                <div className="server-address"><small>SERVER ADDRESS</small><code>{SERVER.address}</code></div>
-                <button className="copy-button" onClick={copyConnect}>{copied ? "СКОПИРОВАНО ✓" : "COPY CONNECT ↗"}</button>
-                <div className="server-connect-command"><small>CONSOLE COMMAND</small><code>{SERVER.connect}</code></div>
-              </div>}
-              <div className="server-card-bottom"><span>WIPE: {SERVER.wipe.toUpperCase()}</span><a href="#wipe">WIPE DETAILS ↗</a></div>
-            </article>
-          )}
+            <div className="server-main">
+              <div className="server-title"><h3>{SERVER.name}</h3><p>CLASSIC SURVIVAL · PROCEDURAL MAP · VANILLA</p></div>
+              <div className="server-capacity"><strong>— <small>/ {SERVER.slots}</small></strong><span>ИГРОКОВ ОНЛАЙН</span></div>
+            </div>
+            <div className="server-facts">
+              <div><small>КАРТА</small><b>PROCEDURAL</b></div>
+              <div><small>РЕЙТЫ</small><b>VANILLA X1</b></div>
+              <div><small>ЛИМИТ ГРУППЫ</small><b>{SERVER.team} ИГРОКОВ</b></div>
+              <div><small>РЕГИОН</small><b>EUROPE</b></div>
+            </div>
+            <div className="server-details">
+              <div className="server-address"><small>АДРЕС СЕРВЕРА</small><code>{SERVER.address}</code></div>
+              <button className="copy-button" onClick={copyConnect}>{copied ? "СКОПИРОВАНО ✓" : "КОПИРОВАТЬ КОМАНДУ ↗"}</button>
+              <div className="server-connect-command"><small>КОМАНДА ДЛЯ КОНСОЛИ F1</small><code>{SERVER.connect}</code></div>
+            </div>
+            <div className="server-card-bottom"><span>ЕЖЕМЕСЯЧНЫЙ ВАЙП · ПЕРВЫЙ ЧЕТВЕРГ</span><a href="#wipe">РАСПИСАНИЕ ВАЙПОВ ↗</a></div>
+          </article>
         </section>
 
         <section className="content-section split-section" id="wipe">
-          <div><div className="eyebrow">WIPE SCHEDULE / EU LONG</div><h2>СЛЕДУЮЩИЙ<br /><em>WIPE.</em></h2><p>Плановый вайп проходит в первый четверг каждого месяца. Точное время и подтверждение даты будут публиковаться здесь.</p></div>
-          <div className="wipe-panel"><div className="wipe-panel-top"><span>WIPE CALENDAR</span><span className="calendar-mark">01 / EU</span></div><div className="wipe-date">THURSDAY <strong>01<sup>ST</sup></strong></div><div className="wipe-panel-bottom"><span>EVERY MONTH</span><span>EUROPE / MOSCOW TIME</span></div></div>
+          <div><div className="eyebrow">WIPE SCHEDULE / EU LONG</div><h2>НОВЫЙ МЕСЯЦ.<br /><em>НОВАЯ ИСТОРИЯ.</em></h2><p>Плановый вайп проходит в первый четверг каждого месяца. Время и подтверждение ближайшего вайпа публикуются в Discord — следи за объявлениями сообщества.</p><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">СЛЕДИТЬ ЗА ОБЪЯВЛЕНИЯМИ ↗</a></div>
+          <div className="wipe-panel"><div className="wipe-panel-top"><span>WIPE CALENDAR</span><span className="calendar-mark">EU / MSK</span></div><div className="wipe-date">ПЕРВЫЙ <strong>ЧЕТВЕРГ</strong><span>КАЖДОГО МЕСЯЦА</span></div><div className="wipe-panel-bottom"><span>MONTHLY WIPE</span><span>ТОЧНОЕ ВРЕМЯ — В DISCORD</span></div></div>
         </section>
 
-        <section className="content-section info-section" id="stats">
-          <div className="section-heading"><div><div className="eyebrow">PLAYER DATA / COMMUNITY</div><h2>ИГРОВАЯ <em>СТАТИСТИКА</em></h2></div><span className="coming-label">DATA SOURCE NOT CONNECTED</span></div>
-          <div className="placeholder-grid"><div><small>PLAYER PROFILES</small><strong>Профили игроков</strong><span>Steam-профили и история активности</span></div><div><small>LEADERBOARDS</small><strong>Таблица лидеров</strong><span>Рейтинг игроков текущего вайпа</span></div><div><small>SERVER HISTORY</small><strong>История сервера</strong><span>Онлайн и показатели по вайпам</span></div></div>
-        </section>
-
-        <section className="content-section map-section" id="maps">
-          <div className="section-heading"><div><div className="eyebrow">WORLD / PROCEDURAL MAP</div><h2>МИР <em>RUSTY.LUB</em></h2></div><span className="coming-label">MAP DATA NOT CONNECTED</span></div>
-          <div className="map-placeholder"><div className="map-cross">+</div><div><strong>PROCEDURAL WORLD</strong><span>Карта текущего вайпа появится после подключения источника данных.</span></div><span className="map-coordinates">EU / 01</span></div>
-        </section>
-
-        <section className="content-section store-section" id="store">
-          <div className="store-copy"><div className="eyebrow">RUSTY.LUB / STORE</div><h2>ПРИОРИТЕТ<br /><em>В ОЧЕРЕДИ.</em></h2><p>Магазин будет оформлен по модели Rusticated: выбор сервера, услуга, срок действия и способ оплаты. Покупка пока не подключена.</p><a className="btn btn-red" href="#account">ПЕРЕЙТИ В МАГАЗИН ↗</a></div>
-          <div className="product-card"><div className="product-tag">QUEUE PRIORITY</div><div className="product-icon">↗</div><h3>VIP QUEUE SKIP</h3><p>Приоритетное подключение к Rusty.Lub EU Long.</p><div className="product-price">SOON <small> / 30 DAYS</small></div><span className="disabled-buy">PURCHASE NOT CONNECTED</span></div>
+        <section className="content-section info-section" id="features">
+          <div className="section-heading"><div><div className="eyebrow">WHY RUSTY.LUB</div><h2>ТВОЯ ИГРА.<br /><em>ТВОИ УСЛОВИЯ.</em></h2></div></div>
+          <div className="placeholder-grid">
+            <div><small>01 / VANILLA</small><strong>Классический Rust</strong><span>Стандартные рейты x1 без ускоренной добычи и лишних модификаций.</span></div>
+            <div><small>02 / COMMUNITY</small><strong>Играйте вместе</strong><span>Команды до 12 игроков. Кланы и альянсы разрешены.</span></div>
+            <div><small>03 / MONTHLY</small><strong>Понятный вайп</strong><span>Новый цикл каждый первый четверг месяца.</span></div>
+          </div>
         </section>
 
         <section className="content-section rules-section" id="rules">
-          <div className="section-heading"><div><div className="eyebrow">FAIR PLAY / SERVER POLICY</div><h2>ПРАВИЛА <em>СЕРВЕРА</em></h2></div><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ВОПРОСЫ? DISCORD ↗</a></div>
-          <div className="rule-row"><b>01</b><span>Честная игра</span><p>Запрещены читы, макросы и использование стороннего ПО для получения преимущества.</p></div>
-          <div className="rule-row"><b>02</b><span>Уважение</span><p>Запрещены угрозы, травля и дискриминация участников сообщества.</p></div>
-          <div className="rule-row"><b>03</b><span>Командная игра</span><p>Максимальный размер команды — 12 игроков. Правила союзов уточняются администрацией.</p></div>
+          <div className="section-heading"><div><div className="eyebrow">FAIR PLAY / COMMUNITY</div><h2>ОСНОВЫ <em>ПРАВИЛ.</em></h2></div><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ПОЛНЫЕ ОБЪЯВЛЕНИЯ — DISCORD ↗</a></div>
+          <div className="rule-row"><b>01</b><span>Честная игра</span><p>Запрещены читы, макросы и стороннее ПО, дающее нечестное преимущество.</p></div>
+          <div className="rule-row"><b>02</b><span>Уважение</span><p>Не превращай общение в травлю, угрозы и оскорбления участников сообщества.</p></div>
+          <div className="rule-row"><b>03</b><span>Команды и альянсы</span><p>Размер команды ограничен 12 игроками. Кланы и альянсы разрешены.</p></div>
         </section>
 
-        <section className="account-band" id="account"><div><div className="eyebrow">PLAYER ACCOUNT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div><div><p>Войди через Steam, чтобы управлять профилем и покупками. Авторизация будет включена после настройки Steam OpenID. {isFirebaseConfigured ? "Отдельный Firebase-проект подключён." : "Ожидается конфигурация отдельного Firebase-проекта GAME-SERVER."}</p><button className="btn btn-ghost" disabled>STEAM LOGIN — COMING SOON</button></div></section>
+        <section className="content-section faq-section" id="faq">
+          <div className="section-heading"><div><div className="eyebrow">HELP / FAQ</div><h2>ЧАСТЫЕ <em>ВОПРОСЫ.</em></h2></div></div>
+          <details><summary>Как подключиться к серверу?</summary><p>Открой консоль Rust клавишей F1 и введи <code>{SERVER.connect}</code>. Также можно нажать кнопку подключения на сайте.</p></details>
+          <details><summary>Какие рейты и размер команды?</summary><p>Сервер работает на классических рейтах Vanilla x1. Лимит команды — 12 игроков. Кланы и альянсы разрешены.</p></details>
+          <details><summary>Когда проходит вайп?</summary><p>Плановый вайп — в первый четверг каждого месяца. Точное время публикуется в Discord.</p></details>
+          <details><summary>Где узнать новости и задать вопрос?</summary><p>В официальном Discord-сообществе: <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">discord.gg/rustylub</a>.</p></details>
+        </section>
+
+        <section className="account-band" id="account"><div><div className="eyebrow">PLAYER ACCOUNT / IN DEVELOPMENT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div><div><p>Личный кабинет, Steam-авторизация и история покупок появятся после подключения отдельного Firebase-проекта и серверной авторизации. Сейчас эти функции не активны.</p><button className="btn btn-ghost" disabled>STEAM LOGIN — В РАЗРАБОТКЕ</button><small className="firebase-note">{isFirebaseConfigured ? "Firebase-конфигурация обнаружена." : "Firebase ожидает настройки отдельного проекта GAME-SERVER."}</small></div></section>
+
+        <section className="content-section contact-section" id="contact">
+          <div className="section-heading"><div><div className="eyebrow">CONTACT / SUPPORT</div><h2>ЕСТЬ <em>ВОПРОС?</em></h2></div><div className="section-note">Напиши нам — разберёмся.</div></div>
+          <div className="contact-layout">
+            <div className="contact-details"><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD COMMUNITY ↗</a><a href="mailto:rusty.lub-slq@inbox.ru">RUSTY.LUB-SLQ@INBOX.RU ↗</a><span>Ответ на отправку формы откроется в твоём почтовом приложении.</span></div>
+            <form className="contact-form" onSubmit={submitContact} noValidate>
+              <label>ИМЯ<input value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="Как к тебе обращаться?" /></label>
+              <label>EMAIL<input type="email" value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="name@example.com" /></label>
+              <label>СООБЩЕНИЕ<textarea value={form.message} onChange={e => setForm({...form,message:e.target.value})} placeholder="Опиши свой вопрос..." rows={4} /></label>
+              {formError && <p className="form-message form-error" role="alert">{formError}</p>}
+              {formReady && <p className="form-message">Почтовое приложение должно открыться с подготовленным сообщением.</p>}
+              <button className="btn btn-red" type="submit">ПОДГОТОВИТЬ СООБЩЕНИЕ ↗</button>
+            </form>
+          </div>
+        </section>
       </main>
 
-      <footer className="footer"><a className="logo" href="#home"><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>GAME SERVERS</small></span></a><span>RUSTY.LUB EU LONG · VANILLA X1</span><span>© 2026 RUSTY.LUB</span></footer>
+      <footer className="footer"><a className="logo" href="#home"><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span></a><span>RUSTY.LUB EU LONG · VANILLA X1</span><span><a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span></footer>
     </div>
   );
 }
