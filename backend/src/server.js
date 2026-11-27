@@ -5,7 +5,7 @@ import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect } from "./payments.js";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive } from "./payments.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -734,7 +734,7 @@ app.post("/payments/orders", async (req, res) => {
       if (existing.exists) return { existing: true, ...existing.data() };
       if (lock.exists) {
         const lockData = lock.data();
-        if (lockData.expiresAt?.toMillis?.() > Date.now()) {
+        if (isCheckoutLockActive(lockData)) {
           return { locked: true };
         }
       }
