@@ -14,10 +14,10 @@ export function HomePageEn() {
  return <>
   <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
    <div className="kicker"><span /> RUSTY.LUB / RUST SERVER NETWORK</div>
-   <h1>THE WORLD OF RUST.<br /><em>YOUR</em> STORY.</h1>
-   <p>Rusty.Lub is an independent Rust gaming project and community. Explore our servers, learn what makes each world different and join the game.</p>
-   <div className="hero-cta"><a className="btn btn-red" href="#servers">CHOOSE A SERVER ↗</a><a className="btn btn-ghost" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">OUR COMMUNITY ↗</a></div>
-   <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>MULTIPLE WORLDS · ONE COMMUNITY</span><span>OFFICIAL PROJECT WEBSITE</span></div>
+   <h1>RUSTY.LUB<br /><em>SERVER NETWORK.</em></h1>
+   <p>Everything about our servers. All in one place. Explore each game world, check server status, follow news and events, and use guides and tools for Rust.</p>
+   <div className="hero-cta"><a className="btn btn-red" href="#servers">SERVER DIRECTORY ↗</a><a className="btn btn-ghost" href="#community">ABOUT THE COMMUNITY ↗</a></div>
+   <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>SERVERS · COMMUNITY · TOOLS</span><span>OFFICIAL PROJECT WEBSITE</span></div>
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
   <section className="network-intro content-section"><div className="section-heading"><div><div className="eyebrow">ABOUT / RUSTY.LUB</div><h2>ONE COMMUNITY.<br /><em>DIFFERENT WORLDS.</em></h2></div><div className="section-note">Rusty.Lub brings together Rust game servers, useful resources and players in one place.</div></div></section>
   <section className="content-section network-servers" id="servers"><div className="section-heading"><div><div className="eyebrow">OUR SERVERS / NETWORK</div><h2>CHOOSE YOUR <em>WORLD.</em></h2></div><span className="section-note">The network's first server is available now. New destinations will be listed here as the project grows.</span></div>
