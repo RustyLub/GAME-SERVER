@@ -175,12 +175,12 @@ The repository currently uses a custom GitHub Actions Pages workflow with `rusty
 
 A manual GitHub Actions workflow is prepared at **Actions → Deploy dual-domain site to Cloudflare Pages**. It does not run on pushes and does not change the live GitHub Pages deployment.
 
-1. Create two Cloudflare Pages projects named `rustylub-network-online` and `rustylub-network-ru`.
-2. Add both zones, `rusty-lub.online` and `rusty-lub.ru`, to the same Cloudflare account. In Pages → Custom domains, attach `rusty-lub.online` to `rustylub-network-online` and `rusty-lub.ru` to `rustylub-network-ru`. Both projects are built from the same commit, with host-specific canonical URLs, Open Graph URLs, sitemap and robots metadata.
+1. Create one Cloudflare Pages project named `rustylub-network`.
+2. Add both zones, `rusty-lub.online` and `rusty-lub.ru`, to the same Cloudflare account. In Pages → Custom domains, attach both apex domains, `rusty-lub.online` and `rusty-lub.ru`, to the `rustylub-network` project. The deployed Pages middleware rewrites canonical URLs, Open Graph URLs, sitemap and robots metadata to match the hostname of each request.
 3. Before changing nameservers at REG.RU, export the complete DNS zones and recreate every required record in Cloudflare. Preserve mail records (MX, SPF, DKIM, DMARC), the Rust game host `long.rusty-lub.online` as DNS-only A `202.36.95.125`, and the Cloud Run auth hostname records. Do not proxy the Rust game port or change its target.
 4. Only after comparing the full DNS record sets, switch the two domains' nameservers at REG.RU to the exact Cloudflare nameservers assigned to each zone. Wait until Cloudflare reports both zones active and verify the game hostname, mail records and auth hostname before proceeding.
 5. In GitHub → Settings → Secrets and variables → Actions → Secrets, add `CLOUDFLARE_API_TOKEN` (Pages: Edit permission) and `CLOUDFLARE_ACCOUNT_ID`. Keep all Firebase public build values in Actions Variables as described above.
-6. Run the workflow manually. It builds and verifies the same source twice, using `SITE_ORIGIN=https://rusty-lub.online` and `SITE_ORIGIN=https://rusty-lub.ru`, then deploys each verified output to its matching Pages project. It does not create DNS records or change custom-domain settings.
+6. Run the workflow manually. It builds and verifies the source for both origins, then deploys the shared output and host-aware middleware to the single Pages project. It does not create DNS records or change custom-domain settings.
 7. Verify HTTPS independently on both apex domains, check that neither redirects to the other, and test Steam sign-in, Discord linking, account reads and Platega return URLs from each domain.
 
 Do not switch nameservers until the existing DNS zone has been fully inventoried. The game server, mail and auth subdomain must keep working during the migration.
