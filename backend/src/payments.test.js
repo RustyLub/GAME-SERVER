@@ -93,7 +93,7 @@ test("deduplicates callbacks by transaction, status and refund identity", () => 
 
 test("builds only validated native Rust queue commands", () => {
   assert.equal(
-    buildVipGrantCommand(steamId64, 'Player "admin"\\n'),
+    buildVipGrantCommand(steamId64, 'Player "admin"\n'),
     'global.skipqueueid ' + steamId64 + ' "Player admin" "Rusty.Lub VIP Queue Pass"',
   );
   assert.equal(buildVipRemoveCommand(steamId64), "global.removeskipqueue " + steamId64);
