@@ -2,6 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
+import { resolveSiteOrigin, rewriteSiteUrl } from "../functions/_middleware.js";
+
+assert.equal(resolveSiteOrigin("rusty-lub.online"), "https://rusty-lub.online");
+assert.equal(resolveSiteOrigin("RUSTY-LUB.RU"), "https://rusty-lub.ru");
+assert.equal(resolveSiteOrigin("www.rusty-lub.ru"), null);
+assert.equal(resolveSiteOrigin("untrusted.example"), null);
+assert.equal(rewriteSiteUrl("https://rusty-lub.online/og-ru.png", "https://rusty-lub.ru"), "https://rusty-lub.ru/og-ru.png");
+assert.equal(rewriteSiteUrl("/og-ru.png", "https://rusty-lub.ru"), "https://rusty-lub.ru/og-ru.png");
+assert.equal(rewriteSiteUrl("https://external.example/image.png", "https://rusty-lub.ru"), "https://external.example/image.png");
 
 const configuredSiteOrigin = process.env.SITE_ORIGIN?.trim() || "https://rusty-lub.online";
 const parsedSiteOrigin = new URL(configuredSiteOrigin);
@@ -75,6 +84,12 @@ for (const image of ["og-ru.png", "og-en.png"]) {
   assert.equal(webp.toString("ascii", 0, 4), "RIFF");
   assert.equal(webp.toString("ascii", 8, 12), "WEBP");
 }
+
+const cloudflareRoutes = JSON.parse(await fs.readFile(path.join(dist, "_routes.json"), "utf8"));
+assert.ok(cloudflareRoutes.include.includes("/*"), "Cloudflare Pages must include document and SEO routes");
+assert.ok(cloudflareRoutes.exclude.includes("/assets/*"), "Cloudflare Pages middleware must skip bundled assets");
+assert.ok(!cloudflareRoutes.exclude.includes("/robots.txt"), "Cloudflare Pages must rewrite robots.txt per hostname");
+assert.ok(!cloudflareRoutes.exclude.includes("/sitemap.xml"), "Cloudflare Pages must rewrite sitemap.xml per hostname");
 
 const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");
 assert.ok(sitemap.includes(SITE_ORIGIN + "/en"));
