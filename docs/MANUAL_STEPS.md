@@ -171,6 +171,20 @@ The repository currently uses a custom GitHub Actions Pages workflow with `rusty
 
 **Important — two independent apex domains:** the required setup is for both `rusty-lub.online` and `rusty-lub.ru` to serve the site without forcing visitors from one domain to the other. GitHub Pages does not support two independent apex custom domains for one site: its custom-domain configuration accepts one domain, and GitHub documents that additional domains require a redirect. Therefore, do not add `rusty-lub.ru` as a second Pages alias or point it at Pages while claiming the no-redirect requirement is met. Before declaring the public release complete, move the frontend to a host that supports both custom domains on the same deployment (or maintain two independent deployments), configure and validate HTTPS for each hostname, and update canonical/alternate metadata so each hostname remains on itself. Keep both domains available; do not introduce a redirect between them. The backend supports an explicit allowlist of both frontend origins through `FRONTEND_ORIGINS` (semicolon-separated); Steam and Discord OAuth state records preserve the initiating domain, and Platega return URLs use the domain that started checkout. Configure `FRONTEND_ORIGINS="https://rusty-lub.online;https://rusty-lub.ru"` on Cloud Run and add both Firebase Auth authorized domains. The current Pages deployment is still only the `.online` endpoint until the frontend hosting migration is completed.
 
+### Dual-domain hosting migration (prepared, not yet activated)
+
+A manual GitHub Actions workflow is prepared at **Actions → Deploy dual-domain site to Cloudflare Pages**. It does not run on pushes and does not change the live GitHub Pages deployment.
+
+1. Create a Cloudflare Pages project named `rustylub-network`.
+2. Add both zones, `rusty-lub.online` and `rusty-lub.ru`, to the same Cloudflare account. In Pages → Custom domains, attach both apex domains to the `rustylub-network` project. Cloudflare Pages supports multiple custom domains on one project, unlike GitHub Pages.
+3. Before changing nameservers at REG.RU, export the complete DNS zones and recreate every required record in Cloudflare. Preserve mail records (MX, SPF, DKIM, DMARC), the Rust game host `long.rusty-lub.online` as DNS-only A `202.36.95.125`, and the Cloud Run auth hostname records. Do not proxy the Rust game port or change its target.
+4. Only after comparing the full DNS record sets, switch the two domains' nameservers at REG.RU to the exact Cloudflare nameservers assigned to each zone. Wait until Cloudflare reports both zones active and verify the game hostname, mail records and auth hostname before proceeding.
+5. In GitHub → Settings → Secrets and variables → Actions → Secrets, add `CLOUDFLARE_API_TOKEN` (Pages: Edit permission) and `CLOUDFLARE_ACCOUNT_ID`. Keep all Firebase public build values in Actions Variables as described above.
+6. Run the workflow manually. It builds and verifies the same site, then deploys `dist` to the existing Pages project. It does not create DNS records or change custom-domain settings.
+7. Verify HTTPS independently on both apex domains, check that neither redirects to the other, and test Steam sign-in, Discord linking, account reads and Platega return URLs from each domain.
+
+Do not switch nameservers until the existing DNS zone has been fully inventoried. The game server, mail and auth subdomain must keep working during the migration.
+
 1. Open GitHub → RustyLub/GAME-SERVER → Settings → Pages.
 2. Under Custom domain, set `rusty-lub.online` and save.
 3. At REG.RU, set the apex A records to GitHub Pages:
