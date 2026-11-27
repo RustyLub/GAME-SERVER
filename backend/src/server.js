@@ -771,13 +771,23 @@ app.post("/payments/orders", async (req, res) => {
       if (typeof providerResponse.transactionId !== "string" || !/^[0-9a-f-]{36}$/i.test(providerResponse.transactionId)) {
         throw new Error("Invalid Platega transaction ID");
       }
-      await orderRef.update({
-        status: "pending", provider: "platega", providerTransactionId: providerResponse.transactionId,
-        providerStatus: providerResponse.status || "PENDING", redirectUrl: redirectUrl.toString(),
-        paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
+      await db.runTransaction(async (transaction) => {
+        const [currentOrder, currentLock] = await Promise.all([
+          transaction.get(orderRef), transaction.get(orderLockRef),
+        ]);
+        if (!currentOrder.exists || currentOrder.data()?.status !== "creating") {
+          throw new Error("Order is no longer in the creating state");
+        }
+        transaction.update(orderRef, {
+          status: "pending", provider: "platega", providerTransactionId: providerResponse.transactionId,
+          providerStatus: providerResponse.status || "PENDING", redirectUrl: redirectUrl.toString(),
+          paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
+        });
+        if (currentLock.exists && currentLock.data()?.orderId === orderId) {
+          transaction.update(orderLockRef, { status: "pending", updatedAt: FieldValue.serverTimestamp() });
+        }
       });
       await idempotencyRef.update({ status: "created", redirectUrl: redirectUrl.toString(), updatedAt: FieldValue.serverTimestamp() });
-      await orderLockRef.update({ status: "pending", updatedAt: FieldValue.serverTimestamp() });
       return res.status(201).json({ orderId, redirectUrl: redirectUrl.toString(), amount: VIP_PRICE_RUB, currency: "RUB" });
     } catch (error) {
       await orderRef.update({ status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
