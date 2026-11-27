@@ -186,7 +186,11 @@ A manual GitHub Actions workflow is prepared at **Actions → Deploy dual-domain
 
 Do not switch nameservers until the existing DNS zone has been fully inventoried. The game server, mail and auth subdomain must keep working during the migration.
 
-### Temporary GitHub Pages configuration (.online only; not the dual-domain final host)\n\nThe following instructions describe the current interim `.online` endpoint only. They are mutually exclusive with the Cloudflare nameserver migration above; do not apply GitHub Pages A records after moving the zones to Cloudflare.\n\n1. Open GitHub → RustyLub/GAME-SERVER → Settings → Pages.
+### Temporary GitHub Pages configuration (.online only; not the dual-domain final host)
+
+The following instructions describe the current interim `.online` endpoint only. They are mutually exclusive with the Cloudflare nameserver migration above; do not apply GitHub Pages A records after moving the zones to Cloudflare.
+
+1. Open GitHub → RustyLub/GAME-SERVER → Settings → Pages.
 2. Under Custom domain, set `rusty-lub.online` and save.
 3. At REG.RU, set the apex A records to GitHub Pages:
    - `185.199.108.153`
