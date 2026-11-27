@@ -14,5 +14,8 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.5.0",
     "google-auth-library": "^9.15.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1"
   }
 }
