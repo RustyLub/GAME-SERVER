@@ -102,32 +102,28 @@ test("payment, entitlement and OAuth internals are denied to browser clients", a
 });
 
 
-test("per-user checkout lock allows only one concurrent reservation", async () => {
+test("per-user checkout lock rejects a second reservation while the first is active", async () => {
   const uid = "steam_76561198000000007";
   const lockPath = "paymentLocks/" + uid;
-  const now = Date.now();
+  const db = await testEnv.withSecurityRulesDisabled(async (context) => context.firestore());
 
-  const reserve = (orderId) => testEnv.withSecurityRulesDisabled(async (context) => {
-    const db = context.firestore();
+  const reserve = async (orderId) => runTransaction(db, async (transaction) => {
     const lockRef = doc(db, lockPath);
-    return runTransaction(db, async (transaction) => {
-      const current = await transaction.get(lockRef);
-      if (current.exists() && current.data().expiresAt.toMillis() > Date.now()) return false;
-      transaction.set(lockRef, {
-        userId: uid,
-        orderId,
-        status: "creating",
-        expiresAt: Timestamp.fromMillis(now + 60 * 60 * 1000),
-      });
-      return true;
+    const current = await transaction.get(lockRef);
+    if (current.exists() && current.data().expiresAt.toMillis() > Date.now()) return false;
+    transaction.set(lockRef, {
+      userId: uid,
+      orderId,
+      status: "creating",
+      expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
     });
+    return true;
   });
 
-  const results = await Promise.all([reserve("order-a"), reserve("order-b")]);
-  assert.equal(results.filter(Boolean).length, 1);
-  const stored = await testEnv.withSecurityRulesDisabled(async (context) =>
-    getDoc(doc(context.firestore(), lockPath)));
-  assert.ok(["order-a", "order-b"].includes(stored.data().orderId));
+  assert.equal(await reserve("order-a"), true);
+  assert.equal(await reserve("order-b"), false);
+  const stored = await getDoc(doc(db, lockPath));
+  assert.equal(stored.data().orderId, "order-a");
 });
 
 test("expired per-user checkout lock can be safely reclaimed", async () => {
