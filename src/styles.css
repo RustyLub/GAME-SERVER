@@ -322,3 +322,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 700px) {
   .account-panel { padding: 19px; }
 }
+
+.account-edit-form { margin: 17px 0; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.account-actions .btn { flex: 1 1 130px; }
