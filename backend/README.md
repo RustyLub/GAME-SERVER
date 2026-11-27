@@ -17,11 +17,11 @@ This service is the trusted server-side part of Steam-only account authenticatio
 Copy `.env.example` to your deployment secret/configuration store. Set:
 - `FRONTEND_ORIGIN=https://rusty-lub.online`
 - `BACKEND_PUBLIC_URL=https://<your-real-backend-host>`
-- `FIREBASE_PROJECT_ID=rustylub`
+- `FIREBASE_PROJECT_ID=rustylub`\n- `FIREBASE_SERVICE_ACCOUNT_EMAIL=<runtime-service-account-email>`
 - `PORT=8080` (provided automatically by Cloud Run)
 - `STEAM_API_KEY` (optional; used only to show Steam display name and avatar; without it authentication still works but the profile falls back to a generic label)
 
-The runtime identity must have Firebase Authentication Admin permissions and Firestore access in project `rustylub`. On Google Cloud Run, attach a dedicated service account with the least privileges needed. Do not upload a service-account JSON file into Git or the container.
+The runtime identity must have Firebase Authentication Admin (`roles/firebaseauth.admin`) and Firestore data access (`roles/datastore.user`) in project `rustylub`. Set `FIREBASE_SERVICE_ACCOUNT_EMAIL` to the runtime service account email and grant that identity Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) on itself so the Admin SDK can mint Firebase custom tokens using IAM signing. Do not upload a service-account JSON file into Git or the container.
 
 ## Local checks
 

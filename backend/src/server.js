@@ -24,7 +24,7 @@ const EXCHANGE_COLLECTION = "steamAuthExchanges";
 
 if (process.env.NODE_ENV === "production" &&
     (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://") || !FIREBASE_SERVICE_ACCOUNT_EMAIL)) {
-  throw new Error("FRONTEND_ORIGIN and BACKEND_PUBLIC_URL must use HTTPS in production.");
+  throw new Error("Production requires HTTPS URLs and FIREBASE_SERVICE_ACCOUNT_EMAIL for IAM custom-token signing.");
 }
 if (!getApps().length) initializeApp({
   credential: applicationDefault(),
