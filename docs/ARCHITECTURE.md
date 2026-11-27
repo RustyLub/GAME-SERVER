@@ -12,7 +12,7 @@ The Rust game server remains strictly Vanilla. This repository's production bran
 - React 19 + TypeScript + Vite build the browser application.
 - npm run build runs TypeScript checks, creates dist/, and prerenders public routes.
 - .github/workflows/deploy-pages.yml builds and deploys main to GitHub Pages.
-- public/CNAME declares the intended custom domain.
+- public/CNAME records the intended custom domain in the repository; with this custom GitHub Actions workflow, the actual Pages custom-domain setting must be configured separately in repository Settings → Pages.
 - backend/ is a separate Node.js service intended for Google Cloud Run.
 
 GitHub Pages is static hosting. It does not run Express, API routes, Steam OpenID callbacks, background jobs or privileged game-server commands.
