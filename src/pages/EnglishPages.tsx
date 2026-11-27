@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { SITE_CONFIG, formatNextWipe } from "../config/site";
 import ServerStatus from "../components/ServerStatus";
 
