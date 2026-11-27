@@ -34,13 +34,13 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Audit production frontend dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Install backend dependencies
         run: npm install --prefix backend --no-audit --no-fund
 
       - name: Audit production backend dependencies
-        run: npm audit --prefix backend --omit=dev --audit-level=high
+        run: npm audit --prefix backend --audit-level=high
 
       - name: Build and verify rusty-lub.online
         env:
