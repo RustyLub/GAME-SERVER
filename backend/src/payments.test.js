@@ -10,6 +10,7 @@ import {
   toMinorUnits,
   validatePlategaTransaction,
   VIP_DURATION_MS,
+  isSafePlategaRedirect,
 } from "./payments.js";
 
 const steamId64 = "76561198000000000";
@@ -110,4 +111,13 @@ test("detects a full refund without treating partial refunds as full", () => {
   assert.equal(isFullyRefunded(149, 149), true);
   assert.equal(isFullyRefunded(25, 149), false);
   assert.equal(isFullyRefunded(0, 149), false);
+});
+
+test("only redirects browsers to the official HTTPS Platega payment form", () => {
+  assert.equal(isSafePlategaRedirect("https://pay.platega.io?qrsbp"), true);
+  assert.equal(isSafePlategaRedirect("http://pay.platega.io"), false);
+  assert.equal(isSafePlategaRedirect("https://pay.platega.io.attacker.example"), false);
+  assert.equal(isSafePlategaRedirect("https://attacker.example"), false);
+  assert.equal(isSafePlategaRedirect("https://user:pass@pay.platega.io"), false);
+  assert.equal(isSafePlategaRedirect("not-a-url"), false);
 });

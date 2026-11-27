@@ -101,3 +101,14 @@ export function isFullyRefunded(refundedAmount, originalAmount) {
   return Number(refundedAmount) > 0 &&
     toMinorUnits(refundedAmount) >= toMinorUnits(originalAmount);
 }
+
+export function isSafePlategaRedirect(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" &&
+      url.hostname === "pay.platega.io" &&
+      !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}

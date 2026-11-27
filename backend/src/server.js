@@ -5,7 +5,7 @@ import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS } from "./payments.js";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect } from "./payments.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -750,8 +750,8 @@ app.post("/payments/orders", async (req, res) => {
       const providerResponse = await plategaRequest(PLATEGA_API_BASE.replace(/\/$/, "") + "/transaction/process", {
         method: "POST", body: JSON.stringify(createRequest),
       });
+      if (!isSafePlategaRedirect(providerResponse.redirect)) throw new Error("Unsafe Platega redirect URL");
       const redirectUrl = new URL(providerResponse.redirect);
-      if (redirectUrl.protocol !== "https:" || redirectUrl.username || redirectUrl.password) throw new Error("Unsafe Platega redirect URL");
       if (typeof providerResponse.transactionId !== "string" || !/^[0-9a-f-]{36}$/i.test(providerResponse.transactionId)) {
         throw new Error("Invalid Platega transaction ID");
       }
