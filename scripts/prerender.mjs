@@ -10,6 +10,8 @@ const { render } = await import(serverEntry);
 const routes = [
   "/", "/servers", "/wipes", "/rules", "/support", "/privacy", "/terms",
   "/account", "/link", "/leaderboards", "/store",
+  "/en", "/en/servers", "/en/wipes", "/en/rules", "/en/support", "/en/privacy",
+  "/en/terms", "/en/account", "/en/link", "/en/leaderboards", "/en/store",
 ];
 
 function escapeHtml(value) {
