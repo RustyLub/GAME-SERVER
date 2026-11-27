@@ -24,7 +24,7 @@ const STATE_COOKIE = "rustylub_steam_state";
 const EXCHANGE_COLLECTION = "steamAuthExchanges";
 const PLATEGA_API_BASE = (process.env.PLATEGA_API_BASE || "https://api.eu.payplatform.cc").replace(/\/+$/, "");
 const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID || "";
-const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
+const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";\nconst CARBON_SYNC_SECRET = process.env.CARBON_SYNC_SECRET || "";
 const VIP_PRICE_RUB = parseVipPrice(process.env.VIP_PRICE_RUB);
 const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB);
 
@@ -480,6 +480,186 @@ app.post("/payments/platega/callback", async (req, res) => {
   } catch (error) {
     console.error("Platega callback processing failed:", error?.providerCode || error?.message || "unknown error");
     return res.status(503).json({ error: "callback_processing_failed" });
+  }
+});
+
+
+async function requireCarbon(request, response, next) {
+  if (!CARBON_SYNC_SECRET) return response.sendStatus(503);
+  const authorization = request.headers.authorization || "";
+  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  if (!constantTimeSecretMatch(supplied, CARBON_SYNC_SECRET)) return response.sendStatus(401);
+  return next();
+}
+
+async function leaseCarbonJob(collectionName, documentId, kind) {
+  const ref = db.collection(collectionName).doc(documentId);
+  const leaseToken = crypto.randomBytes(24).toString("base64url");
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) return null;
+    const data = snapshot.data();
+    const now = Date.now();
+    const leaseExpired = data.status === "processing" && (data.leaseUntil?.toMillis?.() || 0) <= now;
+    const ready = kind === "grant"
+      ? data.status === "pending" || leaseExpired
+      : (data.status === "scheduled" || leaseExpired) && (data.dueAt?.toMillis?.() || Infinity) <= now;
+    if (!ready) return null;
+    if (kind === "grant") {
+      const entitlementRef = db.collection("vipEntitlements").doc(data.steamId64);
+      const entitlementSnapshot = await transaction.get(entitlementRef);
+      const entitlement = entitlementSnapshot.data();
+      const expiry = entitlement?.expiresAt?.toMillis?.() || 0;
+      if (!entitlementSnapshot.exists || expiry <= now || entitlement.status === "review_required") {
+        transaction.set(ref, { status: "expired", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        return null;
+      }
+    }
+    transaction.set(ref, {
+      status: "processing",
+      leaseToken,
+      leaseUntil: Timestamp.fromMillis(now + 60 * 1000),
+      attempts: FieldValue.increment(1),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return {
+      id: documentId,
+      type: kind,
+      steamId64: data.steamId64,
+      leaseToken,
+    };
+  });
+}
+
+app.get("/internal/carbon/jobs", requireCarbon, async (_req, res) => {
+  try {
+    const [pendingGrants, retryingGrants, scheduledExpiries, retryingExpiries] = await Promise.all([
+      db.collection("vipDeliveryQueue").where("status", "==", "pending").limit(20).get(),
+      db.collection("vipDeliveryQueue").where("status", "==", "processing").limit(20).get(),
+      db.collection("vipExpiryQueue").where("status", "==", "scheduled").limit(50).get(),
+      db.collection("vipExpiryQueue").where("status", "==", "processing").limit(50).get(),
+    ]);
+    const now = Date.now();
+    const grantDocs = [...pendingGrants.docs, ...retryingGrants.docs];
+    const expiryDocs = [...scheduledExpiries.docs, ...retryingExpiries.docs]
+      .filter((snapshot) => (snapshot.data().dueAt?.toMillis?.() || Infinity) <= now);
+    const jobs = [];
+    for (const snapshot of grantDocs) {
+      const job = await leaseCarbonJob("vipDeliveryQueue", snapshot.id, "grant");
+      if (job) jobs.push(job);
+    }
+    for (const snapshot of expiryDocs) {
+      const job = await leaseCarbonJob("vipExpiryQueue", snapshot.id, "expire");
+      if (job) jobs.push(job);
+    }
+    return res.status(200).json({ jobs });
+  } catch (error) {
+    console.error("Carbon job polling failed:", error?.message || "unknown error");
+    return res.status(503).json({ error: "carbon_queue_unavailable" });
+  }
+});
+
+app.post("/internal/carbon/ack", requireCarbon, async (req, res) => {
+  const { type, id, leaseToken, success, message: jobMessage } = req.body || {};
+  if (!["grant", "expire"].includes(type) || typeof id !== "string" ||
+      typeof leaseToken !== "string" || typeof success !== "boolean") {
+    return res.status(400).json({ error: "invalid_acknowledgement" });
+  }
+  const collectionName = type === "grant" ? "vipDeliveryQueue" : "vipExpiryQueue";
+  const jobRef = db.collection(collectionName).doc(id);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const jobSnapshot = await transaction.get(jobRef);
+      if (!jobSnapshot.exists || jobSnapshot.data().status !== "processing" ||
+          jobSnapshot.data().leaseToken !== leaseToken) {
+        throw new Error("Carbon job lease is no longer valid");
+      }
+      const job = jobSnapshot.data();
+      const entitlementRef = db.collection("vipEntitlements").doc(job.steamId64);
+      const entitlementSnapshot = await transaction.get(entitlementRef);
+      const entitlement = entitlementSnapshot.data();
+      const now = Date.now();
+      if (type === "grant") {
+        const paymentRef = db.collection("vipPayments").doc(job.transactionId);
+        const paymentSnapshot = await transaction.get(paymentRef);
+        if (success && entitlementSnapshot.exists && (entitlement?.expiresAt?.toMillis?.() || 0) > now) {
+          transaction.set(entitlementRef, { status: "active", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          if (paymentSnapshot.exists) transaction.set(paymentRef, {
+            deliveryStatus: "delivered",
+            deliveredAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+          transaction.set(jobRef, {
+            status: "completed",
+            completedAt: FieldValue.serverTimestamp(),
+            leaseToken: FieldValue.delete(),
+            leaseUntil: FieldValue.delete(),
+          }, { merge: true });
+        } else if (success) {
+          transaction.set(jobRef, {
+            status: "expired",
+            completedAt: FieldValue.serverTimestamp(),
+            leaseToken: FieldValue.delete(),
+            leaseUntil: FieldValue.delete(),
+          }, { merge: true });
+          if (entitlementSnapshot.exists) transaction.set(entitlementRef, {
+            status: "expired",
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+        } else {
+          transaction.set(jobRef, {
+            status: "pending",
+            lastError: String(jobMessage || "Carbon grant failed").slice(0, 300),
+            leaseToken: FieldValue.delete(),
+            leaseUntil: FieldValue.delete(),
+          }, { merge: true });
+        }
+      } else if (success && entitlementSnapshot.exists &&
+          (entitlement?.expiresAt?.toMillis?.() || 0) > now) {
+        // A renewal may have arrived while the expiry command was in flight.
+        // Keep the entitlement and reschedule expiry rather than marking it expired.
+        transaction.set(jobRef, {
+          status: "scheduled",
+          dueAt: entitlement.expiresAt,
+          leaseToken: FieldValue.delete(),
+          leaseUntil: FieldValue.delete(),
+        }, { merge: true });
+        transaction.set(entitlementRef, {
+          status: "pending_delivery",
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        const restoreRef = db.collection("vipDeliveryQueue").doc("restore_" + job.steamId64 + "_" + Date.now());
+        transaction.create(restoreRef, {
+          type: "grant_vip_queue_skip",
+          transactionId: entitlement.lastPaymentId || "renewal",
+          steamId64: job.steamId64,
+          status: "pending",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      } else if (success) {
+        transaction.set(entitlementRef, {
+          status: "expired",
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        transaction.set(jobRef, {
+          status: "completed",
+          completedAt: FieldValue.serverTimestamp(),
+          leaseToken: FieldValue.delete(),
+          leaseUntil: FieldValue.delete(),
+        }, { merge: true });
+      } else {
+        transaction.set(jobRef, {
+          status: "scheduled",
+          dueAt: Timestamp.fromMillis(now + 60 * 1000),
+          lastError: String(jobMessage || "Carbon expiry failed").slice(0, 300),
+          leaseToken: FieldValue.delete(),
+          leaseUntil: FieldValue.delete(),
+        }, { merge: true });
+      }
+    });
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("Carbon job acknowledgement failed:", error?.message || "unknown error");
+    return res.status(409).json({ error: "job_lease_conflict" });
   }
 });
 
