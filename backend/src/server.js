@@ -29,6 +29,15 @@ const FIREBASE_PROJECT_ID = requiredEnv("FIREBASE_PROJECT_ID");
 const FIREBASE_SERVICE_ACCOUNT_EMAIL = process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL?.trim() || "";
 const STEAM_API_KEY = process.env.STEAM_API_KEY?.trim() || "";
 
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID?.trim() || "";
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET?.trim() || "";
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI?.trim() || (BACKEND_PUBLIC_URL + "/auth/discord/callback");
+const DISCORD_STATE_COOKIE = "rustylub_discord_state";
+const RCON_HOST = process.env.RCON_HOST?.trim() || "";
+const RCON_PORT = Number(process.env.RCON_PORT || 0);
+const RCON_PASSWORD = process.env.RCON_PASSWORD || "";
+
+
 if (process.env.NODE_ENV === "production" && !FIREBASE_SERVICE_ACCOUNT_EMAIL) {
   throw new Error("Production requires FIREBASE_SERVICE_ACCOUNT_EMAIL for IAM custom-token signing.");
 }
@@ -218,6 +227,87 @@ async function createOrUpdateSteamUser(steamId64) {
   return uid;
 }
 
+
+function setDiscordStateCookie(res, state) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", DISCORD_STATE_COOKIE + "=" + encodeURIComponent(state) +
+    "; HttpOnly" + secure + "; SameSite=Lax; Path=/auth/discord; Max-Age=300");
+}
+
+function clearDiscordStateCookie(res) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", DISCORD_STATE_COOKIE + "=; HttpOnly" + secure +
+    "; SameSite=Lax; Path=/auth/discord; Max-Age=0");
+}
+
+async function authenticatedSteamUid(req) {
+  const authorization = req.headers.authorization || "";
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
+  if (!match) throw new Error("unauthorized");
+  const decoded = await auth.verifyIdToken(match[1]);
+  if (!/^steam_\d{17}$/.test(decoded.uid)) throw new Error("unauthorized");
+  return decoded.uid;
+}
+
+function buildDiscordAuthorizeUrl(state) {
+  const url = new URL("https://discord.com/oauth2/authorize");
+  url.searchParams.set("client_id", DISCORD_CLIENT_ID);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("redirect_uri", DISCORD_REDIRECT_URI);
+  url.searchParams.set("scope", "identify");
+  url.searchParams.set("state", state);
+  url.searchParams.set("prompt", "consent");
+  return url.toString();
+}
+
+async function sendRconCommand(command, timeoutMs = 5000) {
+  if (!RCON_HOST || !Number.isInteger(RCON_PORT) || RCON_PORT < 1 || !RCON_PASSWORD) {
+    throw new Error("RCON is not configured");
+  }
+  if (typeof WebSocket === "undefined") throw new Error("WebSocket client is unavailable in this Node runtime");
+  const identifier = crypto.randomInt(1, 2_000_000_000);
+  const socketUrl = "ws://" + RCON_HOST + ":" + RCON_PORT + "/" + encodeURIComponent(RCON_PASSWORD);
+  return await new Promise((resolve, reject) => {
+    const socket = new WebSocket(socketUrl);
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error("RCON command timed out"));
+    }, timeoutMs);
+    const finish = (error, value) => {
+      clearTimeout(timer);
+      try { socket.close(); } catch {}
+      if (error) reject(error); else resolve(value);
+    };
+    socket.addEventListener("open", () => {
+      socket.send(JSON.stringify({ Identifier: identifier, Message: command, Name: "Rusty.Lub" }));
+    }, { once: true });
+    socket.addEventListener("message", (event) => {
+      try {
+        const response = JSON.parse(String(event.data));
+        if (response.Identifier === identifier) finish(null, String(response.Message || ""));
+      } catch {
+        finish(new Error("Invalid RCON response"));
+      }
+    });
+    socket.addEventListener("error", () => finish(new Error("RCON connection failed")), { once: true });
+    socket.addEventListener("close", () => {
+      clearTimeout(timer);
+    }, { once: true });
+  });
+}
+
+function parseRustServerInfo(message) {
+  let info;
+  try { info = typeof message === "string" ? JSON.parse(message) : message; }
+  catch { throw new Error("Rust serverinfo response was not JSON"); }
+  const players = Number(info?.Players ?? info?.players);
+  const maxPlayers = Number(info?.MaxPlayers ?? info?.maxPlayers ?? info?.maxplayers);
+  if (!Number.isFinite(players) || !Number.isFinite(maxPlayers) || maxPlayers < 1) {
+    throw new Error("Rust serverinfo response did not contain player counts");
+  }
+  return { online: true, players, maxPlayers };
+}
+
 function setStateCookie(res, state) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   res.setHeader("Set-Cookie", STATE_COOKIE + "=" + encodeURIComponent(state) +
@@ -301,10 +391,152 @@ app.post("/auth/steam/exchange", async (req, res) => {
   }
 });
 
+
+app.post("/auth/discord/start", async (req, res) => {
+  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) return res.status(503).json({ error: "discord_not_configured" });
+  try {
+    const uid = await authenticatedSteamUid(req);
+    const state = crypto.randomBytes(32).toString("base64url");
+    await db.collection("discordAuthStates").doc(sha256(state)).create({
+      uid,
+      expiresAt: Timestamp.fromMillis(Date.now() + 5 * 60 * 1000),
+    });
+    setDiscordStateCookie(res, state);
+    return res.status(200).json({ redirectUrl: buildDiscordAuthorizeUrl(state) });
+  } catch (error) {
+    return res.status(error?.message === "unauthorized" ? 401 : 500).json({ error: "discord_link_start_failed" });
+  }
+});
+
+app.get("/auth/discord/callback", async (req, res) => {
+  const fail = (reason = "link_failed") => {
+    clearDiscordStateCookie(res);
+    return res.redirect(303, FRONTEND_ORIGIN + "/account?discordError=" + encodeURIComponent(reason));
+  };
+  try {
+    const state = parseCookies(req.headers.cookie)[DISCORD_STATE_COOKIE];
+    if (!state || typeof req.query.state !== "string" || req.query.state !== state || typeof req.query.code !== "string") {
+      return fail("state_invalid");
+    }
+    const stateRef = db.collection("discordAuthStates").doc(sha256(state));
+    const uid = await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(stateRef);
+      if (!snapshot.exists) return null;
+      const data = snapshot.data();
+      transaction.delete(stateRef);
+      if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() || !/^steam_\d{17}$/.test(data.uid || "")) return null;
+      return data.uid;
+    });
+    if (!uid) return fail("state_expired");
+
+    const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + Buffer.from(DISCORD_CLIENT_ID + ":" + DISCORD_CLIENT_SECRET).toString("base64"),
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: req.query.code,
+        redirect_uri: DISCORD_REDIRECT_URI,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!tokenResponse.ok) return fail("token_exchange_failed");
+    const tokenData = await tokenResponse.json();
+    if (typeof tokenData.access_token !== "string") return fail("token_exchange_failed");
+
+    const userResponse = await fetch("https://discord.com/api/users/@me", {
+      headers: { Authorization: "Bearer " + tokenData.access_token, Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!userResponse.ok) return fail("profile_fetch_failed");
+    const discordUser = await userResponse.json();
+    if (!/^\d{17,20}$/.test(String(discordUser.id || "")) || typeof discordUser.username !== "string") {
+      return fail("profile_invalid");
+    }
+
+    const discordId = String(discordUser.id);
+    const profileRef = db.collection("users").doc(uid);
+    const linkRef = db.collection("discordLinks").doc(discordId);
+    const username = String(discordUser.global_name || discordUser.username).slice(0, 80);
+    const avatarUrl = typeof discordUser.avatar === "string"
+      ? "https://cdn.discordapp.com/avatars/" + discordId + "/" + discordUser.avatar + ".png?size=128"
+      : null;
+
+    await db.runTransaction(async (transaction) => {
+      const [profileSnapshot, linkSnapshot] = await Promise.all([
+        transaction.get(profileRef),
+        transaction.get(linkRef),
+      ]);
+      if (linkSnapshot.exists && linkSnapshot.data()?.uid !== uid) throw new Error("discord_already_linked");
+      const previousDiscordId = profileSnapshot.data()?.discordId;
+      if (previousDiscordId && previousDiscordId !== discordId) {
+        const previousRef = db.collection("discordLinks").doc(String(previousDiscordId));
+        const previousSnapshot = await transaction.get(previousRef);
+        if (previousSnapshot.exists && previousSnapshot.data()?.uid === uid) transaction.delete(previousRef);
+      }
+      transaction.set(linkRef, { uid, linkedAt: FieldValue.serverTimestamp() });
+      transaction.set(profileRef, {
+        discordId,
+        discordUsername: username,
+        discordAvatarUrl: avatarUrl,
+        discordLinkedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    });
+    clearDiscordStateCookie(res);
+    return res.redirect(303, FRONTEND_ORIGIN + "/account?discordLinked=1");
+  } catch (error) {
+    console.error("Discord account linking failed:", error?.message || "unknown error");
+    return fail(error?.message === "discord_already_linked" ? "already_linked" : "link_failed");
+  }
+});
+
+app.post("/auth/discord/unlink", async (req, res) => {
+  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  try {
+    const uid = await authenticatedSteamUid(req);
+    const profileRef = db.collection("users").doc(uid);
+    await db.runTransaction(async (transaction) => {
+      const profile = await transaction.get(profileRef);
+      const discordId = profile.data()?.discordId;
+      if (discordId) {
+        const linkRef = db.collection("discordLinks").doc(String(discordId));
+        const link = await transaction.get(linkRef);
+        if (link.exists && link.data()?.uid === uid) transaction.delete(linkRef);
+        transaction.update(profileRef, {
+          discordId: FieldValue.delete(),
+          discordUsername: FieldValue.delete(),
+          discordAvatarUrl: FieldValue.delete(),
+          discordLinkedAt: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+    });
+    return res.status(200).json({ ok: true });
+  } catch {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+});
+
+app.get("/public/server-status", async (_req, res) => {
+  try {
+    const response = await sendRconCommand("serverinfo", 4500);
+    const status = parseRustServerInfo(response);
+    res.setHeader("Cache-Control", "public, max-age=20, stale-while-revalidate=10");
+    return res.status(200).json(status);
+  } catch {
+    return res.status(503).json({ online: null, available: false });
+  }
+});
+
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
     console.log("Rusty.Lub Steam auth backend listening on port " + PORT);
   });
 }
 
-export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion };
+export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand };

@@ -7,7 +7,10 @@ This service is the trusted server-side part of Steam-only account authenticatio
 - Steam OpenID 2.0 verification and Firebase Custom Token issuance.
 - Automatic Firebase identity and profile creation on first successful Steam login.
 - Owner-only profile reads; browser-side profile writes are denied by Firestore rules.
-- No payment, Platega, webhook, VIP entitlement, RCON, or Carbon endpoints are included in the production branch.
+- Steam OpenID and Discord OAuth account linking.
+- Optional live server status via Rust WebRCON `serverinfo`.
+- Payment, Platega, webhook and VIP issuance remain isolated until the payment release branch is reviewed and merged.
+- The Rust server remains Vanilla; no Carbon or Oxide plugin is used.
 - The Rust game server remains Vanilla and receives no plugin.
 
 ## Security model
@@ -32,6 +35,8 @@ Set these values in Cloud Run environment configuration:
 - FIREBASE_SERVICE_ACCOUNT_EMAIL=<runtime-service-account-email>
 - PORT=8080 (provided automatically by Cloud Run)
 - STEAM_API_KEY (optional; only used to show current Steam nickname and avatar)
+- DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI (server-side Discord OAuth application settings)
+- RCON_HOST, RCON_PORT, RCON_PASSWORD (optional; required for live status and, later, Vanilla queue management)
 
 Do not assume the Firebase project ID. This repository must use the dedicated GAME-SERVER Firebase project, separate from the legacy website project. Confirm the project in Firebase Console before deployment.
 
@@ -46,7 +51,9 @@ Do not assume the Firebase project ID. This repository must use the dedicated GA
 7. If a Steam Web API key is used, store it in Google Secret Manager and expose it to Cloud Run as a server-side secret. The key is optional; sign-in still works without nickname/avatar enrichment.
 8. Set the public backend URL as the GitHub repository Actions Variable VITE_API_BASE_URL. This URL is not a secret. Do not put Firebase Admin credentials, Steam API keys, RCON passwords or any other secret in GitHub Actions Variables or frontend build variables.
 9. Add rusty-lub.online to Firebase Authentication authorized domains. Confirm that the Firebase project selected is the dedicated GAME-SERVER project.
-10. Configure Firestore TTL policies for expiresAt in steamAuthExchanges and steamOpenIdNonces. TTL is storage cleanup; the application independently enforces expiration.
+10. Configure Firestore TTL policies for expiresAt in steamAuthExchanges, steamOpenIdNonces and discordAuthStates. TTL is storage cleanup; the application independently enforces expiration.
+11. In the Discord Developer Portal, register the exact redirect URL `https://<cloud-run-service>/auth/discord/callback`, set DISCORD_CLIENT_ID and store DISCORD_CLIENT_SECRET in Secret Manager. Only the `identify` scope is requested.
+12. For live online status, set RCON_HOST, RCON_PORT and RCON_PASSWORD in Cloud Run. The website calls only the read-only `serverinfo` command; never expose the RCON password to the browser.
 
 Automated deployment script (run after creating the runtime service account, granting the required IAM roles and selecting the confirmed Firebase project):
 
