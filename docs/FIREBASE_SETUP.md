@@ -1,73 +1,47 @@
-# Firebase: настройка авторизации и профилей Rusty.Lub
+# Firebase и Steam-вход Rusty.Lub
 
-Эта инструкция относится к репозиторию `RustyLub/GAME-SERVER`. Конфигурация Web App уже добавлена в frontend как публичная клиентская конфигурация. Позже её можно переопределить шестью GitHub Actions Variables без изменения исходников.
+На сайте предусмотрен только вход через Steam. Регистрация выполняется автоматически при первом успешном Steam OpenID входе; email и пароль для аккаунта Rusty.Lub не используются.
 
-## 1. Проверить проект и Web App
+## Firebase Web App
+1. Открой Firebase Console и выбери проект rustylub.
+2. В Project settings → General → Your apps проверь Web App с переданным для сайта appId.
+3. Web App config публичен. Не публикуй Firebase Admin service account или приватные ключи.
 
-1. Открой [Firebase Console](https://console.firebase.google.com/).
-2. Выбери проект `rustylub`, который соответствует Web App config, переданному для сайта.
-3. В **Project settings → General → Your apps** убедись, что зарегистрировано Web-приложение с этим `appId`.
-4. Не присылай пароль Google, приватный ключ или JSON service account.
+## Firebase Authentication
+Firebase Authentication используется как сессионный слой для Firebase Custom Tokens, которые выдаёт доверенный backend после проверки Steam OpenID.
 
-## 2. Включить Email/Password Authentication
+Не включай Email/Password как способ регистрации Rusty.Lub. Steam не является встроенным OAuth-провайдером Firebase: Steam OpenID должен проверяться сервером, после чего сервер находит или создаёт Firebase-пользователя и выдаёт Custom Token.
 
-1. Открой **Build → Authentication**.
-2. Нажми **Get started**, если Authentication ещё не запускался.
-3. Перейди в **Sign-in method** (или **Sign-in providers**).
-4. Выбери **Email/Password**.
-5. Включи первый переключатель **Email/Password** и сохрани. Email link/passwordless включать не требуется.
-6. В **Settings → Authorized domains** проверь наличие домена сайта `rusty-lub.online`. Если его нет — добавь его.
+Добавь rusty-lub.online в Authentication → Settings → Authorized domains. Backend callback URL должен использовать HTTPS.
 
-После этого форма сайта сможет регистрировать пользователей, выполнять вход, выход и отправлять письмо для сброса пароля.
+## Cloud Firestore
+1. Создай Firestore Database в Production mode.
+2. Опубликуй правила из firestore.rules.
 
-## 3. Создать Cloud Firestore
+Профили находятся в users/{uid}. Клиент может читать только собственный профиль. Создание и изменение профилей запрещено из браузера: это делает доверенный backend через Firebase Admin SDK после проверки Steam.
 
-1. Открой **Build → Firestore Database**.
-2. Нажми **Create database**.
-3. Выбери **Start in production mode**.
-4. Выбери ближайший подходящий регион. Регион базы после создания изменить нельзя; выбирай с учётом будущей аудитории и требований к хранению данных.
-5. Заверши создание базы.
+Поля профиля: steamId (проверенный SteamID64), displayName (ник Steam), avatarUrl (аватар Steam), createdAt и updatedAt (server timestamp).
 
-Не выбирай test mode и не используй открытые правила.
+## Backend Steam OpenID
+GitHub Pages не запускает серверный код. Разверни доверенный backend и задай VITE_API_BASE_URL в окружении сборки сайта.
 
-## 4. Опубликовать правила профилей
+Backend должен:
+1. Начинать Steam OpenID 2.0 redirect и проверять state/nonce против CSRF.
+2. Принимать callback только по HTTPS и проверять ответ Steam через OpenID check_authentication.
+3. Извлекать SteamID64 только из проверенного claimed_id; не доверять SteamID из query-параметров клиента.
+4. Получать публичные данные профиля Steam на сервере.
+5. Находить или создавать Firebase user по стабильному SteamID.
+6. Создавать Firebase Custom Token через Firebase Admin SDK и безопасно передавать браузеру одноразовый результат для обмена на Firebase session.
+7. Хранить Steam Web API key и Firebase Admin credentials только в серверном secret manager.
 
-В репозитории уже подготовлен файл `firestore.rules`. Он разрешает пользователю читать и создавать только собственный документ `users/{uid}`, а при обновлении — менять только отображаемое имя и время изменения. Остальные документы по умолчанию закрыты.
+Frontend ожидает GET {VITE_API_BASE_URL}/auth/steam. Endpoint не считается рабочим, пока backend не развёрнут и callback не протестирован.
 
-Открой **Firestore Database → Rules**, замени содержимое редактора полным содержимым файла [firestore.rules](../firestore.rules) из репозитория и нажми **Publish**.
+## Проверка
+- Новый Steam аккаунт автоматически создаёт Firebase identity и профиль.
+- Повторный вход открывает тот же профиль.
+- SteamID64 берётся только из проверенного OpenID claim.
+- Подставленный SteamID не проходит проверку.
+- Пользователь не может записать себе чужой SteamID или VIP через Firestore SDK.
+- Logout завершает Firebase-сессию.
 
-Не меняй правила на `allow read, write: if true`. Это откроет базу посторонним.
-
-## 5. Проверить сайт
-
-1. Открой [rusty-lub.online](https://rusty-lub.online/).
-2. Перейди к блоку **Личный кабинет**.
-3. Зарегистрируй тестовый аккаунт с доступным тебе адресом электронной почты и новым паролем (не используй пароль от Google или Steam).
-4. Убедись, что аккаунт появился в **Authentication → Users**, а документ с тем же UID — в **Firestore Database → users**.
-5. Выйди и войди повторно. Проверь сброс пароля.
-
-Если регистрация отвечает, что операция не разрешена, проверь включение Email/Password. Если аккаунт создаётся, но профиль не сохраняется, проверь создание Firestore и публикацию правил.
-
-## 6. Позже: переопределение конфигурации через GitHub
-
-Это необязательно для текущего запуска: конфигурация уже есть в frontend. Чтобы заменить проект без правки исходников, открой **GitHub → GAME-SERVER → Settings → Secrets and variables → Actions → Variables** и создай:
-
-| Имя | Значение из Web App config |
-| --- | --- |
-| `VITE_FIREBASE_API_KEY` | `apiKey` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
-| `VITE_FIREBASE_PROJECT_ID` | `projectId` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
-| `VITE_FIREBASE_APP_ID` | `appId` |
-
-Эти значения предназначены для клиентского приложения и не являются паролем. Сервисный аккаунт, приватные ключи, Steam API key, RCON-пароль и секреты платежей нельзя помещать во frontend или GitHub Variables, доступные сборке.
-
-## 7. Что пока не подключено
-
-- Steam OpenID: требуется доверенный серверный обработчик и выдача Firebase custom token.
-- Платежи: требуется backend-проверка подписи webhook и защита от повторной обработки.
-- VIP: выдача только после подтверждённой оплаты и проверки SteamID на серверной стороне.
-- Статистика Rust: требуется источник реальных данных сервера.
-
-Нельзя подтверждать оплату, назначать VIP или выдавать административные права из браузера.
+Платежи, VIP и команды Rust подключаются только после серверной проверки личности и прав доступа.

@@ -25,11 +25,13 @@ GitHub Pages is static hosting. It does not run Express, API routes, background 
 ## Current implementation status
 
 - Firebase Web SDK is initialized from the dedicated Web App config in the frontend; GitHub Actions Variables can override the public config.
-- Email/password registration, login, logout, password-reset email, account state, and editable display name are implemented in the client.
-- User profile documents are stored at `users/{uid}`. Firestore rules restrict reads and writes to the authenticated owner and deny all other collections.
-- Firebase Console setup is still required: enable Email/Password, create the Firestore database, publish `firestore.rules`, and authorize `rusty-lub.online`.
-- Authentication and Firestore runtime behavior have not been verified against the live Firebase project until those Console steps are complete and a real test account is registered.
-- Steam login is not implemented yet. It must not be simulated in the browser; it requires a trusted backend and secret storage.
+- The account UI exposes Steam as the only sign-in and registration method; email/password account creation and login have been removed.
+- First successful Steam OpenID login must create the Firebase identity and `users/{uid}` profile automatically; subsequent logins resolve to the same identity.
+- Firestore rules allow users to read only their own profile. Profile writes are reserved for the trusted backend using Firebase Admin SDK.
+- Firebase Authentication is used for Firebase Custom Token sessions, not as a direct Steam provider.
+- The frontend expects `GET {VITE_API_BASE_URL}/auth/steam`; the endpoint is not live until the trusted backend is deployed. The button remains unavailable when the backend URL is not configured.
+- Firebase Console setup still requires creating Firestore, publishing `firestore.rules`, and authorizing `rusty-lub.online`. Do not enable Email/Password for Rusty.Lub login.
+- Live Steam login and Firebase session exchange have not yet been tested against a deployed backend.
 
 ## Integration decisions
 

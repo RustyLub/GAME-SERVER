@@ -326,3 +326,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .account-edit-form { margin: 17px 0; }
 .account-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .account-actions .btn { flex: 1 1 130px; }
+
+.steam-login-mark { display: inline-flex; align-items: center; justify-content: center; min-width: 66px; height: 34px; padding: 0 12px; border: 1px solid #526d82; background: #1b2838; color: #c7d5e0; font: 900 11px Inter, sans-serif; letter-spacing: .12em; }
+.steam-login-title { margin: 18px 0 9px; color: #f3f1eb; font: 800 25px var(--display); }
+.steam-login-copy { margin: 0 0 20px; color: #aaa; font-size: 10px; line-height: 1.8; }
+.btn-steam { width: 100%; border-color: #526d82; background: #1b2838; color: #fff; }
+.btn-steam:hover:not(:disabled) { border-color: #8aa9c2; background: #263d53; }
+.account-avatar-image { width: 48px; height: 48px; object-fit: cover; border: 1px solid #526d82; }

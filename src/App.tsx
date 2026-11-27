@@ -163,7 +163,7 @@ function App() {
         </section>
 
         <section className="account-band" id="account">
-          <div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2><p>Создай аккаунт Rusty.Lub, чтобы в дальнейшем привязать Steam и пользоваться функциями сообщества.</p><small className="firebase-note">{isFirebaseConfigured ? "Конфигурация Firebase загружена." : "Firebase ожидает настройки."} Steam-вход и покупки будут добавлены отдельными этапами.</small></div>
+          <div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2><p>Войди через Steam — отдельная регистрация не нужна. При первом входе профиль Rusty.Lub создаётся автоматически.</p><small className="firebase-note">{isFirebaseConfigured ? "Конфигурация Firebase загружена." : "Firebase ожидает настройки."} Доступен только вход через Steam.</small></div>
           <AccountPanel />
         </section>
 
