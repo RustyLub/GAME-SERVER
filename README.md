@@ -23,7 +23,7 @@ Bilingual public website for the Rusty.Lub Rust server network. The server catal
 | Team limit | 12 |
 | Wipe | First Thursday of each month |
 
-The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins are installed or required.
+Gameplay follows the classic Vanilla x1 ruleset; community and administration integrations are kept separate from gameplay balance.
 
 ## Website features
 
