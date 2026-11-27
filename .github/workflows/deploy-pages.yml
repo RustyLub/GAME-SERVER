@@ -29,12 +29,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install frontend dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+        run: npm install --no-audit --no-fund
       - name: Type-check and build
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
@@ -68,12 +63,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - name: Install backend dependencies
-        run: |
-          if [ -f backend/package-lock.json ]; then
-            npm ci --prefix backend --no-audit --no-fund
-          else
-            npm install --prefix backend --no-audit --no-fund
-          fi
+        run: npm install --prefix backend --no-audit --no-fund
       - name: Commit reproducible npm lockfiles
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
