@@ -68,12 +68,12 @@ Firestore rules allow a user to read only their own profile, update only `custom
    bash backend/deploy-cloud-run.sh
    ```
    The first run creates the Cloud Run service and prints its `run.app` URL. Do not set `LEGAL_DETAILS_COMPLETE=true` yet.
-7. Publish the dedicated Firebase Hosting auth proxy. The Cloud Run service and the Hosting rewrite are both pinned to `europe-west1`:
+7. Publish the dedicated Firebase Hosting auth proxy. The Cloud Run service and the Hosting rewrite are both pinned to `europe-west1`. `FIREBASE_PROJECT_ID` must equal `GCP_PROJECT_ID`, because the Hosting rewrite targets a Cloud Run service in that same Google Cloud project:
    ```bash
    firebase hosting:sites:create rustylub-auth --project "$FIREBASE_PROJECT_ID"
    bash backend/deploy-auth-hosting.sh
    ```
-   If the site already exists, skip the `hosting:sites:create` command. In Firebase Console → Hosting → `rustylub-auth`, add the custom domain `auth.rusty-lub.online`. Leave any “redirect all requests” option disabled. Follow the Hosting wizard's exact TXT and A/AAAA DNS instructions and wait until Firebase reports the certificate as active. This hostname is served by Firebase Hosting, which proxies every dynamic request to Cloud Run; do not create a Cloud Run domain mapping for it. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run `bash backend/deploy-cloud-run.sh` a second time so Steam/Discord callbacks use the stable auth hostname. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
+   The Firebase CLI account needs Firebase Hosting Admin (`roles/firebasehosting.admin`) and API Keys Viewer (`roles/serviceusage.apiKeysViewer`) on the project. If the site already exists, skip the `hosting:sites:create` command. In Firebase Console → Hosting → `rustylub-auth`, add the custom domain `auth.rusty-lub.online`. Leave any “redirect all requests” option disabled. Follow the Hosting wizard's exact TXT and A/AAAA DNS instructions and wait until Firebase reports the certificate as active. This hostname is served by Firebase Hosting, which proxies every dynamic request to Cloud Run; do not create a Cloud Run domain mapping for it. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run `bash backend/deploy-cloud-run.sh` a second time so Steam/Discord callbacks use the stable auth hostname. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
 8. Add the six Firebase Web App variables from section 1 to GitHub Actions Variables.
 9. Configure Firestore TTL on `expiresAt` for `steamAuthStates`, `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
 10. Open `https://auth.rusty-lub.online/health`; expect `{"ok":true}`.
