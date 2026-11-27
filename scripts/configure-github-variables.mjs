@@ -19,7 +19,12 @@ try {
   process.exit(2);
 }
 
-const config = parsed.firebaseConfig && typeof parsed.firebaseConfig === "object"
+if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  console.error("Firebase config JSON must contain an object.");
+  process.exit(2);
+}
+
+const config = parsed.firebaseConfig && typeof parsed.firebaseConfig === "object" && !Array.isArray(parsed.firebaseConfig)
   ? parsed.firebaseConfig
   : parsed;
 
@@ -49,7 +54,7 @@ if (!/^\d+$/.test(mapping.VITE_FIREBASE_MESSAGING_SENDER_ID)) {
   console.error("Firebase messagingSenderId must contain only digits.");
   process.exit(2);
 }
-if (/[\s/]/.test(mapping.VITE_FIREBASE_AUTH_DOMAIN)) {
+if (!/^[a-z0-9.-]+$/i.test(mapping.VITE_FIREBASE_AUTH_DOMAIN) || mapping.VITE_FIREBASE_AUTH_DOMAIN.includes("..")) {
   console.error("Firebase authDomain must be a hostname.");
   process.exit(2);
 }
