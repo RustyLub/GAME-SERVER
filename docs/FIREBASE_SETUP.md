@@ -63,3 +63,12 @@ Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNon
 - Discord identity is unique and cannot be linked to another UID.
 - Logout ends the Firebase session.
 
+
+## Set GitHub Actions Variables from a local JSON file
+
+You can export the Web App configuration object from Firebase Console as JSON and save it locally as `firebase-config.local.json` in the repository root. This filename is ignored by Git. Then, from the repository root, run:
+
+    node scripts/configure-github-variables.mjs firebase-config.local.json https://auth.rusty-lub.online --dry-run
+    node scripts/configure-github-variables.mjs firebase-config.local.json https://auth.rusty-lub.online
+
+The helper validates all six Firebase fields and the HTTPS backend origin, then writes the seven public values as GitHub Actions repository Variables using the authenticated GitHub CLI. It never prints the values and never creates or changes GitHub Secrets. Install GitHub CLI and authenticate with `gh auth login` first. Do not put service-account JSON or private keys in this file.

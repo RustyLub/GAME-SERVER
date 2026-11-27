@@ -13,3 +13,6 @@ public/og-ru.png
 public/og-en.png
 public/og-ru.webp
 public/og-en.webp
+
+# Local Firebase Web App config used by the GitHub Variables helper.
+firebase-config.local.json
