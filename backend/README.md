@@ -52,3 +52,38 @@ A Google Cloud project, Cloud Run permissions, billing configuration, and a serv
 In Firestore, configure TTL policies on the `expiresAt` field for the `steamAuthExchanges` and `steamOpenIdNonces` collections so expired one-time codes and replay-prevention records are cleaned up automatically. Expiry is also enforced by application code; TTL is storage cleanup.
 
 The service cannot be considered live until it has been deployed and these checks pass. Do not expose Firebase Admin credentials, Steam API keys, or game-server RCON secrets in frontend variables.
+
+## VIP Queue Pass and Platega
+
+The backend includes a seven-day VIP Queue Pass checkout flow. The pass is tied to the SteamID64 in the verified Firebase custom-token claims; the browser cannot choose another player's SteamID. The configured price is read only from `VIP_PRICE_RUB`. Checkout stays disabled until all three values are present:
+
+- `PLATEGA_MERCHANT_ID`
+- `PLATEGA_SECRET`
+- `VIP_PRICE_RUB` (whole RUB amount)
+
+Also set `PLATEGA_API_BASE=https://api.eu.payplatform.cc` (the European Platega API host). Do not place any Platega credential in Vite variables or the frontend.
+
+### Platega callback setup
+
+Set the merchant's single Callback URL to:
+
+```
+https://<your-real-backend-host>/payments/platega/callback
+```
+
+The callback handler checks both `X-MerchantId` and `X-Secret` using constant-time comparison, checks the order payload, and independently retrieves the current transaction from Platega before granting an entitlement. It checks the exact configured amount and RUB currency. It uses the Platega transaction ID as the idempotency key, so repeated callbacks cannot add extra seven-day periods.
+
+The Platega payment API currently uses `POST /v2/transaction/process` with `X-MerchantId` and `X-Secret`. The customer identity metadata is stable and tied to SteamID64. A browser return URL is never treated as proof of payment.
+
+### Firestore collections
+
+- `vipOrders/{transactionId}` — pending order and provider state.
+- `vipPayments/{transactionId}` — one record per confirmed Platega transaction.
+- `vipEntitlements/{steamId64}` — current entitlement and expiry; a renewal extends from the later of now or the existing expiry.
+- `vipDeliveryQueue/{transactionId}` — durable request for Carbon delivery. New grants are marked `pending` and the entitlement is `pending_delivery` until a trusted game-server integration acknowledges delivery.
+
+The callback marks chargebacks, partial refunds and disputes for review instead of silently treating them as ordinary successful payments. Automatic removal from the live Rust queue is not claimed by this backend yet: the Carbon-side worker and a verified removal command must be implemented and tested before VIP can be considered fully delivered or automatically expired on the game server.
+
+### Important activation boundary
+
+A confirmed Platega payment creates the seven-day entitlement and a pending Carbon delivery job. It does **not** directly issue an RCON command from the public website. Do not advertise the pass as live until the Carbon worker consumes the queue, executes the server-supported queue-skip command, acknowledges the job, and an expiry-removal mechanism is verified.
