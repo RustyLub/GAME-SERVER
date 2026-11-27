@@ -49,7 +49,7 @@ Copy `.env.example` to `.env.local` and fill it only with the Web App config fro
 
 ### Server-only secrets (future backend)
 
-Keep Firebase Admin credentials, Steam OpenID secrets (if any), Platega API/webhook secrets, and Rust server RCON credentials in the backend provider's secret manager. Never use `VITE_` prefixes for secrets and never commit service-account JSON files.
+Keep Firebase Admin runtime identity configuration, service-account signing permissions, Steam Web API key, Platega API/webhook secrets, and Rust server RCON credentials in the backend provider's secret manager. The backend uses Google Application Default Credentials and IAM signing; do not commit service-account JSON files. Never use `VITE_` prefixes for secrets and never commit service-account JSON files.
 
 ## Repository layout
 

@@ -40,10 +40,10 @@ A Google Cloud project, Cloud Run permissions, billing configuration, and a serv
 
 1. Enable Cloud Run and configure billing in the chosen Google Cloud project.
 2. Create a runtime service account and grant only Firebase Authentication user management and Firestore data access for project `rustylub`.
-3. Deploy this directory as a Cloud Run service, set the environment variables above, and bind the runtime service account.
+3. Deploy this directory as a Cloud Run service, set the environment variables above, and bind the runtime service account. Set `FIREBASE_SERVICE_ACCOUNT_EMAIL` to the bound service account email.
 4. Set `BACKEND_PUBLIC_URL` to the final HTTPS service URL and redeploy.
 5. Set GitHub repository variable `VITE_API_BASE_URL` to that HTTPS URL so the Pages build enables the Steam button.
 6. Add `rusty-lub.online` to Firebase Authentication authorized domains. Do not enable Email/Password as a Rusty.Lub sign-in method.
 7. Test first-time account creation, repeat login, invalid OpenID claims, replayed exchange codes, and logout before production use.
 
-The service cannot be considered live until it has been deployed and these checks pass. Do not expose Firebase Admin credentials, Steam API keys, or game-server RCON secrets in frontend variables.
+In Firestore, configure TTL policies on the `expiresAt` field for the `steamAuthExchanges` and `steamOpenIdNonces` collections so expired one-time codes and replay-prevention records are cleaned up automatically. Expiry is also enforced by application code; TTL is storage cleanup.\n\nThe service cannot be considered live until it has been deployed and these checks pass. Do not expose Firebase Admin credentials, Steam API keys, or game-server RCON secrets in frontend variables.

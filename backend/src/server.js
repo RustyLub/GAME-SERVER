@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = requiredEnv("FRONTEND_ORIGIN").replace(/\/$/, "");
 const BACKEND_PUBLIC_URL = requiredEnv("BACKEND_PUBLIC_URL").replace(/\/$/, "");
 const FIREBASE_PROJECT_ID = requiredEnv("FIREBASE_PROJECT_ID");
+const FIREBASE_SERVICE_ACCOUNT_EMAIL = process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || "";
 const STEAM_API_KEY = process.env.STEAM_API_KEY || "";
 const STEAM_OPENID_ENDPOINT = "https://steamcommunity.com/openid/login";
 const OPENID_NS = "http://specs.openid.net/auth/2.0";
@@ -22,10 +23,14 @@ const STATE_COOKIE = "rustylub_steam_state";
 const EXCHANGE_COLLECTION = "steamAuthExchanges";
 
 if (process.env.NODE_ENV === "production" &&
-    (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://"))) {
+    (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://") || !FIREBASE_SERVICE_ACCOUNT_EMAIL)) {
   throw new Error("FRONTEND_ORIGIN and BACKEND_PUBLIC_URL must use HTTPS in production.");
 }
-if (!getApps().length) initializeApp({ credential: applicationDefault(), projectId: FIREBASE_PROJECT_ID });
+if (!getApps().length) initializeApp({
+  credential: applicationDefault(),
+  projectId: FIREBASE_PROJECT_ID,
+  ...(FIREBASE_SERVICE_ACCOUNT_EMAIL ? { serviceAccountId: FIREBASE_SERVICE_ACCOUNT_EMAIL } : {}),
+});
 const auth = getAuth();
 const db = getFirestore();
 const app = express();
