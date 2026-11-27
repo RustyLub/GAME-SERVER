@@ -347,7 +347,7 @@ app.get("/vip/me", requireSteamUser, async (req, res) => {
         createdAt: data.createdAt?.toDate?.().toISOString() || null,
       };
     });
-    return res.status(200).json({
+    orders.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));\n    return res.status(200).json({
       entitlement: entitlement ? {
         status: entitlement.status,
         expiresAt: entitlement.expiresAt?.toDate?.().toISOString() || null,
