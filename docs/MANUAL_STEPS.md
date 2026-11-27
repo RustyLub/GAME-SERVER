@@ -29,7 +29,12 @@ Firestore rules allow each user to read their own profile, update only customDis
 ## 2. Google Cloud / Cloud Run
 
 1. Select the Google Cloud project that owns the dedicated Firebase project. Enable Cloud Run, Cloud Build, Artifact Registry, IAM Credentials, Firebase Authentication and Firestore APIs. Configure billing.
-2. Create a dedicated runtime service account, for example `rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com`.
+2. Create a dedicated runtime service account, for example `rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com`, and a separate scheduler identity:
+   ```bash
+   gcloud iam service-accounts create rusty-lub-backend --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub Cloud Run backend"
+   gcloud iam service-accounts create rusty-lub-vip-scheduler --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub VIP expiry scheduler"
+   ```
+   Use the scheduler account email as VIP_SCHEDULER_SERVICE_ACCOUNT.
 3. Grant project-level roles:
    - Firebase Authentication Admin: `roles/firebaseauth.admin`
    - Firestore data access: `roles/datastore.user`
