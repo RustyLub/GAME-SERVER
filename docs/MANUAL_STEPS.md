@@ -7,7 +7,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
 1. In Firebase Console, select or create the dedicated project for GAME-SERVER. Do not silently reuse the legacy Rusty.Lub website project.
 2. Create a Firebase Web App in Project settings → General → Your apps.
 3. Enable Firebase Authentication. Steam login uses Firebase Custom Tokens minted by the backend; Email/Password is not required.
-4. Add `rusty-lub.online` to Authentication → Settings → Authorized domains.
+4. Add both `rusty-lub.online` and `rusty-lub.ru` to Authentication → Settings → Authorized domains.
 5. Create Cloud Firestore in Production mode.
 6. From the repository root, publish the committed rules and indexes:
    ```bash
@@ -51,6 +51,7 @@ Firestore rules allow a user to read only their own profile, update only `custom
    ```bash
    export GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
    export FIREBASE_PROJECT_ID=YOUR_DEDICATED_FIREBASE_PROJECT_ID
+   export FRONTEND_ORIGINS="https://rusty-lub.online;https://rusty-lub.ru"
    export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com
    export VIP_SCHEDULER_SERVICE_ACCOUNT=rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com
    export DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
@@ -73,7 +74,7 @@ Firestore rules allow a user to read only their own profile, update only `custom
    ```
    Add the exact DNS records returned by Google at REG.RU and wait for the custom-domain certificate. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run the deployment script a second time. This makes Steam/Discord state cookies same-site with the website. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
 8. Add the six Firebase Web App variables from section 1 to GitHub Actions Variables.
-9. Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
+9. Configure Firestore TTL on `expiresAt` for `steamAuthStates`, `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
 10. Open `https://auth.rusty-lub.online/health`; expect `{"ok":true}`.
 
 The Cloud Run service must allow unauthenticated invocation because Steam and Discord redirect callbacks arrive without a Firebase bearer token. Protected JSON endpoints still verify Firebase ID tokens, exact browser Origin, OAuth state and one-time codes. Server secrets stay in Secret Manager / Cloud Run.
@@ -167,7 +168,7 @@ The game server stays strictly Vanilla. VIP uses only native Rust queue permissi
 
 The repository currently uses a custom GitHub Actions Pages workflow with `rusty-lub.online` as its configured primary domain. The `public/CNAME` file alone does not set the Pages custom domain.
 
-**Important — two independent apex domains:** the required setup is for both `rusty-lub.online` and `rusty-lub.ru` to serve the site without forcing visitors from one domain to the other. GitHub Pages does not support two independent apex custom domains for one site: its custom-domain configuration accepts one domain, and GitHub documents that additional domains require a redirect. Therefore, do not add `rusty-lub.ru` as a second Pages alias or point it at Pages while claiming the no-redirect requirement is met. Before declaring the public release complete, move the frontend to a host that supports both custom domains on the same deployment (or maintain two independent deployments), configure and validate HTTPS for each hostname, and update canonical/alternate metadata so each hostname remains on itself. Keep both domains available; do not introduce a redirect between them. The current Pages deployment is only the `.online` endpoint until that hosting migration is completed.
+**Important — two independent apex domains:** the required setup is for both `rusty-lub.online` and `rusty-lub.ru` to serve the site without forcing visitors from one domain to the other. GitHub Pages does not support two independent apex custom domains for one site: its custom-domain configuration accepts one domain, and GitHub documents that additional domains require a redirect. Therefore, do not add `rusty-lub.ru` as a second Pages alias or point it at Pages while claiming the no-redirect requirement is met. Before declaring the public release complete, move the frontend to a host that supports both custom domains on the same deployment (or maintain two independent deployments), configure and validate HTTPS for each hostname, and update canonical/alternate metadata so each hostname remains on itself. Keep both domains available; do not introduce a redirect between them. The backend supports an explicit allowlist of both frontend origins through `FRONTEND_ORIGINS` (semicolon-separated); Steam and Discord OAuth state records preserve the initiating domain, and Platega return URLs use the domain that started checkout. Configure `FRONTEND_ORIGINS="https://rusty-lub.online;https://rusty-lub.ru"` on Cloud Run and add both Firebase Auth authorized domains. The current Pages deployment is still only the `.online` endpoint until the frontend hosting migration is completed.
 
 1. Open GitHub → RustyLub/GAME-SERVER → Settings → Pages.
 2. Under Custom domain, set `rusty-lub.online` and save.
