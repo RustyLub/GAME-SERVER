@@ -31,7 +31,7 @@ Payments, Platega, webhooks, VIP entitlements and payment-related legal drafts a
 - The React application contains Russian and English routes.
 - Steam is the only intended sign-in method; email/password registration is not provided.
 - Firebase Web SDK initializes only when all dedicated-project Web App variables are supplied. There is no hard-coded fallback to a potentially unrelated Firebase project.
-- Firestore rules allow a signed-in user to get only their own profile. Listing users, profile writes and all other client access are denied.
+- Firestore rules allow a signed-in user to get only their own profile and update only customDisplayName. Users may read only their own orders; client order writes and all other internal collection access are denied.
 - The backend verifies Steam OpenID server-to-server, creates Firebase identities with stable Steam UIDs, writes profiles through Firebase Admin and exchanges short-lived one-time codes for Firebase custom tokens.
 - The backend is not live until it is deployed to Cloud Run, configured with the correct dedicated Firebase project and tested end-to-end.
 - Player leaderboards remain a “Скоро” placeholder until a verified source of game statistics exists.

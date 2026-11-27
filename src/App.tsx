@@ -10,11 +10,11 @@ import {
 
 const ruNav = [
   ["/servers", "Сервер"], ["/wipes", "Вайпы"], ["/rules", "Правила"],
-  ["/support", "Поддержка"], ["/account", "Личный кабинет"],
+  ["/support", "Поддержка"], ["/leaderboards", "Рейтинг"], ["/store", "Магазин"], ["/account", "Личный кабинет"],
 ] as const;
 const enNav = [
   ["/servers", "Server"], ["/wipes", "Wipes"], ["/rules", "Rules"],
-  ["/support", "Support"], ["/account", "Account"],
+  ["/support", "Support"], ["/leaderboards", "Leaderboard"], ["/store", "Store"], ["/account", "Account"],
 ] as const;
 
 function App({ initialPath }: { initialPath?: string } = {}) {
@@ -47,6 +47,8 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     if (description) description.setAttribute("content", meta.description);
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute("href", "https://rusty-lub.online" + (path === "/" ? "/" : path));
+    const robots = document.querySelector('meta[name="robots"]');
+    if (robots) robots.setAttribute("content", pageMeta[path] ? "index, follow" : "noindex, nofollow");
   }, [path, isEnglish]);
 
   const ruPages: Record<string, ReactNode> = {
@@ -88,7 +90,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     <footer className="footer">
       <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span></a>
       <span>RUSTY.LUB EU LONG · VANILLA X1</span>
-      <span><a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
+      <span><a href={localize("/servers")}>{isEnglish ? "SERVER" : "СЕРВЕР"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
     </footer>
   </div>;
 }
