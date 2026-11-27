@@ -6,7 +6,7 @@ process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
 process.env.FIREBASE_PROJECT_ID = "rustylub-test";
 
-const { parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion } =
+const { parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo } =
   await import("./server.js");
 
 test("accepts a canonical SteamID64 claimed_id", () => {
@@ -59,4 +59,27 @@ test("rejects an OpenID response with a mismatched state before network verifica
     "openid.mode": "id_res",
   });
   await assert.rejects(verifySteamAssertion(params, "expected-state"), /State mismatch/);
+});
+
+
+test("builds Discord OAuth URL with the exact callback and identify-only scope", () => {
+  const url = new URL(buildDiscordAuthorizeUrl("discord-state"));
+  assert.equal(url.origin + url.pathname, "https://discord.com/oauth2/authorize");
+  assert.equal(url.searchParams.get("response_type"), "code");
+  assert.equal(url.searchParams.get("redirect_uri"), "https://auth.example.com/auth/discord/callback");
+  assert.equal(url.searchParams.get("scope"), "identify");
+  assert.equal(url.searchParams.get("state"), "discord-state");
+});
+
+test("parses the Rust serverinfo player counts from RCON", () => {
+  assert.deepEqual(parseRustServerInfo('{"Players":17,"MaxPlayers":200}'), {
+    online: true,
+    players: 17,
+    maxPlayers: 200,
+  });
+});
+
+test("rejects malformed or incomplete Rust serverinfo responses", () => {
+  assert.throws(() => parseRustServerInfo("not-json"), /not JSON/);
+  assert.throws(() => parseRustServerInfo('{"Players":1}'), /player counts/);
 });
