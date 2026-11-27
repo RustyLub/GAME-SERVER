@@ -790,10 +790,16 @@ app.post("/payments/orders", async (req, res) => {
       await idempotencyRef.update({ status: "created", redirectUrl: redirectUrl.toString(), updatedAt: FieldValue.serverTimestamp() });
       return res.status(201).json({ orderId, redirectUrl: redirectUrl.toString(), amount: VIP_PRICE_RUB, currency: "RUB" });
     } catch (error) {
-      await orderRef.update({ status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
-      await idempotencyRef.update({ status: "failed", updatedAt: FieldValue.serverTimestamp() });
       await db.runTransaction(async (transaction) => {
-        const lock = await transaction.get(orderLockRef);
+        const [currentOrder, currentRequest, lock] = await Promise.all([
+          transaction.get(orderRef), transaction.get(idempotencyRef), transaction.get(orderLockRef),
+        ]);
+        if (currentOrder.exists && currentOrder.data()?.status === "creating") {
+          transaction.update(orderRef, { status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
+        }
+        if (currentRequest.exists) {
+          transaction.update(idempotencyRef, { status: "failed", updatedAt: FieldValue.serverTimestamp() });
+        }
         if (lock.exists && lock.data()?.orderId === orderId) {
           transaction.update(orderLockRef, {
             status: "failed", expiresAt: Timestamp.fromMillis(Date.now()),
