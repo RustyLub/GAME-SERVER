@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { isFirebaseConfigured } from "./lib/firebase";
+import AccountPanel from "./AccountPanel";
 
 const SERVER = {
   name: "Rusty.Lub EU Long",
@@ -75,7 +76,7 @@ function App() {
         <nav id="primary-navigation" className={"main-nav " + (menuOpen ? "nav-open" : "")} aria-label="Основная навигация">
           {navigation.map(([id, label]) => <a key={id} href={"#" + id} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
-        <button className="login-button" type="button" disabled title="Steam OpenID будет подключён на следующем этапе">ЛИЧНЫЙ КАБИНЕТ <span>↗</span></button>
+        <a className="login-button" href="#account">ЛИЧНЫЙ КАБИНЕТ <span>↗</span></a>
         <button className="mobile-menu" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? "✕" : "☰"}</button>
       </header>
 
@@ -162,8 +163,8 @@ function App() {
         </section>
 
         <section className="account-band" id="account">
-          <div><div className="eyebrow">PLAYER ACCOUNT / IN DEVELOPMENT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div>
-          <div><p>Личный кабинет, Steam-авторизация и история покупок появятся после подключения отдельного Firebase-проекта и серверной авторизации. Сейчас эти функции не активны.</p><button className="btn btn-ghost" type="button" disabled>STEAM LOGIN — В РАЗРАБОТКЕ</button><small className="firebase-note">{isFirebaseConfigured ? "Firebase-конфигурация обнаружена." : "Firebase ожидает настройки отдельного проекта GAME-SERVER."}</small></div>
+          <div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2><p>Создай аккаунт Rusty.Lub, чтобы в дальнейшем привязать Steam и пользоваться функциями сообщества.</p><small className="firebase-note">{isFirebaseConfigured ? "Конфигурация Firebase загружена." : "Firebase ожидает настройки."} Steam-вход и покупки будут добавлены отдельными этапами.</small></div>
+          <AccountPanel />
         </section>
 
         <section className="content-section contact-section" id="contact">
