@@ -7,3 +7,9 @@ dist-ssr
 !.env.example
 .DS_Store
 *.log
+
+# Generated from the original SVG social artwork during prebuild.
+public/og-ru.png
+public/og-en.png
+public/og-ru.webp
+public/og-en.webp
