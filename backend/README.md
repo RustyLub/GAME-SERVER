@@ -4,7 +4,7 @@ Node.js 22+ / Express service deployed separately to Google Cloud Run. It provid
 
 ## Runtime routes
 
-- GET /healthz — service health.
+- GET /health — service health.
 - GET /auth/steam — starts Steam OpenID.
 - GET /auth/steam/callback — verifies the OpenID assertion, creates the Firebase profile and issues a short-lived exchange code.
 - POST /auth/steam/exchange — consumes the one-time exchange code and returns a Firebase Custom Token.
