@@ -1,6 +1,12 @@
 import { renderToString } from "react-dom/server";
 import App from "./App";
 import { pageMeta } from "./pages/Pages";
+import { SITE_CONFIG } from "./config/site";
+
+export const serverRoutes = SITE_CONFIG.servers.flatMap((server) => [
+  "/servers/" + server.slug,
+  "/en/servers/" + server.slug,
+]);
 
 export function render(path: string) {
   const normalizedPath = path.replace(/\/$/, "") || "/";
