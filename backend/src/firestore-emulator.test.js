@@ -105,25 +105,27 @@ test("payment, entitlement and OAuth internals are denied to browser clients", a
 test("per-user checkout lock rejects a second reservation while the first is active", async () => {
   const uid = "steam_76561198000000007";
   const lockPath = "paymentLocks/" + uid;
-  const db = await testEnv.withSecurityRulesDisabled(async (context) => context.firestore());
 
-  const reserve = async (orderId) => runTransaction(db, async (transaction) => {
-    const lockRef = doc(db, lockPath);
-    const current = await transaction.get(lockRef);
-    if (current.exists() && current.data().expiresAt.toMillis() > Date.now()) return false;
-    transaction.set(lockRef, {
-      userId: uid,
-      orderId,
-      status: "creating",
-      expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    const reserve = async (orderId) => runTransaction(db, async (transaction) => {
+      const lockRef = doc(db, lockPath);
+      const current = await transaction.get(lockRef);
+      if (current.exists() && current.data().expiresAt.toMillis() > Date.now()) return false;
+      transaction.set(lockRef, {
+        userId: uid,
+        orderId,
+        status: "creating",
+        expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+      });
+      return true;
     });
-    return true;
-  });
 
-  assert.equal(await reserve("order-a"), true);
-  assert.equal(await reserve("order-b"), false);
-  const stored = await getDoc(doc(db, lockPath));
-  assert.equal(stored.data().orderId, "order-a");
+    assert.equal(await reserve("order-a"), true);
+    assert.equal(await reserve("order-b"), false);
+    const stored = await getDoc(doc(db, lockPath));
+    assert.equal(stored.data().orderId, "order-a");
+  });
 });
 
 test("expired per-user checkout lock can be safely reclaimed", async () => {
