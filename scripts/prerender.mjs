@@ -57,7 +57,7 @@ for (const route of routes) {
 
 function notFoundHtml(pathname, english) {
   const result = render(pathname);
-  const canonical = english ? "https://rusty-lub.online/en/404.html" : "https://rusty-lub.online/404.html";
+  const canonical = SITE_ORIGIN + (english ? "/en/404.html" : "/404.html");
   const image = SITE_ORIGIN + "/" + (english ? "og-en.png" : "og-ru.png");
   const title = english ? "Page not found — Rusty.Lub" : "Страница не найдена — Rusty.Lub";
   const description = english ? "The requested page could not be found." : "Запрошенная страница не найдена.";
