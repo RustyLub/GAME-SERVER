@@ -49,6 +49,7 @@ Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime
 - npm install
 - npm run build
 - npm run verify:release
+- npm run test:config
 - npm audit --audit-level=moderate
 - npm audit --prefix backend --audit-level=moderate
 - npm install --prefix backend
@@ -68,9 +69,9 @@ GitHub Pages accepts one configured custom domain and cannot independently serve
 
 ## Security and secrets
 
-Root `.env.example` and `backend/.env.example` contain non-secret placeholders and sample public URLs only. Firebase Web App config and `VITE_API_BASE_URL` are public client values. Firebase Admin identity, Steam/Discord/Platega credentials and RCON password stay in Cloud Run / Google Secret Manager. Never place secrets in VITE_ variables or source control.
+Root `.env.example` and `backend/.env.example` contain the existing public Firebase Web App configuration and non-secret deployment defaults. Firebase Web App config and `VITE_API_BASE_URL` are public client values. Firebase Admin identity, Steam/Discord/Platega credentials and RCON password stay in Cloud Run / Google Secret Manager. Never place secrets in VITE_ variables or source control.
 
 ## Manual actions
 
-Some steps require the project owner: supplying the original `IMG_0512.jpeg` brand asset, choosing the dedicated Firebase project, enabling Authentication and Firestore, publishing rules, configuring Google Cloud IAM/Cloud Run and the Firebase Hosting auth proxy, creating Discord and Platega applications, enabling WebRCON, migrating both DNS zones without losing mail/game/auth records, and completing seller details for legal pages. They are listed in `docs/MANUAL_STEPS.md`.
+Some steps require the project owner: supplying the original `IMG_0512.jpeg` brand asset, reusing the existing Firebase project `rustylub` without rotating its Web App config, confirming Authentication and Firestore, backing up existing data/rules before publishing any rule changes, configuring Google Cloud IAM/Cloud Run and the Firebase Hosting auth proxy, creating Discord and Platega applications, enabling WebRCON, migrating both DNS zones without losing mail/game/auth records, and completing seller details for legal pages. They are listed in `docs/MANUAL_STEPS.md`.
 
