@@ -49,6 +49,8 @@ Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime
 - npm install
 - npm run build
 - npm run verify:release
+- npm audit --audit-level=moderate
+- npm audit --prefix backend --audit-level=moderate
 - npm install --prefix backend
 - npm test --prefix backend
 - bash -n backend/deploy-cloud-run.sh
