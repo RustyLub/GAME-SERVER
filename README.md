@@ -53,7 +53,7 @@ Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime
 - npm audit --audit-level=moderate
 - npm audit --prefix backend --audit-level=moderate
 - npm install --prefix backend
-- npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
+- npx --yes firebase-tools@15.37.0 emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
 - bash -n backend/deploy-cloud-run.sh
 - bash -n backend/deploy-auth-hosting.sh
 
