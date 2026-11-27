@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { once } from "node:events";
 
 process.env.NODE_ENV = "test";
 process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
@@ -86,13 +88,17 @@ test("rejects malformed or incomplete Rust serverinfo responses", () => {
 
 
 test("serves the Cloud Run compatible health endpoint", async () => {
-  const server = app.listen(0, "127.0.0.1");
+  const server = createServer(app);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
   try {
     const address = server.address();
     const response = await fetch(`http://127.0.0.1:${address.port}/health`);
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { ok: true });
   } finally {
-    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    if (server.listening) {
+      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
   }
 });
