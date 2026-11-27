@@ -7,7 +7,7 @@ Bilingual public website for the Rusty.Lub Rust server network. The server catal
 - Repository: https://github.com/RustyLub/GAME-SERVER
 - Frontend hosting: GitHub Pages interim deployment; a manual Cloudflare Pages workflow is prepared for both domains.
 - Frontend: React 19 + TypeScript + Vite 8
-- Trusted backend: Node.js + Firebase Admin on Google Cloud Run
+- Trusted backend: Firebase Hosting auth proxy → Node.js + Firebase Admin on Google Cloud Run
 
 ## Current game server — EU Long
 
@@ -52,12 +52,13 @@ Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime
 - npm install --prefix backend
 - npm test --prefix backend
 - bash -n backend/deploy-cloud-run.sh
+- bash -n backend/deploy-auth-hosting.sh
 
 ## Deployments
 
 Pushes to main run `.github/workflows/deploy-pages.yml`. CI builds and verifies both domain-specific metadata variants, checks Cloudflare routing middleware, type-checks the frontend, validates backend syntax, runs backend and Firestore tests, and deploys the interim GitHub Pages `.online` endpoint. After Cloudflare project setup and GitHub secrets are ready, `.github/workflows/deploy-cloudflare-pages.yml` can be run manually to deploy the shared dual-domain project.
 
-The static frontend and Cloud Run backend are separate deployments. Steam/Discord callbacks, Firebase Admin, Platega webhooks and privileged RCON commands never run in GitHub Pages.
+The static frontend and backend are separate deployments. The public `auth.rusty-lub.online` endpoint is a dedicated Firebase Hosting site that rewrites requests to the Cloud Run service. Steam/Discord callbacks, Firebase Admin, Platega webhooks and privileged RCON commands never run in GitHub Pages.
 
 ## Domain
 
@@ -69,5 +70,5 @@ Root `.env.example` and `backend/.env.example` contain non-secret placeholders a
 
 ## Manual actions
 
-Some steps require the project owner: supplying the original `IMG_0512.jpeg` brand asset, choosing the dedicated Firebase project, enabling Authentication and Firestore, publishing rules, configuring Google Cloud IAM/Cloud Run, creating Discord and Platega applications, enabling WebRCON, migrating both DNS zones without losing mail/game/auth records, and completing seller details for legal pages. They are listed in `docs/MANUAL_STEPS.md`.
+Some steps require the project owner: supplying the original `IMG_0512.jpeg` brand asset, choosing the dedicated Firebase project, enabling Authentication and Firestore, publishing rules, configuring Google Cloud IAM/Cloud Run and the Firebase Hosting auth proxy, creating Discord and Platega applications, enabling WebRCON, migrating both DNS zones without losing mail/game/auth records, and completing seller details for legal pages. They are listed in `docs/MANUAL_STEPS.md`.
 
