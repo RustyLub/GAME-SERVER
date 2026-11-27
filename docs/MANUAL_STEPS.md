@@ -161,6 +161,8 @@ Payment code is already merged into `main` after a green build and payment test 
    gcloud scheduler jobs update http rusty-lub-vip-reconcile \
      --location europe-west1 \
      --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
+     --http-method POST \
+     --oidc-service-account-email "rusty-lub-vip-scheduler@rustylub.iam.gserviceaccount.com" \
      --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
    ```
    Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
