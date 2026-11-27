@@ -325,8 +325,9 @@ function parseRustServerInfo(message) {
   catch { throw new Error("Rust serverinfo response was not JSON"); }
   const players = Number(info?.Players ?? info?.players);
   const maxPlayers = Number(info?.MaxPlayers ?? info?.maxPlayers ?? info?.maxplayers);
-  if (!Number.isFinite(players) || !Number.isFinite(maxPlayers) || maxPlayers < 1) {
-    throw new Error("Rust serverinfo response did not contain player counts");
+  if (!Number.isInteger(players) || players < 0 ||
+      !Number.isInteger(maxPlayers) || maxPlayers < 1 || players > maxPlayers) {
+    throw new Error("Rust serverinfo response contained invalid player counts");
   }
   return { online: true, players, maxPlayers };
 }
