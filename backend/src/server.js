@@ -38,6 +38,7 @@ const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI?.trim() || (BACKEN
 const DISCORD_STATE_COOKIE = "rustylub_discord_state";
 const RCON_HOST = process.env.RCON_HOST?.trim() || "";
 const RCON_PORT = Number(process.env.RCON_PORT || 0);
+const RCON_PROTOCOL = process.env.RCON_PROTOCOL?.trim() || "wss";
 const RCON_PASSWORD = process.env.RCON_PASSWORD || "";
 const PLATEGA_API_BASE = process.env.PLATEGA_API_BASE?.trim() || "https://api.eu.payplatform.cc";
 const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID?.trim() || "";
@@ -278,12 +279,13 @@ function buildDiscordAuthorizeUrl(state) {
 }
 
 async function sendRconCommand(command, timeoutMs = 5000) {
-  if (!RCON_HOST || !Number.isInteger(RCON_PORT) || RCON_PORT < 1 || !RCON_PASSWORD) {
+  if (!RCON_HOST || !Number.isInteger(RCON_PORT) || RCON_PORT < 1 || !RCON_PASSWORD || !["ws", "wss"].includes(RCON_PROTOCOL)) {
     throw new Error("RCON is not configured");
   }
+  if (process.env.NODE_ENV === "production" && RCON_PROTOCOL !== "wss") throw new Error("Production RCON must use secure WebSocket (wss)");
   if (typeof WebSocket === "undefined") throw new Error("WebSocket client is unavailable in this Node runtime");
   const identifier = crypto.randomInt(1, 2_000_000_000);
-  const socketUrl = "ws://" + RCON_HOST + ":" + RCON_PORT + "/" + encodeURIComponent(RCON_PASSWORD);
+  const socketUrl = RCON_PROTOCOL + "://" + RCON_HOST + ":" + RCON_PORT + "/" + encodeURIComponent(RCON_PASSWORD);
   return await new Promise((resolve, reject) => {
     const socket = new WebSocket(socketUrl);
     const timer = setTimeout(() => {
@@ -557,7 +559,7 @@ function isVipCheckoutEnabled() {
     return api.protocol === "https:" &&
       ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
       Boolean(LEGAL_DETAILS_COMPLETE && PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_SCHEDULER_SERVICE_ACCOUNT &&
-        RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD &&
+        RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD && RCON_PROTOCOL === "wss" &&
         Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 &&
         [2, 3, 11, 12, 13, 14].includes(PLATEGA_PAYMENT_METHOD));
   } catch { return false; }
