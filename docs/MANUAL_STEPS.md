@@ -15,7 +15,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
    firebase use --add
    firebase deploy --only firestore:rules,firestore:indexes --project YOUR_FIREBASE_PROJECT_ID
    ```
-7. In GitHub → Settings → Secrets and variables → Actions → Variables, set the six public Web App values from Firebase:
+7. In GitHub → Settings → Secrets and variables → Actions → Variables, set these six public Firebase Web App values:
    - `VITE_FIREBASE_API_KEY`
    - `VITE_FIREBASE_AUTH_DOMAIN`
    - `VITE_FIREBASE_PROJECT_ID`
@@ -23,7 +23,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
    - `VITE_FIREBASE_MESSAGING_SENDER_ID`
    - `VITE_FIREBASE_APP_ID`
 
-These are public browser configuration, not server secrets. Do not put Firebase Admin credentials, Steam/Discord/Platega secrets or RCON passwords in any `VITE_` variable.
+Also set `VITE_API_BASE_URL` to `https://auth.rusty-lub.online` after the Cloud Run custom domain is active (section 2). The frontend therefore uses seven public build variables in total: six Firebase values plus the backend origin. These are public browser configuration, not server secrets. Do not put Firebase Admin credentials, Steam/Discord/Platega secrets or RCON passwords in any `VITE_` variable.
 
 Firestore rules allow a user to read only their own profile, update only `customDisplayName` (2–24 characters), and read only their own order documents. The backend alone creates/updates profiles, orders, payment events, entitlements, payment locks, OAuth state and nonce documents.
 
@@ -145,7 +145,7 @@ Payment code is already merged into `main` after a green build and payment test 
      --uri "https://auth.rusty-lub.online/internal/vip/reconcile" \
      --http-method POST \
      --oidc-service-account-email "rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com" \
-     --oidc-token-audience "https://auth.rusty-lub.online/internal/vip/reconcile"
+     --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
    ```
    Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
 7. Publish the final seller/operator identity, legal address/contact details required by applicable law, tax status, payment recipient details, approved price and reviewed refund/cancellation terms on the legal pages. Have the actual operator jurisdiction and Platega merchant agreement reviewed. Only after this review, export `LEGAL_DETAILS_COMPLETE=true` in the trusted deployment terminal and run `bash backend/deploy-cloud-run.sh` again. Do not set this flag earlier. This server-side gate keeps checkout disabled until those details are complete.
