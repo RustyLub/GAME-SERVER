@@ -89,6 +89,43 @@ test("serializes a grant and a newer revocation, then reconciles the newer state
   ]);
 });
 
+test("finishes a newer grant after an older revocation command", async () => {
+  const ref = { data: { status: "revoke_pending", revokeToStatus: "revoked", steamId64, displayName: "Player" } };
+  const commands = [];
+  let releaseRevoke;
+  let markRevokeStarted;
+  const revokeStarted = new Promise((resolve) => { markRevokeStarted = resolve; });
+  const { processor, db } = createProcessor({
+    ref,
+    sendRconCommand: async (command) => {
+      commands.push(command);
+      if (command === "remove:" + steamId64) {
+        markRevokeStarted();
+        await new Promise((resolve) => { releaseRevoke = resolve; });
+      }
+    },
+  });
+
+  const first = processor(ref);
+  await revokeStarted;
+  assert.equal(await processor(ref), "processing");
+
+  await db.runTransaction(async (transaction) => {
+    transaction.update(ref, { status: "grant_pending" });
+  });
+  releaseRevoke();
+
+  assert.equal(await first, "active");
+  assert.equal(ref.data.status, "active");
+  assert.equal(ref.data.expiresAt.toMillis(), 1000 + DURATION);
+  assert.deepEqual(commands, [
+    "remove:" + steamId64,
+    "server.writecfg",
+    "grant:" + steamId64,
+    "server.writecfg",
+  ]);
+});
+
 test("reclaims a pending operation after its processing lease expires", async () => {
   let currentTime = 1000;
   const ref = {
