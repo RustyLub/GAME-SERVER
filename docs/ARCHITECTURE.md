@@ -51,7 +51,7 @@ The site prerenders all public Russian and English routes, with per-route title,
 
 ## Payment isolation
 
-Payment creation and Platega webhook handling live in a dedicated payment release branch and are merged only after the full build and payment test suite are green. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over WSS-protected RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
+Payment creation and Platega callback handling are implemented in the trusted backend. The callback checks Platega's documented headers, independently verifies the provider transaction and applies idempotent order and entitlement updates. VIP grants, retries and expiry use native Rust queue commands over WSS-protected RCON and Cloud Scheduler OIDC. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over WSS-protected RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
 
 ## Current release limitations
 
