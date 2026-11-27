@@ -175,7 +175,7 @@ The repository currently uses a custom GitHub Actions Pages workflow with `rusty
 
 A manual GitHub Actions workflow is prepared at **Actions → Deploy dual-domain site to Cloudflare Pages**. It does not run on pushes and does not change the live GitHub Pages deployment.
 
-1. Create one Cloudflare Pages project named `rustylub-network`.
+1. Create one Cloudflare Pages **Direct Upload** project named `rustylub-network` so the GitHub Actions Wrangler workflow owns deployments.
 2. Add both zones, `rusty-lub.online` and `rusty-lub.ru`, to the same Cloudflare account. In Pages → Custom domains, attach both apex domains, `rusty-lub.online` and `rusty-lub.ru`, to the `rustylub-network` project. The deployed Pages middleware rewrites canonical URLs, Open Graph URLs, sitemap and robots metadata to match the hostname of each request.
 3. Before changing nameservers at REG.RU, export the complete DNS zones and recreate every required record in Cloudflare. Preserve mail records (MX, SPF, DKIM, DMARC), the Rust game host `long.rusty-lub.online` as DNS-only A `202.36.95.125`, and the Cloud Run auth hostname records. Keep `auth.rusty-lub.online` DNS-only while validating the Google-managed Cloud Run certificate. Do not proxy the Rust game port or change its target.
 4. Only after comparing the full DNS record sets, switch the two domains' nameservers at REG.RU to the exact Cloudflare nameservers assigned to each zone. Wait until Cloudflare reports both zones active and verify the game hostname, mail records and auth hostname before proceeding.
