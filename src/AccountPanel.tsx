@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, type User } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./lib/firebase";
 
 function firebaseErrorMessage(error: unknown) {
@@ -28,6 +28,8 @@ export default function AccountPanel() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [editingName, setEditingName] = useState(false);
 
   useEffect(() => {
     if (!auth) {
@@ -37,6 +39,7 @@ export default function AccountPanel() {
     }
     return onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setProfileName(currentUser?.displayName || "");
       setChecking(false);
     }, () => {
       setChecking(false);
@@ -59,6 +62,58 @@ export default function AccountPanel() {
       setMessage("Аккаунт и профиль успешно созданы.");
     } catch {
       setMessage("Аккаунт создан. Не удалось сохранить профиль в Firestore: проверь, создана ли база и опубликованы ли правила.");
+    }
+  }
+
+
+  useEffect(() => {
+    if (!user || !db) return;
+    let active = true;
+    getDoc(doc(db, "users", user.uid)).then((snapshot) => {
+      if (!active || !snapshot.exists()) return;
+      const storedName = snapshot.data().displayName;
+      if (typeof storedName === "string" && storedName.length > 0) setProfileName(storedName);
+    }).catch(() => {
+      if (active) setMessage("Не удалось загрузить профиль из Firestore. Проверь настройки базы и правила доступа.");
+    });
+    return () => { active = false; };
+  }, [user]);
+
+  async function updateDisplayName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!auth || !db || !user) {
+      setError("Для сохранения имени необходимо подключить Firestore.");
+      return;
+    }
+    const nextName = profileName.trim();
+    if (nextName.length < 2 || nextName.length > 40) {
+      setError("Имя должно содержать от 2 до 40 символов.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const profileRef = doc(db, "users", user.uid);
+      const profile = await getDoc(profileRef);
+      await updateProfile(user, { displayName: nextName });
+      if (profile.exists()) {
+        await updateDoc(profileRef, { displayName: nextName, updatedAt: serverTimestamp() });
+      } else {
+        await setDoc(profileRef, {
+          displayName: nextName,
+          email: user.email || "",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      setUser({ ...user });
+      setEditingName(false);
+      setMessage("Имя профиля обновлено.");
+    } catch {
+      setError("Не удалось сохранить имя. Проверь, что Firestore создан и актуальные правила опубликованы.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -128,10 +183,19 @@ export default function AccountPanel() {
   if (user) return (
     <div className="account-panel">
       <div className="account-profile">
-        <span className="account-avatar">{(user.displayName || user.email || "R").slice(0, 1).toUpperCase()}</span>
-        <div><small>ТЫ В СИСТЕМЕ</small><strong>{user.displayName || "Игрок Rusty.Lub"}</strong><span>{user.email}</span></div>
+        <span className="account-avatar">{(profileName || user.displayName || user.email || "R").slice(0, 1).toUpperCase()}</span>
+        <div><small>ТЫ В СИСТЕМЕ</small><strong>{profileName || user.displayName || "Игрок Rusty.Lub"}</strong><span>{user.email}</span></div>
       </div>
-      <div className="account-profile-meta"><span>UID аккаунта</span><code>{user.uid}</code></div>
+      {editingName ? (
+        <form className="account-form account-edit-form" onSubmit={updateDisplayName}>
+          <label>НОВОЕ ИМЯ ИГРОКА<input value={profileName} onChange={event => setProfileName(event.target.value)} minLength={2} maxLength={40} required /></label>
+          <div className="account-actions">
+            <button className="btn btn-red" type="submit" disabled={busy}>{busy ? "СОХРАНЕНИЕ…" : "СОХРАНИТЬ ИМЯ"}</button>
+            <button className="btn btn-ghost" type="button" onClick={() => { setProfileName(user.displayName || ""); setEditingName(false); setError(""); }}>ОТМЕНА</button>
+          </div>
+        </form>
+      ) : <button className="account-reset" type="button" onClick={() => { setProfileName(user.displayName || profileName); setEditingName(true); }}>ИЗМЕНИТЬ ИМЯ</button>}
+      <div className="account-profile-meta"><span>UID АККАУНТА</span><code>{user.uid}</code></div>
       {message && <p className="account-message" role="status">{message}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}
       <button className="btn btn-ghost" type="button" onClick={logout} disabled={busy}>{busy ? "ВЫХОД…" : "ВЫЙТИ ИЗ АККАУНТА"}</button>
