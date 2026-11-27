@@ -560,7 +560,7 @@ app.get("/auth/discord/callback", async (req, res) => {
 });
 
 app.post("/auth/discord/unlink", async (req, res) => {
-  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  if (!requestFrontendOrigin(req)) return res.sendStatus(403);
   try {
     const uid = await authenticatedSteamUid(req);
     const profileRef = db.collection("users").doc(uid);
@@ -709,7 +709,7 @@ app.get("/vip/config", (_req, res) => res.status(200).json({
 }));
 
 app.get("/vip/me", async (req, res) => {
-  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  if (!requestFrontendOrigin(req)) return res.sendStatus(403);
   try {
     const uid = await authenticatedSteamUid(req);
     const snapshot = await db.collection("entitlements").where("userId", "==", uid).limit(10).get();
