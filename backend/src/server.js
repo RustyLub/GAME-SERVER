@@ -627,9 +627,24 @@ async function processVipQueueWorker() {
     .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
   const staleOrders = await db.collection("orders").where("status", "in", ["creating", "pending"])
     .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
+  const suspendedExpired = await db.collection("entitlements").where("status", "==", "suspended")
+    .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
   let processed = 0;
   for (const doc of pending.docs) {
     await processVipEntitlement(doc.ref);
+    processed += 1;
+  }
+  for (const suspendedDoc of suspendedExpired.docs) {
+    await db.runTransaction(async (transaction) => {
+      const current = await transaction.get(suspendedDoc.ref);
+      if (!current.exists || current.data()?.status !== "suspended" ||
+          current.data()?.expiresAt?.toMillis?.() > Date.now()) return;
+      transaction.update(suspendedDoc.ref, {
+        status: "expired",
+        expiredAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
     processed += 1;
   }
   for (const orderDoc of staleOrders.docs) {
