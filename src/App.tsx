@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { SITE_CONFIG } from "./config/site";
 import {
   HomePage, ServersPage, ServerDetailsPage, WipesPage, RulesPage, SupportPage, PrivacyPage, CookiesPage, TermsPage,
   AccountPage, LinkPage, LeaderboardsPage, StorePage, NotFoundPage, pageMeta,
@@ -64,6 +65,12 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     "/leaderboards": <LeaderboardsPageEn />, "/store": <StorePageEn />,
   };
   const currentPages = isEnglish ? enPages : ruPages;
+  const serverSlug = /^\\/servers\\/([a-z0-9-]+)$/.exec(routePath)?.[1];
+  const configuredServer = serverSlug ? SITE_CONFIG.servers.find((server) => server.slug === serverSlug) : undefined;
+  const dynamicServerPage = configuredServer
+    ? isEnglish ? <ServerDetailsPageEn slug={configuredServer.slug} /> : <ServerDetailsPage slug={configuredServer.slug} />
+    : null;
+  const activePage = currentPages[routePath] ?? dynamicServerPage;
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">{isEnglish ? "Skip to content" : "Перейти к содержимому"}</a>
@@ -86,7 +93,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
       </div>
       <button className="mobile-menu" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? (isEnglish ? "Close menu" : "Закрыть меню") : (isEnglish ? "Open menu" : "Открыть меню")} aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? "✕" : "☰"}</button>
     </header>
-    <main id="main-content">{currentPages[routePath] || (isEnglish ? <NotFoundPageEn /> : <NotFoundPage />)}</main>
+    <main id="main-content">{activePage || (isEnglish ? <NotFoundPageEn /> : <NotFoundPage />)}</main>
     <footer className="footer">
       <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>RUST SERVER NETWORK</small></span></a>
       <span>RUSTY.LUB / RUST SERVER NETWORK</span>
