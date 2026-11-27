@@ -44,7 +44,7 @@ Add a new entry to the `servers` array in `src/config/site.ts` with a unique `id
 
 ## Local checks
 
-Requirements: Node.js 22+ and npm.
+Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime remains Node.js 22+.
 
 - npm install
 - npm run build
