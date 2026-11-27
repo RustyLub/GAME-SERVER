@@ -15,7 +15,8 @@ export function HomePageEn() {
   <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
    <div className="kicker"><span /> RUSTY.LUB / RUST SERVER NETWORK</div>
    <h1>RUSTY.LUB<br /><em>SERVER NETWORK.</em></h1>
-   <p>Everything about our servers. All in one place. Explore each game world, check server status, follow news and events, and use guides and tools for Rust.</p>
+   <p className="hero-lead">Everything about our servers. All in one place.</p>
+   <p>Explore each game world, check server status, follow news and events, and use guides and tools for Rust.</p>
    <div className="hero-cta"><a className="btn btn-red" href="#servers">SERVER DIRECTORY ↗</a><a className="btn btn-ghost" href="#community">ABOUT THE COMMUNITY ↗</a></div>
    <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>SERVERS · COMMUNITY · TOOLS</span><span>OFFICIAL PROJECT WEBSITE</span></div>
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
