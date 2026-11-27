@@ -32,7 +32,7 @@ The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins
 - Steam OpenID sign-in with server verification and Firebase Custom Tokens.
 - Discord account linking through server-side OAuth2.
 - Owner-scoped Firestore profile and read-only order history.
-- Native-Rust VIP Queue Pass flow is implemented separately from the website's game runtime; no game plugin is used.
+- VIP Queue Pass checkout uses Platega and grants a seven-day native Rust queue-skip permission via server-side RCON. Cloud Scheduler removes expired permissions; no game plugin is used.
 - Player leaderboard remains “Скоро” until a trusted game statistics source is connected.
 - Route prerendering, sitemap, robots, canonical URLs and separate RU/EN OG artwork.
 

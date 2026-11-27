@@ -13,7 +13,7 @@ Node.js 22+ / Express service deployed separately to Google Cloud Run. It provid
 - POST /auth/discord/unlink — removes the current user's Discord mapping.
 - GET /public/server-status — optional read-only WebRCON serverinfo query; returns unavailable if RCON is not configured or unreachable.
 
-Payment routes are added in a separate release branch and are merged into main only after green tests. No Carbon or Oxide plugin is involved.
+Payment routes create a Platega transaction, verify callbacks using the documented X-MerchantId/X-Secret headers and a server-side GET transaction check, then issue a 7-day native Rust queue-skip permission through RCON. Callback events and RCON retries are idempotent. Expiry and dispute/chargeback revocation run through a Cloud Scheduler OIDC worker. No Carbon or Oxide plugin is involved.
 
 ## Security
 
@@ -39,7 +39,10 @@ Payment routes are added in a separate release branch and are merged into main o
 - DISCORD_CLIENT_SECRET=<Secret Manager mapping>
 - DISCORD_REDIRECT_URI=<BACKEND_PUBLIC_URL>/auth/discord/callback
 - RCON_HOST / RCON_PORT (optional)
-- RCON_PASSWORD (optional Secret Manager mapping)
+- RCON_PASSWORD (Secret Manager mapping; required for live status and VIP)
+- PLATEGA_API_BASE, PLATEGA_MERCHANT_ID, PLATEGA_PAYMENT_METHOD, VIP_PRICE_RUB
+- PLATEGA_SECRET (Secret Manager mapping)
+- VIP_SCHEDULER_SERVICE_ACCOUNT (Google service account email used for OIDC scheduler requests)
 - STEAM_API_KEY (optional Secret Manager mapping)
 
 ## Cloud Run IAM
@@ -66,6 +69,7 @@ The deployment script accepts secret names, not secret values:
 - STEAM_API_KEY_SECRET_NAME
 - DISCORD_CLIENT_SECRET_SECRET_NAME
 - RCON_PASSWORD_SECRET_NAME
+- PLATEGA_SECRET_SECRET_NAME
 
 It maps these Secret Manager versions into Cloud Run without writing secrets to the repository.
 

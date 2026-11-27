@@ -51,7 +51,7 @@ The site prerenders all public Russian and English routes, with per-route title,
 
 ## Payment isolation
 
-Payment, Platega, webhook and VIP entitlement implementation is developed in a dedicated payment branch. It may be merged into main only after the full build and payment test suite are green. The game server remains Vanilla; VIP uses native Rust commands through RCON.
+Payment creation and Platega webhook handling live in a dedicated payment release branch and are merged only after the full build and payment test suite are green. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
 
 ## Current release limitations
 

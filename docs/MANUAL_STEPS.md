@@ -49,6 +49,7 @@ Firestore rules allow each user to read their own profile, update only customDis
    export RCON_PORT=YOUR_RUST_RCON_PORT
    export RCON_PASSWORD_SECRET_NAME=YOUR_RCON_SECRET_NAME
    export DISCORD_CLIENT_SECRET_SECRET_NAME=YOUR_DISCORD_SECRET_NAME
+   export PLATEGA_SECRET_SECRET_NAME=YOUR_PLATEGA_SECRET_NAME
    # Optional: set BACKEND_PUBLIC_URL only after the Cloud Run custom domain mapping is created.
    # Optional:
    export STEAM_API_KEY_SECRET_NAME=YOUR_STEAM_API_SECRET_NAME
@@ -94,9 +95,23 @@ The code is isolated in the payment release branch until its tests pass and the 
 1. Obtain Merchant ID and API secret from Platega. Store the secret in Secret Manager as PLATEGA_SECRET; set PLATEGA_MERCHANT_ID and PLATEGA_API_BASE as Cloud Run environment variables.
 2. Confirm with Platega the required payment method and the stable customer identifier for metadata.user_email. Steam accounts do not provide an email address; do not invent a customer's real email. The implementation uses a stable internal Steam-based identifier in the format required by Platega only after this is accepted by the provider.
 3. Set the merchant callback URL to `https://auth.rusty-lub.online/payments/platega/callback`.
-4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then verifies transaction status, merchant, amount, currency and order binding server-side before granting anything.
-5. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
-6. Confirm the seven-day VIP Queue Pass wording, price, tax and operator details on the legal pages before opening checkout.
+4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then calls GET /transaction/{id} and verifies current status, merchant, amount, currency and order payload before granting anything. Duplicate status notifications and refund events are idempotent. The callback endpoint returns 200 only after the VIP action is applied or durably queued for retry.
+5. The payment request sends the permanent SteamID64 as metadata.userId and SteamID64@mail.ru as metadata.user_email, following Platega guidance for a stable internal buyer ID when no email is collected. Confirm with the Platega manager that this metadata format and the selected payment method are accepted for your merchant category.
+6. Create a dedicated Cloud Scheduler service account and set VIP_SCHEDULER_SERVICE_ACCOUNT to its email. Grant the service account roles/run.invoker on the Cloud Run service. Create a Scheduler job with OIDC authentication (no shared secret):
+   ```bash
+   gcloud scheduler jobs create http rusty-lub-vip-reconcile \\
+     --location YOUR_REGION \\
+     --schedule "*/5 * * * *" \\
+     --time-zone "Etc/UTC" \\
+     --uri "https://auth.rusty-lub.online/internal/vip/reconcile" \\
+     --http-method POST \\
+     --oidc-service-account-email "YOUR_SCHEDULER_SERVICE_ACCOUNT" \\
+     --oidc-token-audience "https://auth.rusty-lub.online/internal/vip/reconcile"
+   ```
+   Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
+7. Test native Rust RCON commands on a non-production/test SteamID64 first. Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, server.writecfg, reconnect, seven-day expiry and removals before sales.
+8. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
+9. Confirm the seven-day VIP Queue Pass wording, price, tax and operator details on the legal pages before opening checkout.
 
 ## 7. Domain and HTTPS
 
