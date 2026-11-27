@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore/lite";
 import { auth, db } from "./lib/firebase";
 
 type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string; customDisplayName?: string; discordId?: string; discordUsername?: string; discordAvatarUrl?: string };
