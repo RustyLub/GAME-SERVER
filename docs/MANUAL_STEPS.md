@@ -25,7 +25,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
 
 These are public browser configuration, not server secrets. Do not put Firebase Admin credentials, Steam/Discord/Platega secrets or RCON passwords in any `VITE_` variable.
 
-Firestore rules allow a user to read only their own profile, update only `customDisplayName\), and read only their own order documents. The backend alone creates/updates profiles, orders, payment events, entitlements, payment locks, OAuth state and nonce documents.
+Firestore rules allow a user to read only their own profile, update only `customDisplayName` (2–24 characters), and read only their own order documents. The backend alone creates/updates profiles, orders, payment events, entitlements, payment locks, OAuth state and nonce documents.
 
 ## 2. Google Cloud and Cloud Run
 

@@ -44,7 +44,11 @@ Rules deny browser profile creation/deletion, all order writes, payment and enti
 - steamOpenIdNonces/{sha256(nonce)} — Steam OpenID replay protection.
 - discordAuthStates/{sha256(state)} — one-time Discord OAuth state.
 - discordLinks/{discordId} — unique Discord-to-Steam UID mapping.
-- orders/{orderId} — server-created orders; owner-readable, client-write denied.
+- orders/{orderId} — server-created Platega orders; owner-readable, client-write denied.
+- paymentRequests/{hash} — checkout idempotency records.
+- paymentEvents/{eventKey} — deduplicated provider callback and refund events.
+- entitlements/{orderId} — server-managed VIP Queue Pass state and expiry.
+- paymentLocks/{uid} — per-user checkout lock with expiry.
 
 Configure Firestore TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces and discordAuthStates. TTL is cleanup only; backend code independently checks expiration.
 
