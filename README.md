@@ -46,7 +46,9 @@ GitHub Pages serves the static frontend only. Steam OpenID callbacks and Firebas
 
 ## Custom domain
 
-The intended canonical host is rusty-lub.online. public/CNAME records the intended hostname in the repository, but this custom GitHub Actions deployment does not set the Pages custom-domain setting. Confirm rusty-lub.online manually in repository Settings → Pages, then verify registrar DNS independently. For the apex domain, GitHub Pages normally requires the four A records:
+The intended canonical host is rusty-lub.online. public/CNAME declares this hostname.
+
+GitHub Pages custom-domain configuration and registrar DNS must be checked independently. For the apex domain, GitHub Pages normally requires the four A records:
 - 185.199.108.153
 - 185.199.109.153
 - 185.199.110.153

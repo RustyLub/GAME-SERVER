@@ -48,7 +48,14 @@ Do not assume the Firebase project ID. This repository must use the dedicated GA
 9. Add rusty-lub.online to Firebase Authentication authorized domains. Confirm that the Firebase project selected is the dedicated GAME-SERVER project.
 10. Configure Firestore TTL policies for expiresAt in steamAuthExchanges and steamOpenIdNonces. TTL is storage cleanup; the application independently enforces expiration.
 
-Example deployment flow (replace the project, region and service-account values with the confirmed values):
+Automated deployment script (run after creating the runtime service account, granting the required IAM roles and selecting the confirmed Firebase project):
+
+- Export GCP_PROJECT_ID, FIREBASE_PROJECT_ID and RUNTIME_SERVICE_ACCOUNT in your local shell. REGION is optional and defaults to europe-west1.
+- Run bash backend/deploy-cloud-run.sh from the repository root. The script deploys once with a temporary HTTPS callback origin, reads the generated Cloud Run URL, and redeploys with the exact callback URL.
+- If a Steam Web API key is required, add it separately to Secret Manager and map it to STEAM_API_KEY in Cloud Run server configuration. Sign-in works without that optional key.
+- After deployment, set the public URL as the GitHub Actions repository Variable VITE_API_BASE_URL.
+
+Manual deployment reference (replace the project, region and service-account values with the confirmed values):
 
 - Select project: gcloud config set project YOUR_GCP_PROJECT_ID
 - First deploy: gcloud run deploy rusty-lub-auth --source backend --region YOUR_REGION --service-account YOUR_RUNTIME_SERVICE_ACCOUNT --allow-unauthenticated --set-env-vars FRONTEND_ORIGIN=https://rusty-lub.online,BACKEND_PUBLIC_URL=https://placeholder.invalid,FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID,FIREBASE_SERVICE_ACCOUNT_EMAIL=YOUR_RUNTIME_SERVICE_ACCOUNT
