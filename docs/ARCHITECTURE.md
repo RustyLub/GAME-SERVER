@@ -29,9 +29,9 @@ GitHub Pages is static hosting. It does not run Express, API routes, background 
 - First successful Steam OpenID login must create the Firebase identity and `users/{uid}` profile automatically; subsequent logins resolve to the same identity.
 - Firestore rules allow users to read only their own profile. Profile writes are reserved for the trusted backend using Firebase Admin SDK.
 - Firebase Authentication is used for Firebase Custom Token sessions, not as a direct Steam provider.
-- The frontend expects `GET {VITE_API_BASE_URL}/auth/steam`; the endpoint is not live until the trusted backend is deployed. The button remains unavailable when the backend URL is not configured.
+- A deployable Node.js Steam OpenID backend now lives in `backend/`. It verifies Steam assertions server-side, creates Firebase identities with stable Steam UIDs, stores owner-only profiles, and exchanges short-lived one-time codes for Firebase custom tokens. The service is not live until deployed; the button remains unavailable when `VITE_API_BASE_URL` is not configured.
 - Firebase Console setup still requires creating Firestore, publishing `firestore.rules`, and authorizing `rusty-lub.online`. Do not enable Email/Password for Rusty.Lub login.
-- Live Steam login and Firebase session exchange have not yet been tested against a deployed backend.
+- Backend unit tests cover SteamID claim parsing and OpenID request construction. Live Steam login and Firebase session exchange still require deployment and an end-to-end test.
 
 ## Integration decisions
 
@@ -53,7 +53,7 @@ Keep Firebase Admin credentials, Steam OpenID secrets (if any), Platega API/webh
 
 ## Repository layout
 
-- `src/` — React application and browser integrations.
+- `src/` — React application and browser integrations.\n- `backend/` — standalone Node.js Steam OpenID verification and Firebase Admin service.
 - `public/` — static public assets, CNAME, robots and sitemap.
 - `docs/` — architecture and operational decisions.
 - `firestore.rules` — deny-by-default Firestore policy until reviewed rules are implemented.
