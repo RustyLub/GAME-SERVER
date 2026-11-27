@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  HomePage, ServersPage, WipesPage, RulesPage, SupportPage, PrivacyPage, CookiesPage, TermsPage,
+  HomePage, ServersPage, ServerDetailsPage, WipesPage, RulesPage, SupportPage, PrivacyPage, CookiesPage, TermsPage,
   AccountPage, LinkPage, LeaderboardsPage, StorePage, NotFoundPage, pageMeta,
 } from "./pages/Pages";
 import {
-  HomePageEn, ServersPageEn, WipesPageEn, RulesPageEn, SupportPageEn, PrivacyPageEn, CookiesPageEn,
+  HomePageEn, ServersPageEn, ServerDetailsPageEn, WipesPageEn, RulesPageEn, SupportPageEn, PrivacyPageEn, CookiesPageEn,
   TermsPageEn, AccountPageEn, LinkPageEn, LeaderboardsPageEn, StorePageEn, NotFoundPageEn,
 } from "./pages/EnglishPages";
 
@@ -52,13 +52,13 @@ function App({ initialPath }: { initialPath?: string } = {}) {
   }, [path, isEnglish]);
 
   const ruPages: Record<string, ReactNode> = {
-    "/": <HomePage />, "/servers": <ServersPage />, "/wipes": <WipesPage />,
+    "/": <HomePage />, "/servers": <ServersPage />, "/servers/eu-long": <ServerDetailsPage />, "/wipes": <WipesPage />,
     "/rules": <RulesPage />, "/support": <SupportPage />, "/privacy": <PrivacyPage />, "/cookies": <CookiesPage />,
     "/terms": <TermsPage />, "/account": <AccountPage />, "/link": <LinkPage />,
     "/leaderboards": <LeaderboardsPage />, "/store": <StorePage />,
   };
   const enPages: Record<string, ReactNode> = {
-    "/": <HomePageEn />, "/servers": <ServersPageEn />, "/wipes": <WipesPageEn />,
+    "/": <HomePageEn />, "/servers": <ServersPageEn />, "/servers/eu-long": <ServerDetailsPageEn />, "/wipes": <WipesPageEn />,
     "/rules": <RulesPageEn />, "/support": <SupportPageEn />, "/privacy": <PrivacyPageEn />, "/cookies": <CookiesPageEn />,
     "/terms": <TermsPageEn />, "/account": <AccountPageEn />, "/link": <LinkPageEn />,
     "/leaderboards": <LeaderboardsPageEn />, "/store": <StorePageEn />,
