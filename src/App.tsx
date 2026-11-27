@@ -60,6 +60,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Перейти к содержимому</a>
       <div className="topline">
         <span><i className="live-dot" /> RUSTY.LUB COMMUNITY</span>
         <span className="topline-center">EUROPE · CLASSIC RUST</span>
