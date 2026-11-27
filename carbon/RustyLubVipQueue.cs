@@ -165,14 +165,13 @@ namespace Oxide.Plugins
             {
                 if (job.type == "grant")
                 {
-                    ConsoleSystem.Run(ConsoleSystem.Option.Server,
-                        "global.skipqueueid " + job.steamId64 + " \"Rusty.Lub VIP\" \"7-day pass\"");
-                    ConsoleSystem.Run(ConsoleSystem.Option.Server, "server.writecfg");
+                    server.Command("global.skipqueueid", job.steamId64, "Rusty.Lub VIP", "7-day pass");
+                    server.Command("server.writecfg");
                 }
                 else if (job.type == "expire")
                 {
-                    ConsoleSystem.Run(ConsoleSystem.Option.Server, "global.removeskipqueue " + job.steamId64);
-                    ConsoleSystem.Run(ConsoleSystem.Option.Server, "server.writecfg");
+                    server.Command("global.removeskipqueue", job.steamId64);
+                    server.Command("server.writecfg");
                 }
                 else
                 {
