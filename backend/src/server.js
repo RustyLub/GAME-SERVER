@@ -3,6 +3,7 @@ import express from "express";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction } from "./payments.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -36,6 +37,13 @@ const DISCORD_STATE_COOKIE = "rustylub_discord_state";
 const RCON_HOST = process.env.RCON_HOST?.trim() || "";
 const RCON_PORT = Number(process.env.RCON_PORT || 0);
 const RCON_PASSWORD = process.env.RCON_PASSWORD || "";
+const PLATEGA_API_BASE = process.env.PLATEGA_API_BASE?.trim() || "https://api.eu.payplatform.cc";
+const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID?.trim() || "";
+const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
+const VIP_PRICE_RUB = Number(process.env.VIP_PRICE_RUB || 0);
+const PLATEGA_PAYMENT_METHOD = Number(process.env.PLATEGA_PAYMENT_METHOD || 2);
+const VIP_WORKER_SECRET = process.env.VIP_WORKER_SECRET || "";
+const VIP_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 
 if (process.env.NODE_ENV === "production" && !FIREBASE_SERVICE_ACCOUNT_EMAIL) {
@@ -538,10 +546,294 @@ app.get("/public/server-status", async (_req, res) => {
   }
 });
 
+
+function isVipCheckoutEnabled() {
+  try {
+    const api = new URL(PLATEGA_API_BASE);
+    return api.protocol === "https:" &&
+      ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
+      Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_WORKER_SECRET &&
+        RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD &&
+        Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 &&
+        [2, 3, 11, 12, 13, 14].includes(PLATEGA_PAYMENT_METHOD));
+  } catch { return false; }
+}
+
+async function plategaRequest(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      "X-MerchantId": PLATEGA_MERCHANT_ID,
+      "X-Secret": PLATEGA_SECRET,
+      ...(options.headers || {}),
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error("Platega API returned HTTP " + response.status);
+  return payload;
+}
+
+async function processVipEntitlement(entitlementRef) {
+  const snapshot = await entitlementRef.get();
+  if (!snapshot.exists) return "missing";
+  const data = snapshot.data();
+  const now = Date.now();
+  if (data.status === "active" && data.expiresAt?.toMillis?.() > now) return "active";
+
+  if (data.status === "grant_pending") {
+    if (!data.expiresAt || data.expiresAt.toMillis() <= now) {
+      await entitlementRef.update({ status: "revoke_pending", revokeToStatus: "expired", updatedAt: FieldValue.serverTimestamp() });
+      return processVipEntitlement(entitlementRef);
+    }
+    await sendRconCommand(buildVipGrantCommand(data.steamId64, data.displayName), 7000);
+    await sendRconCommand("server.writecfg", 5000);
+    await entitlementRef.update({
+      status: "active",
+      grantedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      revokeToStatus: FieldValue.delete(),
+    });
+    return "active";
+  }
+
+  if (data.status === "revoke_pending") {
+    await sendRconCommand(buildVipRemoveCommand(data.steamId64), 7000);
+    await sendRconCommand("server.writecfg", 5000);
+    const targetStatus = ["expired", "suspended", "revoked"].includes(data.revokeToStatus) ? data.revokeToStatus : "expired";
+    await entitlementRef.update({
+      status: targetStatus,
+      revokedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      revokeToStatus: FieldValue.delete(),
+    });
+    return targetStatus;
+  }
+  return data.status || "unknown";
+}
+
+async function processVipQueueWorker() {
+  const pending = await db.collection("entitlements").where("status", "in", ["grant_pending", "revoke_pending"]).limit(100).get();
+  const expired = await db.collection("entitlements").where("status", "==", "active")
+    .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
+  let processed = 0;
+  for (const doc of pending.docs) {
+    await processVipEntitlement(doc.ref);
+    processed += 1;
+  }
+  for (const doc of expired.docs) {
+    await db.runTransaction(async (transaction) => {
+      const current = await transaction.get(doc.ref);
+      if (!current.exists || current.data()?.status !== "active" ||
+          current.data()?.expiresAt?.toMillis?.() > Date.now()) return;
+      transaction.update(doc.ref, {
+        status: "revoke_pending",
+        revokeToStatus: "expired",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+    await processVipEntitlement(doc.ref);
+    processed += 1;
+  }
+  return processed;
+}
+
+app.get("/vip/config", (_req, res) => res.status(200).json({
+  enabled: isVipCheckoutEnabled(),
+  price: Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 ? VIP_PRICE_RUB : null,
+  currency: "RUB",
+  durationDays: 7,
+}));
+
+app.get("/vip/me", async (req, res) => {
+  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  try {
+    const uid = await authenticatedSteamUid(req);
+    const snapshot = await db.collection("entitlements").where("userId", "==", uid).limit(10).get();
+    const items = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return { id: doc.id, status: data.status || "unknown", expiresAt: data.expiresAt?.toDate?.().toISOString() || null };
+    }).sort((a, b) => String(b.expiresAt || "").localeCompare(String(a.expiresAt || "")));
+    return res.status(200).json({ entitlement: items[0] || null });
+  } catch { return res.status(401).json({ error: "unauthorized" }); }
+});
+
+app.post("/payments/orders", async (req, res) => {
+  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  if (!req.is("application/json")) return res.sendStatus(415);
+  if (!isVipCheckoutEnabled()) return res.status(503).json({ error: "vip_checkout_not_configured" });
+  try {
+    const uid = await authenticatedSteamUid(req);
+    const steamId64 = uid.slice("steam_".length);
+    const requestId = req.body?.requestId;
+    if (typeof requestId !== "string" || !/^[0-9a-f-]{36}$/i.test(requestId)) return res.status(400).json({ error: "invalid_request_id" });
+
+    const entitlements = await db.collection("entitlements").where("userId", "==", uid).limit(20).get();
+    const active = entitlements.docs.some((doc) => {
+      const item = doc.data();
+      return ["active", "grant_pending", "revoke_pending"].includes(item.status) && item.expiresAt?.toMillis?.() > Date.now();
+    });
+    if (active) return res.status(409).json({ error: "vip_already_active" });
+    const recentOrders = await db.collection("orders").where("userId", "==", uid).limit(20).get();
+    const pendingOrder = recentOrders.docs.some((doc) => {
+      const item = doc.data();
+      return ["creating", "pending"].includes(item.status) && item.expiresAt?.toMillis?.() > Date.now();
+    });
+    if (pendingOrder) return res.status(409).json({ error: "payment_already_pending" });
+
+    const profile = await db.collection("users").doc(uid).get();
+    const displayName = String(profile.data()?.customDisplayName || profile.data()?.displayName || "Rusty.Lub Player").slice(0, 64);
+    const orderId = crypto.randomUUID();
+    const orderRef = db.collection("orders").doc(orderId);
+    const idempotencyRef = db.collection("paymentRequests").doc(sha256(uid + ":" + requestId));
+    const reservation = await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(idempotencyRef);
+      if (existing.exists) return { existing: true, ...existing.data() };
+      transaction.create(idempotencyRef, { userId: uid, orderId, status: "creating", createdAt: FieldValue.serverTimestamp() });
+      transaction.create(orderRef, {
+        userId: uid, steamId64, displayName, product: "vip_queue_pass_7d",
+        amount: VIP_PRICE_RUB, currency: "RUB", status: "creating",
+        createdAt: FieldValue.serverTimestamp(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+      });
+      return { existing: false, orderId, status: "creating" };
+    });
+    if (reservation.existing) {
+      if (reservation.redirectUrl) return res.status(200).json({ orderId: reservation.orderId, redirectUrl: reservation.redirectUrl });
+      return res.status(409).json({ error: "order_creation_in_progress" });
+    }
+
+    const createRequest = buildPlategaCreateRequest({
+      amount: VIP_PRICE_RUB, orderId, steamId64, displayName,
+      paymentMethod: PLATEGA_PAYMENT_METHOD, frontendOrigin: FRONTEND_ORIGIN,
+    });
+    try {
+      const providerResponse = await plategaRequest(PLATEGA_API_BASE.replace(/\/$/, "") + "/transaction/process", {
+        method: "POST", body: JSON.stringify(createRequest),
+      });
+      const redirectUrl = new URL(providerResponse.redirect);
+      if (redirectUrl.protocol !== "https:" || redirectUrl.username || redirectUrl.password) throw new Error("Unsafe Platega redirect URL");
+      if (typeof providerResponse.transactionId !== "string" || !/^[0-9a-f-]{36}$/i.test(providerResponse.transactionId)) {
+        throw new Error("Invalid Platega transaction ID");
+      }
+      await orderRef.update({
+        status: "pending", provider: "platega", providerTransactionId: providerResponse.transactionId,
+        providerStatus: providerResponse.status || "PENDING", redirectUrl: redirectUrl.toString(),
+        paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
+      });
+      await idempotencyRef.update({ status: "created", redirectUrl: redirectUrl.toString(), updatedAt: FieldValue.serverTimestamp() });
+      return res.status(201).json({ orderId, redirectUrl: redirectUrl.toString(), amount: VIP_PRICE_RUB, currency: "RUB" });
+    } catch (error) {
+      await orderRef.update({ status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
+      await idempotencyRef.update({ status: "failed", updatedAt: FieldValue.serverTimestamp() });
+      console.error("Platega order creation failed:", error?.message || "unknown error");
+      return res.status(502).json({ error: "payment_creation_failed" });
+    }
+  } catch (error) {
+    return res.status(error?.message === "unauthorized" ? 401 : 500).json({ error: "order_creation_failed" });
+  }
+});
+
+app.post("/payments/platega/callback", async (req, res) => {
+  if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET) return res.sendStatus(503);
+  if (!constantTimeEqual(PLATEGA_MERCHANT_ID, String(req.headers["x-merchantid"] || "")) ||
+      !constantTimeEqual(PLATEGA_SECRET, String(req.headers["x-secret"] || ""))) return res.sendStatus(401);
+  const callback = req.body;
+  if (!callback || typeof callback.id !== "string" || typeof callback.payload !== "string") {
+    return res.status(400).json({ error: "invalid_callback" });
+  }
+  try {
+    const orderRef = db.collection("orders").doc(callback.payload);
+    const orderSnapshot = await orderRef.get();
+    if (!orderSnapshot.exists) return res.sendStatus(404);
+    const order = { id: orderSnapshot.id, ...orderSnapshot.data() };
+    if (order.provider !== "platega" || order.providerTransactionId !== callback.id) return res.sendStatus(409);
+
+    const providerTransaction = await plategaRequest(
+      PLATEGA_API_BASE.replace(/\/$/, "") + "/transaction/" + encodeURIComponent(callback.id),
+      { method: "GET" },
+    );
+    const verified = validatePlategaTransaction(callback, providerTransaction, order, PLATEGA_MERCHANT_ID);
+    const status = verified.status;
+    const fullyRefunded = isFullyRefunded(verified.refundedAmount, order.amount);
+    const eventRef = db.collection("paymentEvents").doc(paymentEventKey(callback.id, status, callback.refundId || "", verified.refundedAmount));
+    const entitlementRef = db.collection("entitlements").doc(order.id);
+
+    await db.runTransaction(async (transaction) => {
+      const [currentOrder, eventSnapshot, entitlementSnapshot] = await Promise.all([
+        transaction.get(orderRef), transaction.get(eventRef), transaction.get(entitlementRef),
+      ]);
+      if (!currentOrder.exists) throw new Error("Order disappeared during callback processing");
+      if (eventSnapshot.exists && currentOrder.data()?.lastProviderStatus === status) return;
+      if (!eventSnapshot.exists) transaction.create(eventRef, {
+        orderId: order.id, providerTransactionId: callback.id, providerStatus: status,
+        refundId: callback.refundId || null, receivedAt: FieldValue.serverTimestamp(),
+      });
+      const orderStatus = status === "CONFIRMED" ? "paid"
+        : status === "CANCELED" ? "canceled"
+        : status === "DISPUTED" ? "disputed"
+        : status === "CHARGEBACKED" ? "chargebacked"
+        : fullyRefunded ? "refunded" : "partially_refunded";
+      transaction.update(orderRef, {
+        status: orderStatus, lastProviderStatus: status,
+        refundedAmount: verified.refundedAmount, updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      if (status === "CONFIRMED") {
+        if (!entitlementSnapshot.exists) {
+          transaction.create(entitlementRef, {
+            userId: order.userId, orderId: order.id, steamId64: order.steamId64,
+            displayName: order.displayName, status: "grant_pending",
+            createdAt: FieldValue.serverTimestamp(),
+            expiresAt: Timestamp.fromMillis(Date.now() + VIP_DURATION_MS),
+          });
+        } else {
+          const currentEntitlement = entitlementSnapshot.data();
+          if (["suspended", "revoke_pending"].includes(currentEntitlement.status) &&
+              (currentEntitlement.status === "suspended" || currentEntitlement.revokeToStatus === "suspended") &&
+              currentEntitlement.expiresAt?.toMillis?.() > Date.now()) {
+            transaction.update(entitlementRef, { status: "grant_pending", updatedAt: FieldValue.serverTimestamp() });
+          }
+        }
+      } else if (status === "DISPUTED" || status === "CHARGEBACKED" || (status === "PARTIALLY_REFUNDED" && fullyRefunded)) {
+        if (entitlementSnapshot.exists && ["active", "grant_pending", "suspended"].includes(entitlementSnapshot.data()?.status)) {
+          transaction.update(entitlementRef, {
+            status: "revoke_pending",
+            revokeToStatus: status === "DISPUTED" ? "suspended" : "revoked",
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    });
+
+    const entitlement = await entitlementRef.get();
+    if (entitlement.exists && ["grant_pending", "revoke_pending"].includes(entitlement.data()?.status)) {
+      await processVipEntitlement(entitlementRef);
+    }
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("Platega callback processing failed:", error?.message || "unknown error");
+    return res.status(500).json({ error: "callback_processing_failed" });
+  }
+});
+
+app.post("/internal/vip/reconcile", async (req, res) => {
+  if (!VIP_WORKER_SECRET || !constantTimeEqual(VIP_WORKER_SECRET, String(req.headers["x-job-secret"] || ""))) return res.sendStatus(401);
+  try {
+    const processed = await processVipQueueWorker();
+    return res.status(200).json({ ok: true, processed });
+  } catch (error) {
+    console.error("VIP queue worker failed:", error?.message || "unknown error");
+    return res.status(503).json({ ok: false, error: "vip_worker_failed" });
+  }
+});
+
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
     console.log("Rusty.Lub Steam auth backend listening on port " + PORT);
   });
 }
 
-export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand };
+export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, processVipEntitlement, processVipQueueWorker, isVipCheckoutEnabled };
