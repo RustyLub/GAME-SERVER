@@ -177,7 +177,8 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 4. Remove conflicting old apex A records, including the previous hosting address `31.31.197.49` if it is still present. Do not change MX, SPF, DKIM, DMARC or `long.rusty-lub.online`, which points to the game server.
 5. If you want `www.rusty-lub.online`, add a CNAME for host `www` pointing directly to `RustyLub.github.io`.
 6. Wait for DNS propagation and GitHub Pages certificate issuance. Then enable Enforce HTTPS in Settings → Pages. GitHub Pages performs HTTP → HTTPS redirection after this is enabled.
-7. Verify with `Resolve-DnsName rusty-lub.online`, `curl -I http://rusty-lub.online` and `curl -I https://rusty-lub.online`. Confirm the certificate name, validity and redirect destination.
+7. **Do not reuse the certificate/private key previously pasted into chat.** The certificate's SAN contained only `www.rusty-lub.online`, not the apex `rusty-lub.online`; its trust chain also appeared self-signed/untrusted, and REG.RU rejected it as unsuitable. The private key must be treated as compromised and never uploaded or reused. For GitHub Pages, use the GitHub-managed certificate after DNS validation. If a separate certificate is required for another endpoint, issue a fresh certificate from a trusted CA with SAN entries for every exact hostname and a new private key.
+8. Verify with `Resolve-DnsName rusty-lub.online`, `curl -I http://rusty-lub.online` and `curl -I https://rusty-lub.online`. Confirm the certificate SAN includes the apex hostname, the chain is trusted, the certificate is within its validity period, and the HTTPS redirect destination is correct.
 
 ## 8. Legal and commercial publication
 
