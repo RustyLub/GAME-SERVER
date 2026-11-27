@@ -68,3 +68,15 @@ Keep Firebase Admin runtime identity configuration, service-account signing perm
 - [ ] HTTPS is issued and enforced by GitHub Pages.
 - [ ] Firebase project is confirmed to be the dedicated project before adding credentials.
 - [ ] Backend trust boundaries and Firestore rules are reviewed before enabling account, payment, or VIP features.
+
+
+## VIP Queue Pass implementation
+
+- The account panel now contains a seven-day VIP Queue Pass shop, a server-provided price, the current entitlement state, and the user's recent payment history.
+- Checkout requires an authenticated Steam Firebase session. The backend derives SteamID64 from verified custom-token claims; clients cannot select a target Steam account.
+- Platega order creation, callback credential checks, authoritative transaction-status lookup, amount/currency checks, and payment-ID idempotency are implemented in the trusted backend.
+- Confirmed payments create a seven-day Firestore entitlement and a durable Carbon delivery job. Renewal extends the existing expiry rather than overwriting remaining time.
+- The Carbon plugin in `carbon/RustyLubVipQueue.cs` consumes leased grant/expiry jobs using a backend-only shared secret. It uses Rust's native `global.skipqueueid` and `global.removeskipqueue` commands and persists changes with `server.writecfg`.
+- Price and Platega credentials are server-only environment values. Checkout remains disabled until the merchant credentials and an explicitly selected VIP price are configured.
+- Chargebacks, partial refunds, and disputes are marked for manual review. They are not silently treated as paid orders.
+- The backend and Carbon plugin still require deployment and a live test on the actual Rust/Carbon server. No payment or VIP delivery is live merely because the code exists.
