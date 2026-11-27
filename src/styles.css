@@ -428,3 +428,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .account-order b { color:#eee; }
 .account-order em { font-style:normal; color:#c18b74; }
 .account-order time { grid-column:1/-1; color:#777; font-size:8px; }
+
+.account-vip { margin:18px 0; padding:18px; border:1px solid #4b4038; background:linear-gradient(135deg,#211915,#141512); }
+.account-vip > small { color:#c37a63; font-size:7px; font-weight:900; letter-spacing:.14em; }
+.account-vip h3 { margin:9px 0; color:#f0eee7; font:900 18px var(--display); }
+.account-vip p { max-width:620px; color:#aaa99f; font-size:9px; line-height:1.7; }
+.account-vip .btn { margin-top:8px; }
+.vip-entitlement-status { color:#9bc69f !important; font-weight:800; }
