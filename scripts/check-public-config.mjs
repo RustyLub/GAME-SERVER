@@ -5,7 +5,6 @@ const required = [
   "VITE_FIREBASE_STORAGE_BUCKET",
   "VITE_FIREBASE_MESSAGING_SENDER_ID",
   "VITE_FIREBASE_APP_ID",
-  "VITE_API_BASE_URL",
 ];
 
 const defaults = {
@@ -15,7 +14,6 @@ const defaults = {
   VITE_FIREBASE_STORAGE_BUCKET: "rustylub.firebasestorage.app",
   VITE_FIREBASE_MESSAGING_SENDER_ID: "835038801032",
   VITE_FIREBASE_APP_ID: "1:835038801032:web:643113413df82f7af9033d",
-  VITE_API_BASE_URL: "",
 };
 const values = Object.fromEntries(required.map((name) => [name, process.env[name]?.trim() || defaults[name]]));
 const missing = required.filter((name) => !values[name]);
@@ -40,10 +38,14 @@ if (/[\s/]/.test(values.VITE_FIREBASE_AUTH_DOMAIN)) {
   throw new Error("VITE_FIREBASE_AUTH_DOMAIN must be a hostname, not a URL.");
 }
 
-const backendUrl = new URL(values.VITE_API_BASE_URL);
-if (backendUrl.protocol !== "https:" || backendUrl.username || backendUrl.password ||
-    backendUrl.pathname !== "/" || backendUrl.search || backendUrl.hash) {
-  throw new Error("VITE_API_BASE_URL must be an HTTPS origin without a path, query or credentials.");
+const backendOrigin = process.env.VITE_API_BASE_URL?.trim() || "";
+if (backendOrigin) {
+  const backendUrl = new URL(backendOrigin);
+  if (backendUrl.protocol !== "https:" || backendUrl.username || backendUrl.password ||
+      backendUrl.pathname !== "/" || backendUrl.search || backendUrl.hash) {
+    throw new Error("VITE_API_BASE_URL must be an HTTPS origin without a path, query or credentials.");
+  }
+  console.log("Public Firebase configuration and backend origin are structurally valid. Values were not printed.");
+} else {
+  console.log("Public Firebase configuration is valid. Backend API remains disabled until the Firebase Hosting auth proxy is live.");
 }
-
-console.log("Public Firebase and backend configuration is complete and structurally valid. Values were not printed.");
