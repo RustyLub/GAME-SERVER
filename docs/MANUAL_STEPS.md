@@ -5,11 +5,11 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
 ## 1. Firebase project and Web App
 
 1. Reuse the existing Firebase/Google Cloud project `rustylub`, as requested. Do not create a replacement project or rotate the existing Firebase Web App values.
-2. Create a Firebase Web App in Project settings → General → Your apps.
+2. Reuse the existing Firebase Web App for project `rustylub` and its current Web App configuration. Do not create a duplicate or rotate its existing values; create a Web App only if the existing one is missing.
 3. Enable Firebase Authentication. Steam login uses Firebase Custom Tokens minted by the backend; Email/Password is not required.
 4. Add both `rusty-lub.online` and `rusty-lub.ru` to Authentication → Settings → Authorized domains.
-5. Create Cloud Firestore in Production mode.
-6. From the repository root, publish the committed rules and indexes:
+5. Use the existing Cloud Firestore database in project `rustylub`; do not delete or recreate it. If Firestore has not yet been initialized in this project, create it in Production mode.
+6. Before changing Firestore rules, save/backup the currently deployed rules and export any existing data. The following deployment replaces the active rules and indexes, so review `firestore.rules` against the existing project first. From the repository root, publish only after that review:
    ```bash
    firebase login
    firebase use --add
