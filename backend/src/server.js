@@ -465,7 +465,7 @@ app.post("/auth/discord/start", async (req, res) => {
       expiresAt: Timestamp.fromMillis(Date.now() + 5 * 60 * 1000),
     });
     setDiscordStateCookie(res, state);
-    return res.status(200).json({ redirectUrl: buildDiscordAuthorizeUrl(state) });
+    return res.redirect(303, buildDiscordAuthorizeUrl(state));
   } catch (error) {
     return res.status(error?.message === "unauthorized" ? 401 : 500).json({ error: "discord_link_start_failed" });
   }
