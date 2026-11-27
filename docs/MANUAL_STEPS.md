@@ -139,14 +139,14 @@ Payment code is already merged into `main` after a green build and payment test 
    PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
    gcloud iam service-accounts add-iam-policy-binding rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com --project YOUR_GCP_PROJECT_ID --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com" --role="roles/iam.serviceAccountTokenCreator"
    ```
-   Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The OIDC audience must be the Cloud Run `run.app` service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact audience and create a Scheduler job with OIDC authentication (no shared secret):
+   Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The Scheduler request goes directly to the Cloud Run `run.app` URL so the OIDC Authorization header is not dependent on the Firebase Hosting proxy. The OIDC audience must be the Cloud Run service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact URL and create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
    CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --format="value(status.url)")
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
      --location YOUR_REGION \
      --schedule "*/5 * * * *" \
      --time-zone "Etc/UTC" \
-     --uri "https://auth.rusty-lub.online/internal/vip/reconcile" \
+     --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
      --http-method POST \
      --oidc-service-account-email "rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com" \
      --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
