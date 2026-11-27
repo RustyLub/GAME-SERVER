@@ -45,8 +45,8 @@ function App() {
     setFormError("");
     setFormReady(true);
     const subject = encodeURIComponent("Сообщение с сайта Rusty.Lub");
-    const body = encodeURIComponent(`Имя: ${form.name}\nEmail: ${form.email}\n\n${form.message}`);
-    window.location.href = `mailto:rusty.lub-slq@inbox.ru?subject=${subject}&body=${body}`;
+    const body = encodeURIComponent("Имя: " + form.name + "\nEmail: " + form.email + "\n\n" + form.message);
+    window.location.href = "mailto:rusty.lub-slq@inbox.ru?subject=" + subject + "&body=" + body;
   }
 
   return (
@@ -62,11 +62,11 @@ function App() {
           <span className="logo-symbol">R<span>.</span></span>
           <span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span>
         </a>
-        <nav className={`main-nav ${menuOpen ? "nav-open" : ""}`} aria-label="Основная навигация">
-          {navigation.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>)}
+        <nav className={"main-nav " + (menuOpen ? "nav-open" : "")} aria-label="Основная навигация">
+          {navigation.map(([id, label]) => <a key={id} href={"#" + id} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
         <button className="login-button" type="button" disabled title="Steam OpenID будет подключён на следующем этапе">ЛИЧНЫЙ КАБИНЕТ <span>↗</span></button>
-        <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen}>{menuOpen ? "✕" : "☰"}</button>
+        <button className="mobile-menu" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen}>{menuOpen ? "✕" : "☰"}</button>
       </header>
 
       <main id="home">
@@ -74,11 +74,11 @@ function App() {
           <div className="hero-image" />
           <div className="hero-shade" />
           <div className="hero-inner">
-            <div className="kicker"><span /> RUSTY.LUB EU LONG / OFFICIAL SERVER</div>
-            <h1>ТВОЙ СЛЕДУЮЩИЙ<br /><em>WIPE.</em> ТВОИ ПРАВИЛА.</h1>
+            <div className="kicker"><span /> RUSTY.LUB / EU LONG COMMUNITY SERVER</div>
+            <h1>ТВОЙ СЛЕДУЮЩИЙ<br /><em>WIPE.</em> ПОД ТВОИМ КОНТРОЛЕМ.</h1>
             <p>Классический Rust без модифицированных рейтов. Собирай команду, строй базу и начинай новую историю на Rusty.Lub.</p>
             <div className="hero-cta">
-              <button className="btn btn-red" onClick={copyConnect}>{copied ? "КОМАНДА СКОПИРОВАНА ✓" : "ПОДКЛЮЧИТЬСЯ ↗"}</button>
+              <button className="btn btn-red" type="button" onClick={copyConnect}>{copied ? "КОМАНДА СКОПИРОВАНА ✓" : "СКОПИРОВАТЬ КОМАНДУ ↗"}</button>
               <a className="btn btn-ghost" href="#servers">О СЕРВЕРЕ ↓</a>
             </div>
             <div className="hero-meta"><span><i className="live-dot" /> EU LONG SERVER</span><span>VANILLA X1 / MONTHLY WIPE</span></div>
@@ -115,7 +115,7 @@ function App() {
             </div>
             <div className="server-details">
               <div className="server-address"><small>АДРЕС СЕРВЕРА</small><code>{SERVER.address}</code></div>
-              <button className="copy-button" onClick={copyConnect}>{copied ? "СКОПИРОВАНО ✓" : "КОПИРОВАТЬ КОМАНДУ ↗"}</button>
+              <button className="copy-button" type="button" onClick={copyConnect}>{copied ? "СКОПИРОВАНО ✓" : "КОПИРОВАТЬ КОМАНДУ ↗"}</button>
               <div className="server-connect-command"><small>КОМАНДА ДЛЯ КОНСОЛИ F1</small><code>{SERVER.connect}</code></div>
             </div>
             <div className="server-card-bottom"><span>ЕЖЕМЕСЯЧНЫЙ ВАЙП · ПЕРВЫЙ ЧЕТВЕРГ</span><a href="#wipe">РАСПИСАНИЕ ВАЙПОВ ↗</a></div>
@@ -138,31 +138,34 @@ function App() {
 
         <section className="content-section rules-section" id="rules">
           <div className="section-heading"><div><div className="eyebrow">FAIR PLAY / COMMUNITY</div><h2>ОСНОВЫ <em>ПРАВИЛ.</em></h2></div><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ПОЛНЫЕ ОБЪЯВЛЕНИЯ — DISCORD ↗</a></div>
-          <div className="rule-row"><b>01</b><span>Честная игра</span><p>Запрещены читы, макросы и стороннее ПО, дающее нечестное преимущество.</p></div>
+          <div className="rule-row"><b>01</b><span>Честная игра</span><p>Запрещены читы и стороннее ПО, дающее нечестное преимущество.</p></div>
           <div className="rule-row"><b>02</b><span>Уважение</span><p>Не превращай общение в травлю, угрозы и оскорбления участников сообщества.</p></div>
           <div className="rule-row"><b>03</b><span>Команды и альянсы</span><p>Размер команды ограничен 12 игроками. Кланы и альянсы разрешены.</p></div>
         </section>
 
         <section className="content-section faq-section" id="faq">
           <div className="section-heading"><div><div className="eyebrow">HELP / FAQ</div><h2>ЧАСТЫЕ <em>ВОПРОСЫ.</em></h2></div></div>
-          <details><summary>Как подключиться к серверу?</summary><p>Открой консоль Rust клавишей F1 и введи <code>{SERVER.connect}</code>. Также можно нажать кнопку подключения на сайте.</p></details>
+          <details><summary>Как подключиться к серверу?</summary><p>Открой консоль Rust клавишей F1 и введи <code>{SERVER.connect}</code>. Кнопка на сайте скопирует команду, а если буфер обмена недоступен — откроет подключение через Steam.</p></details>
           <details><summary>Какие рейты и размер команды?</summary><p>Сервер работает на классических рейтах Vanilla x1. Лимит команды — 12 игроков. Кланы и альянсы разрешены.</p></details>
           <details><summary>Когда проходит вайп?</summary><p>Плановый вайп — в первый четверг каждого месяца. Точное время публикуется в Discord.</p></details>
           <details><summary>Где узнать новости и задать вопрос?</summary><p>В официальном Discord-сообществе: <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">discord.gg/rustylub</a>.</p></details>
         </section>
 
-        <section className="account-band" id="account"><div><div className="eyebrow">PLAYER ACCOUNT / IN DEVELOPMENT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div><div><p>Личный кабинет, Steam-авторизация и история покупок появятся после подключения отдельного Firebase-проекта и серверной авторизации. Сейчас эти функции не активны.</p><button className="btn btn-ghost" disabled>STEAM LOGIN — В РАЗРАБОТКЕ</button><small className="firebase-note">{isFirebaseConfigured ? "Firebase-конфигурация обнаружена." : "Firebase ожидает настройки отдельного проекта GAME-SERVER."}</small></div></section>
+        <section className="account-band" id="account">
+          <div><div className="eyebrow">PLAYER ACCOUNT / IN DEVELOPMENT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div>
+          <div><p>Личный кабинет, Steam-авторизация и история покупок появятся после подключения отдельного Firebase-проекта и серверной авторизации. Сейчас эти функции не активны.</p><button className="btn btn-ghost" type="button" disabled>STEAM LOGIN — В РАЗРАБОТКЕ</button><small className="firebase-note">{isFirebaseConfigured ? "Firebase-конфигурация обнаружена." : "Firebase ожидает настройки отдельного проекта GAME-SERVER."}</small></div>
+        </section>
 
         <section className="content-section contact-section" id="contact">
           <div className="section-heading"><div><div className="eyebrow">CONTACT / SUPPORT</div><h2>ЕСТЬ <em>ВОПРОС?</em></h2></div><div className="section-note">Напиши нам — разберёмся.</div></div>
           <div className="contact-layout">
-            <div className="contact-details"><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD COMMUNITY ↗</a><a href="mailto:rusty.lub-slq@inbox.ru">RUSTY.LUB-SLQ@INBOX.RU ↗</a><span>Ответ на отправку формы откроется в твоём почтовом приложении.</span></div>
+            <div className="contact-details"><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD COMMUNITY ↗</a><a href="mailto:rusty.lub-slq@inbox.ru">RUSTY.LUB-SLQ@INBOX.RU ↗</a><span>Форма подготовит письмо и откроет его в твоём почтовом приложении. Автоматическая отправка пока не подключена.</span></div>
             <form className="contact-form" onSubmit={submitContact} noValidate>
-              <label>ИМЯ<input value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="Как к тебе обращаться?" /></label>
-              <label>EMAIL<input type="email" value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="name@example.com" /></label>
+              <label>ИМЯ<input autoComplete="name" value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="Как к тебе обращаться?" /></label>
+              <label>EMAIL<input type="email" autoComplete="email" value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="name@example.com" /></label>
               <label>СООБЩЕНИЕ<textarea value={form.message} onChange={e => setForm({...form,message:e.target.value})} placeholder="Опиши свой вопрос..." rows={4} /></label>
               {formError && <p className="form-message form-error" role="alert">{formError}</p>}
-              {formReady && <p className="form-message">Почтовое приложение должно открыться с подготовленным сообщением.</p>}
+              {formReady && <p className="form-message" role="status">Почтовое приложение должно открыться с подготовленным сообщением.</p>}
               <button className="btn btn-red" type="submit">ПОДГОТОВИТЬ СООБЩЕНИЕ ↗</button>
             </form>
           </div>
