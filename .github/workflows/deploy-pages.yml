@@ -26,6 +26,8 @@ jobs:
           node-version-file: .nvmrc
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
+      - name: Audit production frontend dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Type-check and build
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
@@ -61,6 +63,7 @@ jobs:
       - name: Test backend and Firestore rules
         run: |
           npm install --prefix backend --no-audit --no-fund
+          npm audit --prefix backend --omit=dev --audit-level=high
           npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
       - name: Configure Pages
         uses: actions/configure-pages@v6
