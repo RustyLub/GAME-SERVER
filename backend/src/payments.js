@@ -127,7 +127,10 @@ export function isValidVipRuntimeConfig({
   let api;
   try { api = new URL(plategaApiBase); } catch { return false; }
   const validHost = typeof rconHost === "string" &&
+    !["localhost", "127.0.0.1"].includes(rconHost.toLowerCase()) &&
     /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/i.test(rconHost);
+  const validSchedulerAccount = typeof schedulerServiceAccount === "string" &&
+    /^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]*\.iam\.gserviceaccount\.com$/i.test(schedulerServiceAccount);
   return api.protocol === "https:" &&
     ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
     !api.username && !api.password && api.pathname === "/" && !api.search && !api.hash &&
