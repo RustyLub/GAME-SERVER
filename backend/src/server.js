@@ -597,10 +597,6 @@ async function leaseCarbonJob(collectionName, documentId, kind) {
 
 app.get("/internal/carbon/jobs", requireCarbon, async (_req, res) => {
   try {
-    await db.collection("systemStatus").doc("carbonBridge").set({
-      lastSeenAt: FieldValue.serverTimestamp(),
-      status: "online",
-    }, { merge: true });
     const now = Date.now();
     const nowTimestamp = Timestamp.fromMillis(now);
     const [pendingGrants, expiredGrantLeases, dueExpiries] = await Promise.all([
@@ -622,6 +618,10 @@ app.get("/internal/carbon/jobs", requireCarbon, async (_req, res) => {
       const job = await leaseCarbonJob("vipExpiryQueue", snapshot.id, "expire");
       if (job) jobs.push(job);
     }
+    await db.collection("systemStatus").doc("carbonBridge").set({
+      lastSeenAt: FieldValue.serverTimestamp(),
+      status: "online",
+    }, { merge: true });
     return res.status(200).json({ jobs });
   } catch (error) {
     console.error("Carbon job polling failed:", error?.message || "unknown error");
