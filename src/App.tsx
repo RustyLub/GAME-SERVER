@@ -65,7 +65,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     "/leaderboards": <LeaderboardsPageEn />, "/store": <StorePageEn />,
   };
   const currentPages = isEnglish ? enPages : ruPages;
-  const serverSlug = /^\\/servers\\/([a-z0-9-]+)$/.exec(routePath)?.[1];
+  const serverSlug = /^\/servers\/([a-z0-9-]+)$/.exec(routePath)?.[1];
   const configuredServer = serverSlug ? SITE_CONFIG.servers.find((server) => server.slug === serverSlug) : undefined;
   const dynamicServerPage = configuredServer
     ? isEnglish ? <ServerDetailsPageEn slug={configuredServer.slug} /> : <ServerDetailsPage slug={configuredServer.slug} />
