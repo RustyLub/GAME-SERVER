@@ -43,7 +43,8 @@ export function HomePage() {
   <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
    <div className="kicker"><span /> RUSTY.LUB / RUST SERVER NETWORK</div>
    <h1>СЕТЬ СЕРВЕРОВ<br /><em>RUSTY.LUB.</em></h1>
-   <p>Всё о наших серверах. В одном месте. Выбирай игровой мир, проверяй состояние серверов, следи за новостями и событиями, используй гайды и инструменты для Rust.</p>
+   <p className="hero-lead">Всё о наших серверах. В одном месте.</p>
+   <p>Выбирай игровой мир, проверяй состояние серверов, следи за новостями и событиями, используй гайды и инструменты для Rust.</p>
    <div className="hero-cta"><a className="btn btn-red" href="#servers">КАТАЛОГ СЕРВЕРОВ ↗</a><a className="btn btn-ghost" href="#community">О СООБЩЕСТВЕ ↗</a></div>
    <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>СЕРВЕРЫ · СООБЩЕСТВО · ИНСТРУМЕНТЫ</span><span>ОФИЦИАЛЬНЫЙ САЙТ ПРОЕКТА</span></div>
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
