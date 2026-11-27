@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  HomePage, ServersPage, WipesPage, RulesPage, SupportPage, PrivacyPage, TermsPage,
+  HomePage, ServersPage, WipesPage, RulesPage, SupportPage, PrivacyPage, CookiesPage, TermsPage,
   AccountPage, LinkPage, LeaderboardsPage, StorePage, NotFoundPage, pageMeta,
 } from "./pages/Pages";
 import {
-  HomePageEn, ServersPageEn, WipesPageEn, RulesPageEn, SupportPageEn, PrivacyPageEn,
+  HomePageEn, ServersPageEn, WipesPageEn, RulesPageEn, SupportPageEn, PrivacyPageEn, CookiesPageEn,
   TermsPageEn, AccountPageEn, LinkPageEn, LeaderboardsPageEn, StorePageEn, NotFoundPageEn,
 } from "./pages/EnglishPages";
 
@@ -53,13 +53,13 @@ function App({ initialPath }: { initialPath?: string } = {}) {
 
   const ruPages: Record<string, ReactNode> = {
     "/": <HomePage />, "/servers": <ServersPage />, "/wipes": <WipesPage />,
-    "/rules": <RulesPage />, "/support": <SupportPage />, "/privacy": <PrivacyPage />,
+    "/rules": <RulesPage />, "/support": <SupportPage />, "/privacy": <PrivacyPage />, "/cookies": <CookiesPage />,
     "/terms": <TermsPage />, "/account": <AccountPage />, "/link": <LinkPage />,
     "/leaderboards": <LeaderboardsPage />, "/store": <StorePage />,
   };
   const enPages: Record<string, ReactNode> = {
     "/": <HomePageEn />, "/servers": <ServersPageEn />, "/wipes": <WipesPageEn />,
-    "/rules": <RulesPageEn />, "/support": <SupportPageEn />, "/privacy": <PrivacyPageEn />,
+    "/rules": <RulesPageEn />, "/support": <SupportPageEn />, "/privacy": <PrivacyPageEn />, "/cookies": <CookiesPageEn />,
     "/terms": <TermsPageEn />, "/account": <AccountPageEn />, "/link": <LinkPageEn />,
     "/leaderboards": <LeaderboardsPageEn />, "/store": <StorePageEn />,
   };
@@ -90,7 +90,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     <footer className="footer">
       <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span></a>
       <span>RUSTY.LUB EU LONG · VANILLA X1</span>
-      <span><a href={localize("/servers")}>{isEnglish ? "SERVER" : "СЕРВЕР"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
+      <span><a href={localize("/servers")}>{isEnglish ? "SERVER" : "СЕРВЕР"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/cookies")}>{isEnglish ? "COOKIES" : "COOKIES"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
     </footer>
   </div>;
 }
