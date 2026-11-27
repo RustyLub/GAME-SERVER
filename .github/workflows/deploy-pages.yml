@@ -40,6 +40,8 @@ jobs:
         run: |
           npm install --prefix backend
           npm test --prefix backend
+      - name: Prepare multi-page fallback
+        run: cp dist/index.html dist/404.html
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
