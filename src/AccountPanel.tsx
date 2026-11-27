@@ -7,6 +7,20 @@ type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string
 type OrderRow = { id: string; status?: string; amount?: number; currency?: string; createdAt?: { toDate?: () => Date } };
 type VipConfig = { enabled: boolean; price: number | null; currency: string; durationDays: number };
 type VipEntitlement = { id: string; status: string; expiresAt: string | null };
+function statusLabel(status: string | undefined, english: boolean) {
+  const labels: Record<string, [string, string]> = {
+    creating: ["Создаётся", "Creating"], pending: ["Ожидает оплаты", "Awaiting payment"],
+    paid: ["Оплачен", "Paid"], canceled: ["Отменён", "Canceled"], expired: ["Истёк", "Expired"],
+    refunded: ["Возвращён", "Refunded"], partially_refunded: ["Частичный возврат", "Partially refunded"],
+    disputed: ["Оспаривается", "Disputed"], chargebacked: ["Оспорен банком", "Charged back"],
+    creation_failed: ["Ошибка создания", "Creation failed"], active: ["Активен", "Active"],
+    grant_pending: ["Выдаётся", "Grant pending"], revoke_pending: ["Снимается", "Revocation pending"],
+    suspended: ["Приостановлен", "Suspended"], revoked: ["Отозван", "Revoked"],
+  };
+  const pair = labels[status || ""];
+  return pair ? pair[english ? 1 : 0] : status || "—";
+}
+
 const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 
 export default function AccountPanel({ language = "ru" }: { language?: "ru" | "en" }) {
@@ -257,7 +271,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
       <div className="account-edit-name"><label htmlFor="profile-name">{t("ИМЯ В ПРОФИЛЕ", "PROFILE DISPLAY NAME")}</label><input id="profile-name" maxLength={24} value={customDisplayName} onChange={(event) => setCustomDisplayName(event.target.value)} /><button className="btn btn-ghost" type="button" onClick={saveDisplayName} disabled={busy}>{t("СОХРАНИТЬ ИМЯ", "SAVE NAME")}</button></div>
       <div className="account-linked-service"><div><small>{t("DISCORD", "DISCORD")}</small><strong>{profile.discordUsername || t("Не привязан", "Not linked")}</strong>{profile.discordId && <span>Discord ID: {profile.discordId}</span>}</div>{profile.discordId ? <button className="btn btn-ghost" type="button" onClick={unlinkDiscord} disabled={busy}>{t("ОТВЯЗАТЬ", "UNLINK")}</button> : <button className="btn btn-ghost" type="button" onClick={linkDiscord} disabled={busy || !apiBase}>{t("ПРИВЯЗАТЬ DISCORD", "LINK DISCORD")}</button>}</div>
       <section className="account-vip"><small>{t("RUSTY.LUB STORE", "RUSTY.LUB STORE")}</small><h3>VIP QUEUE PASS · 7 {t("ДНЕЙ", "DAYS")}</h3><p>{t("Штатное право пропуска очереди Rust. Без предметов, повышенных рейтов и игровых плагинов. Свободный слот не гарантируется.", "Native Rust queue-skip permission. No items, boosted rates or game plugins. A free slot is not guaranteed.")}</p>{vipEntitlement?.status === "active" && vipEntitlement.expiresAt ? <p className="vip-entitlement-status">{t("АКТИВЕН ДО", "ACTIVE UNTIL")} {new Date(vipEntitlement.expiresAt).toLocaleString(en ? "en-GB" : "ru-RU")}</p> : vipEntitlement && ["grant_pending", "revoke_pending"].includes(vipEntitlement.status) ? <p className="vip-entitlement-status">{t("СТАТУС ПРОПУСКА", "PASS STATUS")}: {vipEntitlement.status}</p> : null}{vipConfig?.enabled ? <button className="btn btn-red" type="button" onClick={purchaseVip} disabled={busy || vipEntitlement?.status === "active"}>{t("КУПИТЬ ЗА", "BUY FOR")} {vipConfig.price} {vipConfig.currency}</button> : <p className="account-disclaimer">{t("Покупка будет доступна после настройки Platega, RCON и серверных секретов.", "Checkout will be available after Platega, RCON and server secrets are configured.")}</p>}</section>
-      <section className="account-orders"><small>{t("ИСТОРИЯ ЗАКАЗОВ", "ORDER HISTORY")}</small>{orders.length ? orders.map((order) => <div className="account-order" key={order.id}><span>#{order.id.slice(0, 10)}</span><b>{order.amount != null ? order.amount + " " + (order.currency || "RUB") : "—"}</b><em>{order.status || "—"}</em>{order.createdAt?.toDate && <time>{order.createdAt.toDate().toLocaleDateString(en ? "en-GB" : "ru-RU")}</time>}</div>) : <p>{t("Заказов пока нет.", "No orders yet.")}</p>}</section>
+      <section className="account-orders"><small>{t("ИСТОРИЯ ЗАКАЗОВ", "ORDER HISTORY")}</small>{orders.length ? orders.map((order) => <div className="account-order" key={order.id}><span>#{order.id.slice(0, 10)}</span><b>{order.amount != null ? order.amount + " " + (order.currency || "RUB") : "—"}</b><em>{statusLabel(order.status, en)}</em>{order.createdAt?.toDate && <time>{order.createdAt.toDate().toLocaleDateString(en ? "en-GB" : "ru-RU")}</time>}</div>) : <p>{t("Заказов пока нет.", "No orders yet.")}</p>}</section>
       {message && <p className="account-message" role="status">{message}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}
       <button className="btn btn-ghost" type="button" onClick={logout}>{t("ВЫЙТИ ИЗ АККАУНТА", "SIGN OUT")}</button>
