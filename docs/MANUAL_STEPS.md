@@ -120,7 +120,11 @@ The code is isolated in the payment release branch until its tests pass and the 
 3. Set the merchant callback URL to `https://auth.rusty-lub.online/payments/platega/callback`.
 4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then calls GET /transaction/{id} and verifies current status, merchant, amount, currency and order payload before granting anything. Duplicate status notifications and refund events are idempotent. For CONFIRMED, the backend first writes a durable grant_pending entitlement; if RCON is unavailable it returns 500 and the callback/Cloud Scheduler retry can complete the action.
 5. The payment request sends the permanent SteamID64 as metadata.userId and SteamID64@mail.ru as metadata.user_email, following Platega guidance for a stable internal buyer ID when no email is collected. Confirm with the Platega manager that this metadata format and the selected payment method are accepted for your merchant category.
-6. Create a dedicated Cloud Scheduler service account and set VIP_SCHEDULER_SERVICE_ACCOUNT to its email. Grant the service account roles/run.invoker on the Cloud Run service. Ensure the Cloud Scheduler service agent has roles/iam.serviceAccountTokenCreator on this scheduler service account. Create a Scheduler job with OIDC authentication (no shared secret):
+6. Create a dedicated Cloud Scheduler service account (separate from the Cloud Run runtime identity) and set VIP_SCHEDULER_SERVICE_ACCOUNT to its email:
+   ```bash
+   gcloud iam service-accounts create rusty-lub-vip-scheduler --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub VIP expiry scheduler"
+   ```
+   Grant it roles/run.invoker on the Cloud Run service. Ensure the Cloud Scheduler service agent has roles/iam.serviceAccountTokenCreator on this scheduler service account. Create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
      --location YOUR_REGION \

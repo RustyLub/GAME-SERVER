@@ -96,5 +96,5 @@ A real Steam callback requires a publicly reachable HTTPS URL and the configured
 - discordAuthStates/{sha256(state)}
 - discordLinks/{discordId}
 
-Configure TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces, discordAuthStates and paymentLocks. Application code independently checks expiration.
+Configure TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces, discordAuthStates and paymentLocks. Application code independently checks expiration. The scheduler also marks abandoned creating/pending orders expired and releases their per-user payment lock.
 

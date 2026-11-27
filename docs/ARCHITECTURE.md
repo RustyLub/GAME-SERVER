@@ -24,7 +24,7 @@ Firebase user IDs are stable and derived from the verified SteamID64: steam_<Ste
 - update only its own customDisplayName (2–24 characters);
 - read only order documents whose userId equals the authenticated UID.
 
-The browser cannot create, delete or modify orders, entitlements, payment events, OAuth state, nonces or other internal documents. Firestore rules deny all other client access. The backend uses Firebase Admin under a dedicated Cloud Run service account.
+The browser cannot create, delete or modify orders, entitlements, payment events, payment locks, OAuth state, nonces or other internal documents. Firestore rules deny all other client access. The backend uses Firebase Admin under a dedicated Cloud Run service account.
 
 Steam OpenID assertions are checked server-to-server, signed fields and claimed identity are validated, response nonces are one-time, and the browser receives only a short-lived one-time code. The Firebase Custom Token remains in Firestore and is exchanged once by the frontend.
 
