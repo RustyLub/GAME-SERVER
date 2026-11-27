@@ -9,6 +9,14 @@ const title = (eyebrow: string, heading: ReactNode, subtitle?: string) => (
 );
 const panel = (children: ReactNode) => <div className="server-card page-panel">{children}</div>;
 const discord = <a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">OPEN DISCORD ↗</a>;
+function ServerDirectoryEn() {
+  return <div className="network-server-list">{SITE_CONFIG.servers.map((server, index) => <article className="network-server-row" key={server.id}>
+    <div className="network-server-index">{String(index + 1).padStart(2, "0")}</div>
+    <div className="network-server-main"><div className="network-server-tags"><span>{server.region.toUpperCase()}</span><span>{server.rates.toUpperCase()}</span><span>{server.wipe.toUpperCase()} WIPE</span></div><h3>{server.name}</h3><p>Classic Rust · {server.map.toLowerCase()} map · teams up to {server.teamLimit} players</p></div>
+    <div className="network-server-live">{server.statusAvailable ? <ServerStatus language="en" /> : <span className="server-live-status">STATUS NOT CONNECTED</span>}<small>{server.maxPlayers} SLOTS</small></div>
+    <div className="network-server-actions"><a className="btn btn-red" href={"/en/servers/" + server.slug}>SERVER DETAILS ↗</a><a className="text-link" href={"steam://connect/" + server.address}>CONNECT</a></div>
+  </article>)}</div>;
+}
 
 export function HomePageEn() {
  return <>
@@ -22,7 +30,7 @@ export function HomePageEn() {
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
   <section className="network-intro content-section"><div className="section-heading"><div><div className="eyebrow">ABOUT / RUSTY.LUB</div><h2>ONE COMMUNITY.<br /><em>DIFFERENT WORLDS.</em></h2></div><div className="section-note">Rusty.Lub brings together Rust game servers, useful resources and players in one place.</div></div></section>
   <section className="content-section network-servers" id="servers"><div className="section-heading"><div><div className="eyebrow">OUR SERVERS / NETWORK</div><h2>CHOOSE YOUR <em>WORLD.</em></h2></div><span className="section-note">The network's first server is available now. New destinations will be listed here as the project grows.</span></div>
-   <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Classic Rust · procedural map · teams up to 12 players</p></div><div className="network-server-live"><ServerStatus language="en" /><small>200 SLOTS</small></div><div className="network-server-actions"><a className="btn btn-red" href="/en/servers/eu-long">SERVER DETAILS ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>CONNECT</a></div></article></div>
+  <ServerDirectoryEn />
   </section>
   <section className="content-section network-directions" id="community"><div className="section-heading"><div><div className="eyebrow">MORE THAN SERVERS</div><h2>A PLACE FOR <em>PLAYERS.</em></h2></div><div className="section-note">Everything you need to play, connect and discover the project.</div></div>
    <div className="feature-grid"><div id="news"><small>01 / COMMUNITY</small><strong>News & Events</strong><span>Project announcements, important changes and community events.</span><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">FOLLOW UPDATES ↗</a></div><div id="guides"><small>02 / KNOWLEDGE</small><strong>Guides & Tools</strong><span>Practical resources, game references and useful Rust calculators.</span><a className="text-link" href="/en/support">USEFUL INFORMATION ↗</a></div><div id="stats"><small>03 / PLAYERS</small><strong>Players & Rankings</strong><span>Player statistics and leaderboards will grow with the network.</span><a className="text-link" href="/en/leaderboards">VIEW LEADERBOARD ↗</a></div><div id="monitoring"><small>04 / LIVE NETWORK</small><strong>Server Monitoring</strong><span>Status, availability and details for every world in the network.</span><a className="text-link" href="/en/servers">NETWORK STATUS ↗</a></div><div id="clans"><small>05 / TEAMS</small><strong>Clans & Teams</strong><span>A place to find allies and grow the player community.</span><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">FIND A TEAM ↗</a></div><div id="tools"><small>06 / KNOWLEDGE</small><strong>Game Tools</strong><span>Guides, references and calculators for surviving in Rust.</span><a className="text-link" href="/en/support">USEFUL RESOURCES ↗</a></div></div>
@@ -33,7 +41,7 @@ export function HomePageEn() {
 export function ServersPageEn() {
  return <section className="content-section page-section">
   {title("RUSTY.LUB / SERVER NETWORK",<>OUR <em>SERVERS.</em></>,"Choose a game world by its mode and features. The directory will grow with the project.")}
-  <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Classic Rust · procedural map · teams up to 12 players</p></div><div className="network-server-live"><ServerStatus language="en" /><small>200 SLOTS</small></div><div className="network-server-actions"><a className="btn btn-red" href="/en/servers/eu-long">SERVER DETAILS ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>CONNECT</a></div></article></div>
+  <ServerDirectoryEn />
   <p className="page-lead">One server is currently available. New servers will appear here as separate entries without changing the site's overall structure.</p>
  </section>;
 }
