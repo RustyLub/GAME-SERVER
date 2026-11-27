@@ -96,8 +96,8 @@ jobs:
           if-no-files-found: error
       - name: Audit production dependencies
         run: |
-          npm audit --omit=dev --audit-level=high
-          npm audit --prefix backend --omit=dev --audit-level=high
+          npm audit --audit-level=high
+          npm audit --prefix backend --audit-level=high
       - name: Test backend and Firestore rules
         run: npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
       - name: Configure Pages
