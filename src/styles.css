@@ -361,3 +361,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .vip-shop { padding: 16px; }
   .vip-shop h3 { font-size: 27px; }
 }
+
+.vip-refresh { width: 100%; margin-top: 12px; padding: 11px 12px; border: 1px solid #51443b; background: transparent; color: #c8b5a7; font-size: 7px; font-weight: 900; letter-spacing: .12em; }
+.vip-refresh:hover:not(:disabled) { border-color: #a66a50; color: #fff; }
