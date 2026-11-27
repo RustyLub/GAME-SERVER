@@ -5,7 +5,7 @@ import { isExpectedSchedulerIdentity, normalizeCloudRunAudience } from "./schedu
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive } from "./payments.js";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive, isValidVipRuntimeConfig } from "./payments.js";
 import { createCachedServerStatusReader } from "./server-status.js";
 import { createVipEntitlementProcessor } from "./vip-entitlement.js";
 
@@ -564,15 +564,19 @@ app.get("/public/server-status", async (_req, res) => {
 
 
 function isVipCheckoutEnabled() {
-  try {
-    const api = new URL(PLATEGA_API_BASE);
-    return api.protocol === "https:" &&
-      ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
-      Boolean(LEGAL_DETAILS_COMPLETE && PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_SCHEDULER_SERVICE_ACCOUNT &&
-        RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD && RCON_PROTOCOL === "wss" &&
-        Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 &&
-        [2, 3, 11, 12, 13, 14].includes(PLATEGA_PAYMENT_METHOD));
-  } catch { return false; }
+  return isValidVipRuntimeConfig({
+    legalDetailsComplete: LEGAL_DETAILS_COMPLETE,
+    merchantId: PLATEGA_MERCHANT_ID,
+    plategaSecret: PLATEGA_SECRET,
+    plategaApiBase: PLATEGA_API_BASE,
+    schedulerServiceAccount: VIP_SCHEDULER_SERVICE_ACCOUNT,
+    rconHost: RCON_HOST,
+    rconPort: RCON_PORT,
+    rconProtocol: RCON_PROTOCOL,
+    rconPassword: RCON_PASSWORD,
+    vipPriceRub: VIP_PRICE_RUB,
+    paymentMethod: PLATEGA_PAYMENT_METHOD,
+  });
 }
 
 async function plategaRequest(url, options = {}) {
