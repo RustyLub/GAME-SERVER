@@ -12,6 +12,11 @@ Node.js 22+ / Express service deployed separately to Google Cloud Run. It provid
 - GET /auth/discord/callback — validates the state cookie and Firestore state record, exchanges the code, and binds a unique Discord ID to the Steam profile.
 - POST /auth/discord/unlink — removes the current user's Discord mapping.
 - GET /public/server-status — optional read-only WebRCON serverinfo query; returns unavailable if RCON is not configured or unreachable.
+- GET /vip/config — public availability and price configuration (no secrets).
+- GET /vip/me — current user entitlement, requires Firebase bearer token.
+- POST /payments/orders — create an idempotent Platega checkout order, requires Firebase bearer token.
+- POST /payments/platega/callback — verifies Platega headers and authoritative transaction state, then updates order and VIP entitlement.
+- POST /internal/vip/reconcile — verifies a Google-signed Cloud Scheduler OIDC token and retries grants/revocations and seven-day expiry.
 
 Payment routes create a Platega transaction, verify callbacks using the documented X-MerchantId/X-Secret headers and a server-side GET transaction check, then issue a 7-day native Rust queue-skip permission through RCON. Callback events and RCON retries are idempotent. Expiry and dispute/chargeback revocation run through a Cloud Scheduler OIDC worker. No Carbon or Oxide plugin is involved.
 
@@ -43,6 +48,7 @@ Payment routes create a Platega transaction, verify callbacks using the document
 - PLATEGA_API_BASE, PLATEGA_MERCHANT_ID, PLATEGA_PAYMENT_METHOD, VIP_PRICE_RUB
 - PLATEGA_SECRET (Secret Manager mapping)
 - VIP_SCHEDULER_SERVICE_ACCOUNT (Google service account email used for OIDC scheduler requests)
+- LEGAL_DETAILS_COMPLETE=true only after seller identity, tax and refund terms are completed and reviewed
 - STEAM_API_KEY (optional Secret Manager mapping)
 
 ## Cloud Run IAM
@@ -89,5 +95,5 @@ A real Steam callback requires a publicly reachable HTTPS URL and the configured
 - discordAuthStates/{sha256(state)}
 - discordLinks/{discordId}
 
-Configure TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces and discordAuthStates. Application code independently checks expiration.
+Configure TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces, discordAuthStates and paymentLocks. Application code independently checks expiration.
 

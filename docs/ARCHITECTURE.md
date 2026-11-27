@@ -58,7 +58,7 @@ Payment creation and Platega webhook handling live in a dedicated payment releas
 - Firebase and Cloud Run are not live until the project and console setup in docs/MANUAL_STEPS.md is completed.
 - Discord OAuth requires a registered application and Cloud Run secret.
 - Live online status requires WebRCON to be enabled and its server-only credentials configured.
-- Platega checkout requires merchant approval, secrets, callback configuration and completed legal operator details.
+- Platega checkout requires merchant approval, Secret Manager mappings, verified callback configuration, Cloud Scheduler OIDC and completed legal operator details. Checkout is disabled unless LEGAL_DETAILS_COMPLETE=true.
 - DNS, custom domain and HTTPS must be verified in GitHub Pages and REG.RU.
 
 ## Repository map
