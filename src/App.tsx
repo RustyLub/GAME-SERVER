@@ -53,7 +53,8 @@ function App({ initialPath }: { initialPath?: string } = {}) {
       if (element) element.setAttribute("content", content);
     };
     setMetaContent('meta[name="description"]', meta.description);
-    setMetaContent('link[rel="canonical"]', canonicalUrl);
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute("href", canonicalUrl);
     setMetaContent('meta[property="og:title"]', meta.title);
     setMetaContent('meta[property="og:description"]', meta.description);
     setMetaContent('meta[property="og:url"]', canonicalUrl);
