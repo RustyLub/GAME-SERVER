@@ -26,9 +26,9 @@ The backend creates stable UIDs in the form steam_<SteamID64>. Discord is linked
 
 Use the existing Cloud Firestore database in project `rustylub`. Before deploying the repository rules, export/backup the current rules and inspect existing data because deployment replaces the active rules. Then publish the reviewed rules and indexes from the repository root:
 
-    firebase login
-    firebase use --add
-    firebase deploy --only firestore:rules,firestore:indexes --project rustylub
+    npx --yes firebase-tools@15.37.0 login
+    npx --yes firebase-tools@15.37.0 use --add
+    npx --yes firebase-tools@15.37.0 deploy --only firestore:rules,firestore:indexes --project rustylub
 
 Rules permit:
 - get only users/{uid} where request.auth.uid == uid;
