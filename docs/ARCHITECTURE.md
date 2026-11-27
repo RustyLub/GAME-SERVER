@@ -12,7 +12,7 @@ The public site serves Rusty.Lub EU Long in Russian and English. It is a React 1
 - Data: Firebase Authentication and Cloud Firestore.
 - Steam authentication: server-side Steam OpenID 2.0 verification followed by Firebase Custom Token issuance.
 - Discord linking: server-side OAuth2 authorization-code flow, identify scope only.
-- Live server status: read-only Rust WebRCON serverinfo command, optional until RCON is configured.
+- Live server status: read-only Rust WebRCON serverinfo command over secure WSS; unavailable until the TLS endpoint and RCON credentials are configured.
 - VIP queue: native Rust queue permission through backend RCON only; no game plugin.
 
 GitHub Pages cannot run backend code or store server secrets. It only serves static files.
@@ -24,7 +24,7 @@ Firebase user IDs are stable and derived from the verified SteamID64: steam_<Ste
 - update only its own customDisplayName (2–24 characters);
 - read only order documents whose userId equals the authenticated UID.
 
-The browser cannot create, delete or modify orders, entitlements, payment events, OAuth state, nonces or other internal documents. Firestore rules deny all other client access. The backend uses Firebase Admin under a dedicated Cloud Run service account.
+The browser cannot create, delete or modify orders, entitlements, payment events, payment locks, OAuth state, nonces or other internal documents. Firestore rules deny all other client access. The backend uses Firebase Admin under a dedicated Cloud Run service account.
 
 Steam OpenID assertions are checked server-to-server, signed fields and claimed identity are validated, response nonces are one-time, and the browser receives only a short-lived one-time code. The Firebase Custom Token remains in Firestore and is exchanged once by the frontend.
 
@@ -51,14 +51,14 @@ The site prerenders all public Russian and English routes, with per-route title,
 
 ## Payment isolation
 
-Payment, Platega, webhook and VIP entitlement implementation is developed in a dedicated payment branch. It may be merged into main only after the full build and payment test suite are green. The game server remains Vanilla; VIP uses native Rust commands through RCON.
+Payment creation and Platega webhook handling live in a dedicated payment release branch and are merged only after the full build and payment test suite are green. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over WSS-protected RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
 
 ## Current release limitations
 
 - Firebase and Cloud Run are not live until the project and console setup in docs/MANUAL_STEPS.md is completed.
 - Discord OAuth requires a registered application and Cloud Run secret.
 - Live online status requires WebRCON to be enabled and its server-only credentials configured.
-- Platega checkout requires merchant approval, secrets, callback configuration and completed legal operator details.
+- Platega checkout requires merchant approval, Secret Manager mappings, verified callback configuration, Cloud Scheduler OIDC and completed legal operator details. Checkout is disabled unless LEGAL_DETAILS_COMPLETE=true.
 - DNS, custom domain and HTTPS must be verified in GitHub Pages and REG.RU.
 
 ## Repository map

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore/lite";
 import { auth, db } from "./lib/firebase";
 
 type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string; customDisplayName?: string; discordId?: string; discordUsername?: string; discordAvatarUrl?: string };
 type OrderRow = { id: string; status?: string; amount?: number; currency?: string; createdAt?: { toDate?: () => Date } };
+type VipConfig = { enabled: boolean; price: number | null; currency: string; durationDays: number };
+type VipEntitlement = { id: string; status: string; expiresAt: string | null };
 const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 
 export default function AccountPanel({ language = "ru" }: { language?: "ru" | "en" }) {
@@ -14,10 +16,21 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
   const [profile, setProfile] = useState<SteamProfile>({});
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [customDisplayName, setCustomDisplayName] = useState("");
+  const [vipConfig, setVipConfig] = useState<VipConfig | null>(null);
+  const [vipEntitlement, setVipEntitlement] = useState<VipEntitlement | null>(null);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!apiBase) return;
+    let active = true;
+    fetch(apiBase + "/vip/config", { cache: "no-store" }).then((response) => response.json())
+      .then((data: VipConfig) => { if (active) setVipConfig(data); })
+      .catch(() => { if (active) setVipConfig(null); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -38,10 +51,12 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("discordLinked") === "1") setMessage(t("Discord успешно привязан.", "Discord account linked successfully."));
+    if (params.get("payment") === "success") setMessage(t("Вернулся со страницы оплаты. Ожидаем подтверждение Platega — возврат на сайт сам по себе не означает оплату.", "Returned from checkout. Waiting for Platega confirmation — the redirect itself does not mean the payment succeeded."));
+    if (params.get("payment") === "failed") setError(t("Оплата не завершена. Новый платёж можно создать из личного кабинета.", "Payment was not completed. You can start a new checkout from your account."));
     const discordError = params.get("discordError");
     if (discordError) setError(t("Не удалось привязать Discord. Проверь настройки OAuth или используй другой Discord-аккаунт.", "Could not link Discord. Check OAuth settings or use another Discord account."));
-    if (params.has("discordLinked") || params.has("discordError")) {
-      params.delete("discordLinked"); params.delete("discordError");
+    if (params.has("discordLinked") || params.has("discordError") || params.has("payment")) {
+      params.delete("discordLinked"); params.delete("discordError"); params.delete("payment");
       window.history.replaceState({}, document.title, window.location.pathname + (params.toString() ? "?" + params.toString() : "") + window.location.hash);
     }
   }, []);
@@ -92,7 +107,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
 
   useEffect(() => {
     if (!user || !db) {
-      setProfile({});
+      setProfile({}); setOrders([]); setVipEntitlement(null);
       return;
     }
     let active = true;
@@ -115,6 +130,10 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     getDocs(query(collection(db, "orders"), where("userId", "==", user.uid), orderBy("createdAt", "desc"), limit(10)))
       .then((snapshot) => { if (active) setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as OrderRow))); })
       .catch(() => { if (active) setOrders([]); });
+    user.getIdToken().then((token) => fetch(apiBase + "/vip/me", { headers: { Authorization: "Bearer " + token } }))
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (active) setVipEntitlement(data?.entitlement || null); })
+      .catch(() => { if (active) setVipEntitlement(null); });
     return () => { active = false; };
   }, [user]);
 
@@ -160,6 +179,32 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     finally { setBusy(false); }
   }
 
+  async function purchaseVip() {
+    if (!auth?.currentUser || !apiBase) return;
+    setBusy(true); setError("");
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(apiBase + "/payments/orders", {
+        method: "POST", credentials: "include",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: window.crypto.randomUUID() }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || typeof payload.redirectUrl !== "string") {
+        const errors: Record<string, string> = {
+          vip_checkout_not_configured: t("Магазин ещё не настроен.", "Store is not configured yet."),
+          vip_already_active: t("У тебя уже действует VIP Queue Pass.", "You already have an active VIP Queue Pass."),
+          payment_already_pending: t("У тебя уже есть незавершённый платёж.", "You already have a pending payment."),
+        };
+        throw new Error(errors[payload.error] || t("Не удалось создать платёж.", "Could not create payment."));
+      }
+      window.location.assign(payload.redirectUrl);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("Ошибка создания платежа.", "Payment creation failed."));
+      setBusy(false);
+    }
+  }
+
   async function saveDisplayName() {
     if (!user || !db) return;
     const value = customDisplayName.trim();
@@ -191,7 +236,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
 
   if (checking || busy) {
     return <div className="account-panel">
-      <p role="status">{busy ? t("Завершаем вход через Steam…", "Completing Steam sign-in…") : t("Проверяем состояние аккаунта…", "Checking account status…")}</p>
+      <p role="status">{busy ? t("Выполняем действие…", "Working…") : t("Проверяем состояние аккаунта…", "Checking account status…")}</p>
       {error && <p className="form-message form-error" role="alert">{error}</p>}
     </div>;
   }
@@ -211,6 +256,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
       <div className="account-profile-meta"><span>FIREBASE UID</span><code>{user.uid}</code></div>
       <div className="account-edit-name"><label htmlFor="profile-name">{t("ИМЯ В ПРОФИЛЕ", "PROFILE DISPLAY NAME")}</label><input id="profile-name" maxLength={24} value={customDisplayName} onChange={(event) => setCustomDisplayName(event.target.value)} /><button className="btn btn-ghost" type="button" onClick={saveDisplayName} disabled={busy}>{t("СОХРАНИТЬ ИМЯ", "SAVE NAME")}</button></div>
       <div className="account-linked-service"><div><small>{t("DISCORD", "DISCORD")}</small><strong>{profile.discordUsername || t("Не привязан", "Not linked")}</strong>{profile.discordId && <span>Discord ID: {profile.discordId}</span>}</div>{profile.discordId ? <button className="btn btn-ghost" type="button" onClick={unlinkDiscord} disabled={busy}>{t("ОТВЯЗАТЬ", "UNLINK")}</button> : <button className="btn btn-ghost" type="button" onClick={linkDiscord} disabled={busy || !apiBase}>{t("ПРИВЯЗАТЬ DISCORD", "LINK DISCORD")}</button>}</div>
+      <section className="account-vip"><small>{t("RUSTY.LUB STORE", "RUSTY.LUB STORE")}</small><h3>VIP QUEUE PASS · 7 {t("ДНЕЙ", "DAYS")}</h3><p>{t("Штатное право пропуска очереди Rust. Без предметов, повышенных рейтов и игровых плагинов. Свободный слот не гарантируется.", "Native Rust queue-skip permission. No items, boosted rates or game plugins. A free slot is not guaranteed.")}</p>{vipEntitlement?.status === "active" && vipEntitlement.expiresAt ? <p className="vip-entitlement-status">{t("АКТИВЕН ДО", "ACTIVE UNTIL")} {new Date(vipEntitlement.expiresAt).toLocaleString(en ? "en-GB" : "ru-RU")}</p> : vipEntitlement && ["grant_pending", "revoke_pending"].includes(vipEntitlement.status) ? <p className="vip-entitlement-status">{t("СТАТУС ПРОПУСКА", "PASS STATUS")}: {vipEntitlement.status}</p> : null}{vipConfig?.enabled ? <button className="btn btn-red" type="button" onClick={purchaseVip} disabled={busy || vipEntitlement?.status === "active"}>{t("КУПИТЬ ЗА", "BUY FOR")} {vipConfig.price} {vipConfig.currency}</button> : <p className="account-disclaimer">{t("Покупка будет доступна после настройки Platega, RCON и серверных секретов.", "Checkout will be available after Platega, RCON and server secrets are configured.")}</p>}</section>
       <section className="account-orders"><small>{t("ИСТОРИЯ ЗАКАЗОВ", "ORDER HISTORY")}</small>{orders.length ? orders.map((order) => <div className="account-order" key={order.id}><span>#{order.id.slice(0, 10)}</span><b>{order.amount != null ? order.amount + " " + (order.currency || "RUB") : "—"}</b><em>{order.status || "—"}</em>{order.createdAt?.toDate && <time>{order.createdAt.toDate().toLocaleDateString(en ? "en-GB" : "ru-RU")}</time>}</div>) : <p>{t("Заказов пока нет.", "No orders yet.")}</p>}</section>
       {message && <p className="account-message" role="status">{message}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}

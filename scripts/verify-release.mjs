@@ -33,7 +33,7 @@ for (const [route, file, language] of routes) {
   assert.match(html, /<title>[^<]+<\/title>/, route + " must have a title");
   assert.match(html, /<meta name="description" content="[^"]+"/, route + " must have a description");
   assert.ok(html.includes("https://rusty-lub.online" + (route === "/" ? "/" : route)), route + " must include its canonical URL");
-  assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".svg"), route + " must have its own-domain OG image");
+  assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
   assert.ok(html.includes('<html lang="' + language + '">'), route + " must have correct language");
   const h1Count = (html.match(/<h1/g) || []).length;
@@ -41,8 +41,8 @@ for (const [route, file, language] of routes) {
 }
 
 for (const [file, language, image] of [
-  ["404.html", "ru", "og-ru.svg"],
-  ["en/404.html", "en", "og-en.svg"],
+  ["404.html", "ru", "og-ru.png"],
+  ["en/404.html", "en", "og-en.png"],
 ]) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
   assert.match(html, /<meta name="robots" content="noindex, nofollow"/);
@@ -51,9 +51,15 @@ for (const [file, language, image] of [
   assert.equal((html.match(/<h1/g) || []).length, 1);
 }
 
-for (const image of ["og-ru.svg", "og-en.svg"]) {
-  const svg = await fs.readFile(path.join(dist, image), "utf8");
-  assert.match(svg, /width="1200" height="630"/);
+for (const image of ["og-ru.png", "og-en.png"]) {
+  const png = await fs.readFile(path.join(dist, image));
+  assert.equal(png.readUInt32BE(16), 1200, image + " width");
+  assert.equal(png.readUInt32BE(20), 630, image + " height");
+  assert.equal(png.toString("ascii", 1, 4), "PNG");
+  const webpName = image.replace(".png", ".webp");
+  const webp = await fs.readFile(path.join(dist, webpName));
+  assert.equal(webp.toString("ascii", 0, 4), "RIFF");
+  assert.equal(webp.toString("ascii", 8, 12), "WEBP");
 }
 
 const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");

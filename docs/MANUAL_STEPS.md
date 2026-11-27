@@ -46,9 +46,21 @@ Firestore rules allow each user to read their own profile, update only customDis
    export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com
    export DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
    export RCON_HOST=YOUR_RUST_RCON_HOST
-   export RCON_PORT=YOUR_RUST_RCON_PORT
+   export RCON_PORT=443
+   export RCON_PROTOCOL=wss
    export RCON_PASSWORD_SECRET_NAME=YOUR_RCON_SECRET_NAME
+   # Optional, only if you configured a Serverless VPC Access connector and Cloud NAT:
+   export VPC_CONNECTOR=YOUR_SERVERLESS_VPC_CONNECTOR
+   export VPC_EGRESS=all-traffic
    export DISCORD_CLIENT_SECRET_SECRET_NAME=YOUR_DISCORD_SECRET_NAME
+   export PLATEGA_SECRET_SECRET_NAME=YOUR_PLATEGA_SECRET_NAME
+   # Payment release variables (set only after Platega approval and legal review):
+   export PLATEGA_API_BASE=https://api.eu.payplatform.cc
+   export PLATEGA_MERCHANT_ID=YOUR_MERCHANT_ID
+   export PLATEGA_PAYMENT_METHOD=2
+   export VIP_PRICE_RUB=YOUR_PRICE_IN_RUBLES
+   export VIP_SCHEDULER_SERVICE_ACCOUNT=YOUR_SCHEDULER_SERVICE_ACCOUNT
+   export LEGAL_DETAILS_COMPLETE=true
    # Optional: set BACKEND_PUBLIC_URL only after the Cloud Run custom domain mapping is created.
    # Optional:
    export STEAM_API_KEY_SECRET_NAME=YOUR_STEAM_API_SECRET_NAME
@@ -60,7 +72,7 @@ Firestore rules allow each user to read their own profile, update only customDis
    gcloud run domain-mappings describe --domain auth.rusty-lub.online --region YOUR_REGION --project YOUR_GCP_PROJECT_ID
    ```
    Add the exact DNS records returned by Google at REG.RU and wait until the custom domain certificate is ready. Then set BACKEND_PUBLIC_URL=https://auth.rusty-lub.online and run the deploy script a second time. This keeps OAuth state cookies same-site with the website. Set the same public URL as GitHub Actions Variable VITE_API_BASE_URL.
-8. Configure Firestore TTL policies on the expiresAt field in steamAuthExchanges, steamOpenIdNonces and discordAuthStates. Application code independently enforces expiration.
+8. Configure Firestore TTL policies on the expiresAt field in steamAuthExchanges, steamOpenIdNonces, discordAuthStates and paymentLocks. Application code independently enforces expiration.
 
 The Cloud Run service must allow unauthenticated invocation because Steam and Discord redirect callbacks arrive without a Firebase bearer token. Protected JSON endpoints still verify Firebase ID tokens, exact browser Origin, OAuth state and one-time codes. All credentials remain server-side.
 
@@ -82,21 +94,53 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
 
 ## 5. Live server status and Vanilla RCON
 
-1. Enable WebRCON in the Rust server panel and confirm the correct RCON host, port and password. Do not change server gameplay settings or install Carbon/Oxide.
-2. Set RCON_HOST and RCON_PORT as Cloud Run environment variables. Store RCON_PASSWORD in Secret Manager and map it to the same-named Cloud Run variable.
-3. Confirm the Cloud Run service can reach the WebRCON port. The public website requests only the read-only `serverinfo` command.
-4. Test `/public/server-status`. If RCON is unavailable, the UI intentionally displays “status unavailable” rather than inventing online players.
+1. Enable WebRCON in the Rust server panel and confirm the correct RCON host, port and password. Do not change gameplay settings or install Carbon/Oxide.
+2. Do not expose plain `ws://` WebRCON over the public internet. Production backend deliberately rejects plaintext RCON. Use a hosting-provider secure WebSocket endpoint (`wss://`) or a TLS reverse proxy that forwards WebSocket upgrades to the private WebRCON port. The proxy hostname must have its own DNS record and a valid certificate; do not reuse the apex website record.
+3. If you manage the host yourself, place Nginx/another TLS proxy in front of the local WebRCON listener, install a valid certificate for a dedicated hostname, preserve the request path, and allow inbound access only from the Cloud Run egress IP. Example Nginx location:
+   ```nginx
+   location / {
+     proxy_pass http://127.0.0.1:26229;
+     proxy_http_version 1.1;
+     proxy_set_header Upgrade $http_upgrade;
+     proxy_set_header Connection "Upgrade";
+     proxy_set_header Host $host;
+     proxy_read_timeout 60s;
+   }
+   ```
+4. Set RCON_PROTOCOL=wss, RCON_HOST to the TLS proxy hostname, RCON_PORT to its TLS port (usually 443), and store RCON_PASSWORD only in Secret Manager. Do not publish the RCON password in the browser or repository.
+5. Optionally configure a Cloud Run Serverless VPC Access connector and Cloud NAT with a reserved static egress IP, then allowlist that IP at the TLS proxy. The deployment script accepts VPC_CONNECTOR and VPC_EGRESS. If you use this option, set VPC_EGRESS=all-traffic and keep the Cloud NAT IP fixed.
+6. The public website requests only the read-only `serverinfo` command. Test `/public/server-status`; without secure RCON it intentionally displays “status unavailable” and VIP checkout remains disabled.
 
 ## 6. Platega activation (payment branch only)
 
 The code is isolated in the payment release branch until its tests pass and the branch is merged. Do not configure or publish the callback before the merchant account is approved.
 
 1. Obtain Merchant ID and API secret from Platega. Store the secret in Secret Manager as PLATEGA_SECRET; set PLATEGA_MERCHANT_ID and PLATEGA_API_BASE as Cloud Run environment variables.
-2. Confirm with Platega the required payment method and the stable customer identifier for metadata.user_email. Steam accounts do not provide an email address; do not invent a customer's real email. The implementation uses a stable internal Steam-based identifier in the format required by Platega only after this is accepted by the provider.
+2. Confirm with Platega that payment method 2 (SBP) is enabled for the merchant. The request sends the permanent SteamID64 as metadata.userId and SteamID64@mail.ru as metadata.user_email, a stable pseudonymous buyer identifier in the provider's required email-format field. It is not represented as the customer's real email. Obtain Platega's confirmation that this format is accepted for the merchant category before setting LEGAL_DETAILS_COMPLETE=true.
 3. Set the merchant callback URL to `https://auth.rusty-lub.online/payments/platega/callback`.
-4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then verifies transaction status, merchant, amount, currency and order binding server-side before granting anything.
-5. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
-6. Confirm the seven-day VIP Queue Pass wording, price, tax and operator details on the legal pages before opening checkout.
+4. Platega documents callback authentication with X-MerchantId and X-Secret headers, not an HMAC signature. The handler checks both values in constant time, then calls GET /transaction/{id} and verifies current status, merchant, amount, currency and order payload before granting anything. Duplicate status notifications and refund events are idempotent. For CONFIRMED, the backend first writes a durable grant_pending entitlement; if RCON is unavailable it returns 500 and the callback/Cloud Scheduler retry can complete the action.
+5. The payment request sends the permanent SteamID64 as metadata.userId and SteamID64@mail.ru as metadata.user_email, following Platega guidance for a stable internal buyer ID when no email is collected. Confirm with the Platega manager that this metadata format and the selected payment method are accepted for your merchant category.
+6. Create a dedicated Cloud Scheduler service account (separate from the Cloud Run runtime identity) and set VIP_SCHEDULER_SERVICE_ACCOUNT to its email:
+   ```bash
+   gcloud iam service-accounts create rusty-lub-vip-scheduler --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub VIP expiry scheduler"
+   ```
+   Grant it roles/run.invoker on the Cloud Run service. Ensure the Cloud Scheduler service agent has roles/iam.serviceAccountTokenCreator on this scheduler service account. Create a Scheduler job with OIDC authentication (no shared secret):
+   ```bash
+   gcloud scheduler jobs create http rusty-lub-vip-reconcile \
+     --location YOUR_REGION \
+     --schedule "*/5 * * * *" \
+     --time-zone "Etc/UTC" \
+     --uri "https://auth.rusty-lub.online/internal/vip/reconcile" \
+     --http-method POST \
+     --oidc-service-account-email "YOUR_SCHEDULER_SERVICE_ACCOUNT" \
+     --oidc-token-audience "https://auth.rusty-lub.online/internal/vip/reconcile"
+   ```
+   Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
+7. Before setting LEGAL_DETAILS_COMPLETE=true, publish the final seller/operator identity, tax details, service contact, approved price and reviewed refund/cancellation terms on the legal pages. This gate keeps the checkout endpoint disabled until those details are complete.
+8. Test native Rust RCON commands on a non-production/test SteamID64 first. Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, server.writecfg, reconnect, seven-day expiry and removals before sales.
+9. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
+10. For a refund request, verify the order and entitlement in Firestore, process the refund in the Platega merchant dashboard, then verify the provider callback changes the order status and revokes the native queue permission on full refund or chargeback. Partial refunds do not automatically revoke a pass unless the provider reports the full amount refunded.
+11. Confirm the seven-day VIP Queue Pass wording, price, tax and operator details on the legal pages before opening checkout.
 
 ## 7. Domain and HTTPS
 
@@ -126,9 +170,9 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 
 1. After the domain and HTTPS are active, open the home page source and confirm canonical, title, description, Open Graph and Twitter metadata.
 2. Test the public RU and EN OG image URLs:
-   - `https://rusty-lub.online/og-ru.svg`
-   - `https://rusty-lub.online/og-en.svg`
-3. Submit the homepage to the Facebook Sharing Debugger and LinkedIn Post Inspector to refresh cached previews. Some social crawlers may not support SVG Open Graph images; if a target platform rejects SVG, replace them with 1200×630 PNGs without changing the metadata URLs.
+   - `https://rusty-lub.online/og-ru.png`
+   - `https://rusty-lub.online/og-en.png`
+3. Submit the homepage to the Facebook Sharing Debugger and LinkedIn Post Inspector to refresh cached previews. The public OG assets are 1200×630 PNGs for broad crawler compatibility; optimized WebP counterparts are also generated for future in-site use.
 4. Submit `https://rusty-lub.online/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
 
 ## 10. Final acceptance
@@ -139,6 +183,6 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 - [ ] Discord link/unlink and unique-account enforcement pass.
 - [ ] Firestore owner-only profile and order reads are verified against the deployed rules.
 - [ ] Platega callback and payment tests pass before checkout is opened.
-- [ ] RCON status works without installing any game plugin.
+- [ ] Secure WSS RCON status and VIP issuance work without installing any game plugin; plaintext WebRCON is rejected in production.
 - [ ] DNS, TLS certificate, HTTPS redirect and social previews are verified.
 - [ ] Legal operator details are completed and reviewed.
