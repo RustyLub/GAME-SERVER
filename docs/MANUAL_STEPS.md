@@ -73,7 +73,12 @@ Firestore rules allow a user to read only their own profile, update only `custom
    firebase hosting:sites:create rustylub-auth --project "$FIREBASE_PROJECT_ID"
    bash backend/deploy-auth-hosting.sh
    ```
-   The Firebase CLI account needs Firebase Hosting Admin (`roles/firebasehosting.admin`) and API Keys Viewer (`roles/serviceusage.apiKeysViewer`) on the project. If the site already exists, skip the `hosting:sites:create` command. In Firebase Console → Hosting → `rustylub-auth`, add the custom domain `auth.rusty-lub.online`. Leave any “redirect all requests” option disabled. Follow the Hosting wizard's exact TXT and A/AAAA DNS instructions and wait until Firebase reports the certificate as active. This hostname is served by Firebase Hosting, which proxies every dynamic request to Cloud Run; do not create a Cloud Run domain mapping for it. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run `bash backend/deploy-cloud-run.sh` a second time so Steam/Discord callbacks use the stable auth hostname. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
+   The Firebase CLI account needs Firebase Hosting Admin (`roles/firebasehosting.admin`) and API Keys Viewer (`roles/serviceusage.apiKeysViewer`) on the project. If the site already exists, skip the `hosting:sites:create` command. If an earlier setup already created a Cloud Run domain mapping for this auth hostname, inspect it and remove that mapping before attaching the Firebase Hosting custom domain:
+   ```bash
+   gcloud run domain-mappings describe --domain auth.rusty-lub.online --region europe-west1 --project "$GCP_PROJECT_ID"
+   gcloud run domain-mappings delete --domain auth.rusty-lub.online --region europe-west1 --project "$GCP_PROJECT_ID"
+   ```
+   Skip these commands if no Cloud Run mapping exists. In Firebase Console → Hosting → `rustylub-auth`, add the custom domain `auth.rusty-lub.online`. Leave any “redirect all requests” option disabled. Follow the Hosting wizard's exact TXT and A/AAAA DNS instructions and wait until Firebase reports the certificate as active. This hostname is served by Firebase Hosting, which proxies every dynamic request to Cloud Run; do not create a Cloud Run domain mapping for it. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run `bash backend/deploy-cloud-run.sh` a second time so Steam/Discord callbacks use the stable auth hostname. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
 8. Add the six Firebase Web App variables from section 1 to GitHub Actions Variables.
 9. Configure Firestore TTL on `expiresAt` for `steamAuthStates`, `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
 10. Open `https://auth.rusty-lub.online/health`; expect `{"ok":true}`.
@@ -142,6 +147,11 @@ Payment code is already merged into `main` after a green build and payment test 
    Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The Scheduler request goes directly to the Cloud Run `run.app` URL so the OIDC Authorization header is not dependent on the Firebase Hosting proxy. The OIDC audience must be the Cloud Run service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact URL and create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
    CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --format="value(status.url)")
+   # If the job already exists, update its URL and OIDC audience:
+   gcloud scheduler jobs update http rusty-lub-vip-reconcile \
+     --location YOUR_REGION \
+     --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
+     --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
      --location YOUR_REGION \
      --schedule "*/5 * * * *" \
