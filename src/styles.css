@@ -98,6 +98,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .hero h1 em, .section-heading h2 em, .split-section h2 em, .account-band h2 em { color: var(--red); font-style: normal; }
 .hero-inner > p { max-width: 440px; color: #c1c1b9; font-size: 12px; line-height: 1.9; }
+.hero-inner > p.hero-lead { max-width: 520px; margin: 0 0 8px; color: #f3f1eb; font-size: 15px; font-weight: 700; line-height: 1.5; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 29px; }
 .btn {
   min-height: 45px; display: inline-flex; align-items: center; justify-content: center;
