@@ -6,18 +6,21 @@ This service is the trusted server-side part of Steam-only account authenticatio
 
 - Steam OpenID 2.0 is verified server-to-server using Steam's `check_authentication` endpoint.
 - The callback is bound to a random, HttpOnly, Secure, SameSite=Lax state cookie and an exact configured return URL.
-- The SteamID64 is accepted only from the canonical, verified `claimed_id`.
+- The SteamID64 is accepted only from the canonical, verified `claimed_id`; the identifier range and signed OpenID fields are checked.
+- OpenID response nonces are time-bounded and recorded once to prevent replay.
 - Firebase users use stable UIDs `steam_<SteamID64>`; there is no email/password account creation.
 - Firebase Admin creates/updates the user and writes the profile. Firestore client rules deny profile writes.
 - A random one-time exchange code is stored only as a SHA-256 hash, expires after two minutes, and is consumed transactionally. The Firebase custom token is never placed in the redirect URL.
 - The exchange endpoint requires the exact configured frontend Origin.
+- The frontend uses a no-referrer policy so the one-time callback code is not leaked through referrer headers.
 
 ## Required environment
 
-Copy `.env.example` to your deployment secret/configuration store. Set:
+Copy `.env.example` to your deployment configuration. Set:
 - `FRONTEND_ORIGIN=https://rusty-lub.online`
 - `BACKEND_PUBLIC_URL=https://<your-real-backend-host>`
-- `FIREBASE_PROJECT_ID=rustylub`\n- `FIREBASE_SERVICE_ACCOUNT_EMAIL=<runtime-service-account-email>`
+- `FIREBASE_PROJECT_ID=rustylub`
+- `FIREBASE_SERVICE_ACCOUNT_EMAIL=<runtime-service-account-email>`
 - `PORT=8080` (provided automatically by Cloud Run)
 - `STEAM_API_KEY` (optional; used only to show Steam display name and avatar; without it authentication still works but the profile falls back to a generic label)
 
@@ -46,4 +49,6 @@ A Google Cloud project, Cloud Run permissions, billing configuration, and a serv
 6. Add `rusty-lub.online` to Firebase Authentication authorized domains. Do not enable Email/Password as a Rusty.Lub sign-in method.
 7. Test first-time account creation, repeat login, invalid OpenID claims, replayed exchange codes, and logout before production use.
 
-In Firestore, configure TTL policies on the `expiresAt` field for the `steamAuthExchanges` and `steamOpenIdNonces` collections so expired one-time codes and replay-prevention records are cleaned up automatically. Expiry is also enforced by application code; TTL is storage cleanup.\n\nThe service cannot be considered live until it has been deployed and these checks pass. Do not expose Firebase Admin credentials, Steam API keys, or game-server RCON secrets in frontend variables.
+In Firestore, configure TTL policies on the `expiresAt` field for the `steamAuthExchanges` and `steamOpenIdNonces` collections so expired one-time codes and replay-prevention records are cleaned up automatically. Expiry is also enforced by application code; TTL is storage cleanup.
+
+The service cannot be considered live until it has been deployed and these checks pass. Do not expose Firebase Admin credentials, Steam API keys, or game-server RCON secrets in frontend variables.
