@@ -232,19 +232,22 @@ The following instructions describe the current interim `.online` endpoint only.
 2. Test the public RU and EN OG image URLs:
    - `https://rusty-lub.online/og-ru.png`
    - `https://rusty-lub.online/og-en.png`
+   - `https://rusty-lub.ru/og-ru.png`
+   - `https://rusty-lub.ru/og-en.png`
 3. Submit the homepage to the Facebook Sharing Debugger and LinkedIn Post Inspector to refresh cached previews. The public OG assets are 1200×630 PNGs for broad crawler compatibility; optimized WebP counterparts are generated as well.
-4. Submit `https://rusty-lub.online/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
+4. Submit both `https://rusty-lub.online/sitemap.xml` and `https://rusty-lub.ru/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
 
 ## 10. Final acceptance
 
 - [ ] The exact original `IMG_0512.jpeg` logo is present at `public/brand/rustylub-logo.jpeg`; preserve its original 1280×853 pixels and bytes without cropping, redrawing, recoloring, resizing, filters or effects.
 - [ ] RU/EN routes and language switch work, including the 404 fallback.
 - [ ] Check 360px and 390px phone widths, open/close the mobile navigation, and confirm there is no horizontal page overflow.
-- [ ] Home shows the configured server address, copy action, Steam connect link, next wipe and server status.
+- [ ] Home shows the configured server address, copy action, Steam connect link and next wipe; live status is shown only after the backend monitor is connected.
 - [ ] Steam sign-in, repeat sign-in and logout pass against the real Firebase project.
 - [ ] Discord link/unlink and unique-account enforcement pass.
 - [ ] Firestore owner-only profile and order reads are verified against deployed rules.
 - [ ] Platega test payment, callback, duplicate callback, refund/chargeback and seven-day VIP issuance/revocation pass.
 - [ ] Secure WSS RCON status and VIP issuance work without installing any game plugin.
-- [ ] DNS, TLS certificate, HTTPS redirect and social previews are verified.
+- [ ] Both apex domains serve the same app independently without cross-domain redirects; each domain has a valid TLS certificate, HTTPS and host-specific canonical/social metadata.
+- [ ] Firebase Hosting auth proxy health, CORS, cookies, Steam/Discord callbacks and Platega callbacks are tested from both website domains.
 - [ ] Legal operator details are completed and reviewed.
