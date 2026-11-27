@@ -77,6 +77,11 @@ assert.ok((sitemap.match(/<url>/g) || []).length >= 18, "sitemap must contain th
 for (const route of serverRoutes) {
   assert.ok(sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must be present in sitemap");
 }
+for (const route of noindexRoutes) {
+  assert.ok(!sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must not be present in sitemap");
+}
+const robots = await fs.readFile(path.join(dist, "robots.txt"), "utf8");
+assert.ok(robots.includes("Sitemap: https://rusty-lub.online/sitemap.xml"), "robots.txt must advertise the production sitemap");
 
 const allAssets = (await fs.readdir(path.join(dist, "assets"))).filter((name) => name.endsWith(".js"));
 for (const asset of allAssets) {
