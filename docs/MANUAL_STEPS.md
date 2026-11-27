@@ -147,11 +147,7 @@ Payment code is already merged into `main` after a green build and payment test 
    Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The Scheduler request goes directly to the Cloud Run `run.app` URL so the OIDC Authorization header is not dependent on the Firebase Hosting proxy. The OIDC audience must be the Cloud Run service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact URL and create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
    CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --format="value(status.url)")
-   # If the job already exists, update its URL and OIDC audience:
-   gcloud scheduler jobs update http rusty-lub-vip-reconcile \
-     --location YOUR_REGION \
-     --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
-     --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
+   # For a new job:
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
      --location YOUR_REGION \
      --schedule "*/5 * * * *" \
@@ -159,6 +155,12 @@ Payment code is already merged into `main` after a green build and payment test 
      --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
      --http-method POST \
      --oidc-service-account-email "rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com" \
+     --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
+
+   # If the job already exists, update its URL and OIDC audience instead:
+   gcloud scheduler jobs update http rusty-lub-vip-reconcile \
+     --location YOUR_REGION \
+     --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
      --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
    ```
    Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
