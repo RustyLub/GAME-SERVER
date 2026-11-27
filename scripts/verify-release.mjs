@@ -32,6 +32,10 @@ const routes = [
   ["/en/store", "en/store/index.html", "en"],
 ];
 routes.push(...serverRoutes.map((route) => [route, path.join(route.slice(1), "index.html"), route.startsWith("/en/") ? "en" : "ru"]));
+const noindexRoutes = new Set([
+  "/account", "/link", "/leaderboards", "/store",
+  "/en/account", "/en/link", "/en/leaderboards", "/en/store",
+]);
 
 for (const [route, file, language] of routes) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
@@ -40,6 +44,8 @@ for (const [route, file, language] of routes) {
   assert.ok(html.includes("https://rusty-lub.online" + (route === "/" ? "/" : route)), route + " must include its canonical URL");
   assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
+  const robotsPolicy = noindexRoutes.has(route) ? "noindex, nofollow" : "index, follow";
+  assert.ok(html.includes('<meta name="robots" content="' + robotsPolicy + '"'), route + " must preserve its indexing policy");
   assert.ok(html.includes('<html lang="' + language + '">'), route + " must have correct language");
   const h1Count = (html.match(/<h1/g) || []).length;
   assert.equal(h1Count, 1, route + " must render exactly one h1");
