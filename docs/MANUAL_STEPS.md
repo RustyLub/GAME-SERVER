@@ -23,7 +23,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
    - `VITE_FIREBASE_MESSAGING_SENDER_ID`
    - `VITE_FIREBASE_APP_ID`
 
-Also set `VITE_API_BASE_URL` to `https://auth.rusty-lub.online` after the Cloud Run custom domain is active (section 2). The frontend therefore uses seven public build variables in total: six Firebase values plus the backend origin. These are public browser configuration, not server secrets. Do not put Firebase Admin credentials, Steam/Discord/Platega secrets or RCON passwords in any `VITE_` variable.
+Also set `VITE_API_BASE_URL` to `https://auth.rusty-lub.online` after the Firebase Hosting auth proxy custom domain is active (section 2). The frontend therefore uses seven public build variables in total: six Firebase values plus the backend origin. These are public browser configuration, not server secrets. Do not put Firebase Admin credentials, Steam/Discord/Platega secrets or RCON passwords in any `VITE_` variable.
 
 Firestore rules allow a user to read only their own profile, update only `customDisplayName` (2–24 characters), and read only their own order documents. The backend alone creates/updates profiles, orders, payment events, entitlements, payment locks, OAuth state and nonce documents.
 
@@ -50,6 +50,7 @@ Firestore rules allow a user to read only their own profile, update only `custom
 6. Run the deployment script from a trusted terminal with gcloud installed. Use the exact service account/project values you created:
    ```bash
    export GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
+   export REGION=europe-west1
    export FIREBASE_PROJECT_ID=YOUR_DEDICATED_FIREBASE_PROJECT_ID
    export FRONTEND_ORIGINS="https://rusty-lub.online;https://rusty-lub.ru"
    export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com
@@ -67,12 +68,12 @@ Firestore rules allow a user to read only their own profile, update only `custom
    bash backend/deploy-cloud-run.sh
    ```
    The first run creates the Cloud Run service and prints its `run.app` URL. Do not set `LEGAL_DETAILS_COMPLETE=true` yet.
-7. Create a Cloud Run custom domain mapping for `auth.rusty-lub.online`:
+7. Publish the dedicated Firebase Hosting auth proxy. The Cloud Run service and the Hosting rewrite are both pinned to `europe-west1`:
    ```bash
-   gcloud run domain-mappings create --service rusty-lub-auth --domain auth.rusty-lub.online --region YOUR_REGION --project YOUR_GCP_PROJECT_ID
-   gcloud run domain-mappings describe --domain auth.rusty-lub.online --region YOUR_REGION --project YOUR_GCP_PROJECT_ID
+   firebase hosting:sites:create rustylub-auth --project "$FIREBASE_PROJECT_ID"
+   bash backend/deploy-auth-hosting.sh
    ```
-   Add the exact DNS records returned by Google at REG.RU and wait for the custom-domain certificate. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run the deployment script a second time. This makes Steam/Discord state cookies same-site with the website. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
+   If the site already exists, skip the `hosting:sites:create` command. In Firebase Console → Hosting → `rustylub-auth`, add the custom domain `auth.rusty-lub.online`. Leave any “redirect all requests” option disabled. Follow the Hosting wizard's exact TXT and A/AAAA DNS instructions and wait until Firebase reports the certificate as active. This hostname is served by Firebase Hosting, which proxies every dynamic request to Cloud Run; do not create a Cloud Run domain mapping for it. Then set `BACKEND_PUBLIC_URL=https://auth.rusty-lub.online` and run `bash backend/deploy-cloud-run.sh` a second time so Steam/Discord callbacks use the stable auth hostname. Set the same public URL as GitHub Actions Variable `VITE_API_BASE_URL`.
 8. Add the six Firebase Web App variables from section 1 to GitHub Actions Variables.
 9. Configure Firestore TTL on `expiresAt` for `steamAuthStates`, `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiry.
 10. Open `https://auth.rusty-lub.online/health`; expect `{"ok":true}`.
@@ -177,12 +178,12 @@ A manual GitHub Actions workflow is prepared at **Actions → Deploy dual-domain
 
 1. Create one Cloudflare Pages **Direct Upload** project named `rustylub-network` so the GitHub Actions Wrangler workflow owns deployments.
 2. Add both zones, `rusty-lub.online` and `rusty-lub.ru`, to the same Cloudflare account. In Pages → Custom domains, attach both apex domains, `rusty-lub.online` and `rusty-lub.ru`, to the `rustylub-network` project. The deployed Pages middleware rewrites canonical URLs, Open Graph URLs, sitemap and robots metadata to match the hostname of each request.
-3. Before changing nameservers at REG.RU, export the complete DNS zones and recreate every required record in Cloudflare. Preserve mail records (MX, SPF, DKIM, DMARC), the Rust game host `long.rusty-lub.online` as DNS-only A `202.36.95.125`, and the Cloud Run auth hostname records. Keep `auth.rusty-lub.online` DNS-only while validating the Google-managed Cloud Run certificate. Do not proxy the Rust game port or change its target.
+3. Before changing nameservers at REG.RU, export the complete DNS zones and recreate every required record in Cloudflare. Preserve mail records (MX, SPF, DKIM, DMARC), the Rust game host `long.rusty-lub.online` as DNS-only A `202.36.95.125`, and the Firebase Hosting auth-proxy records. The Firebase Hosting custom-domain wizard supplies the exact TXT and A/AAAA records for `auth.rusty-lub.online`; keep them DNS-only while Firebase provisions its certificate. Do not create a Cloud Run domain mapping for the auth hostname, proxy the Rust game port, or change the game target.
 4. Only after comparing the full DNS record sets, switch the two domains' nameservers at REG.RU to the exact Cloudflare nameservers assigned to each zone. Wait until Cloudflare reports both zones active and verify the game hostname, mail records and auth hostname before proceeding.
 5. Inspect existing CAA records before waiting for Pages certificates. CAA restrictions can block Cloudflare-managed issuance; if CAA records exist, ensure they allow the certificate authorities listed in Cloudflare's current Pages documentation (including Let's Encrypt, Google Trust Services and SSL.com). Do not remove unrelated CAA policy without reviewing it.
 6. In GitHub → Settings → Secrets and variables → Actions → Secrets, add `CLOUDFLARE_API_TOKEN` (Pages: Edit permission) and `CLOUDFLARE_ACCOUNT_ID`. Keep all Firebase public build values in Actions Variables as described above.
 7. Run the workflow manually. It builds and verifies the source for both origins, then deploys the shared output and host-aware middleware to the single Pages project. It does not create DNS records or change custom-domain settings.
-8. Verify HTTPS independently on both apex domains, check that neither redirects to the other, and test Steam sign-in, Discord linking, account reads and Platega return URLs from each domain.
+8. Verify HTTPS independently on both apex domains and `auth.rusty-lub.online`, check that neither apex redirects to the other, and test Steam sign-in, Discord linking, account reads and Platega return URLs from each domain.
 
 Do not switch nameservers until the existing DNS zone has been fully inventoried. The game server, mail and auth subdomain must keep working during the migration.
 
