@@ -19,7 +19,7 @@ Copy `.env.example` to your deployment secret/configuration store. Set:
 - `BACKEND_PUBLIC_URL=https://<your-real-backend-host>`
 - `FIREBASE_PROJECT_ID=rustylub`
 - `PORT=8080` (provided automatically by Cloud Run)
-- `STEAM_API_KEY` (optional; used only to show Steam display name and avatar)
+- `STEAM_API_KEY` (optional; used only to show Steam display name and avatar; without it authentication still works but the profile falls back to a generic label)
 
 The runtime identity must have Firebase Authentication Admin permissions and Firestore access in project `rustylub`. On Google Cloud Run, attach a dedicated service account with the least privileges needed. Do not upload a service-account JSON file into Git or the container.
 

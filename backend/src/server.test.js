@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { steamIdFromClaim, buildSteamOpenIdUrl } from "./server.js";
+
+process.env.NODE_ENV = "test";
+process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
+process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
+process.env.FIREBASE_PROJECT_ID = "rustylub";
+
+const { steamIdFromClaim, buildSteamOpenIdUrl } = await import("./server.js");
 
 test("accepts a canonical SteamID64 claimed_id", () => {
   assert.equal(steamIdFromClaim("https://steamcommunity.com/openid/id/76561198000000000"), "76561198000000000");
@@ -10,8 +16,9 @@ test("rejects a claimed_id from a different host", () => {
   assert.throws(() => steamIdFromClaim("https://evil.example/openid/id/76561198000000000"));
 });
 
-test("rejects a malformed or non-Steam claimed_id", () => {
+test("rejects malformed and out-of-range Steam IDs", () => {
   assert.throws(() => steamIdFromClaim("https://steamcommunity.com/openid/id/12345"));
+  assert.throws(() => steamIdFromClaim("https://steamcommunity.com/openid/id/76561190000000000"));
 });
 
 test("creates a Steam OpenID request with a callback-bound state", () => {

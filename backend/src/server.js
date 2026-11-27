@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import express from "express";
-import admin from "firebase-admin";
+import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = requiredEnv("FRONTEND_ORIGIN").replace(/\/$/, "");
@@ -18,14 +21,11 @@ if (process.env.NODE_ENV === "production") {
     throw new Error("FRONTEND_ORIGIN and BACKEND_PUBLIC_URL must use HTTPS in production.");
   }
 }
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    projectId: FIREBASE_PROJECT_ID,
-  });
+if (!getApps().length) {
+  initializeApp({ credential: applicationDefault(), projectId: FIREBASE_PROJECT_ID });
 }
-const auth = admin.auth();
-const db = admin.firestore();
+const auth = getAuth();
+const db = getFirestore();
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2kb", type: "application/json" }));
@@ -87,6 +87,15 @@ async function verifySteamAssertion(params, expectedState) {
   const identity = params.get("openid.identity");
   const steamId64 = steamIdFromClaim(claimedId);
   if (identity !== claimedId) throw new Error("Identity mismatch");
+  const signed = (params.get("openid.signed") || "").split(",");
+  for (const field of ["claimed_id", "identity", "return_to", "op_endpoint", "response_nonce", "assoc_handle"]) {
+    if (!signed.includes(field)) throw new Error("Required OpenID field is not signed");
+  }
+  const nonce = params.get("openid.response_nonce") || "";
+  const nonceTime = Date.parse(nonce.slice(0, 20));
+  if (!Number.isFinite(nonceTime) || Math.abs(Date.now() - nonceTime) > 10 * 60 * 1000) {
+    throw new Error("OpenID response nonce is stale");
+  }
 
   const verification = new URLSearchParams();
   for (const [key, value] of params.entries()) {
@@ -139,7 +148,7 @@ async function createOrUpdateSteamUser(steamId64) {
   const profileRef = db.collection("users").doc(uid);
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(profileRef);
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
     const data = {
       steamId: steamId64,
       steamId64,
@@ -154,7 +163,7 @@ async function createOrUpdateSteamUser(steamId64) {
   return uid;
 }
 function setStateCookie(res, state) {
-  res.setHeader("Set-Cookie", STATE_COOKIE + "=" + encodeURIComponent(state) + "; HttpOnly; Secure; SameSite=Lax; Path=/auth/steam; Max-Age=300");
+  res.setHeader("Set-Cookie", STATE_COOKIE + "=" + encodeURIComponent(state) + "; HttpOnly; " + (process.env.NODE_ENV === "production" ? "Secure; " : "") + "SameSite=Lax; Path=/auth/steam; Max-Age=300");
 }
 function clearStateCookie(res) {
   res.setHeader("Set-Cookie", STATE_COOKIE + "=; HttpOnly; Secure; SameSite=Lax; Path=/auth/steam; Max-Age=0");
@@ -181,8 +190,8 @@ app.get("/auth/steam/callback", async (req, res) => {
     const code = crypto.randomBytes(32).toString("base64url");
     await db.collection(EXCHANGE_COLLECTION).doc(sha256(code)).create({
       customToken,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 2 * 60 * 1000),
+      createdAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 2 * 60 * 1000),
     });
     clearStateCookie(res);
     return res.redirect(303, FRONTEND_ORIGIN + "/?steamCode=" + encodeURIComponent(code));
@@ -216,8 +225,10 @@ app.post("/auth/steam/exchange", async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Rusty.Lub Steam auth backend listening on port " + PORT);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log("Rusty.Lub Steam auth backend listening on port " + PORT);
+  });
+}
 
 export { steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion };
