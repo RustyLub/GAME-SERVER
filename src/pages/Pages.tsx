@@ -10,9 +10,9 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/support": { title: "Поддержка — Rusty.Lub", description: "Ответы на вопросы и способы связаться с командой Rusty.Lub." },
   "/privacy": { title: "Политика конфиденциальности — Rusty.Lub", description: "Информация об обработке данных на сайте Rusty.Lub." },
   "/terms": { title: "Условия использования — Rusty.Lub", description: "Условия использования сайта и сервисов Rusty.Lub." },
-  "/account": { title: "Личный кабинет — Rusty.Lub", description: "Вход через Steam, профиль игрока и VIP Queue Pass Rusty.Lub." },
+  "/account": { title: "Личный кабинет — Rusty.Lub", description: "Вход через Steam и профиль игрока Rusty.Lub." },
   "/link": { title: "Привязка аккаунтов — Rusty.Lub", description: "Связь игровых и community-аккаунтов Rusty.Lub." },
-  "/leaderboards": { title: "Рейтинг игроков — Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long." },
+  "/leaderboards": { title: "Рейтинг игроков — скоро | Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long скоро появится." },
   "/store": { title: "Магазин — Rusty.Lub", description: "Информация о доступности магазина Rusty.Lub." },
   "/en": { title: "Rusty.Lub — EU Long | Rust Server", description: "Rusty.Lub EU Long — classic Rust Vanilla x1 in Europe. Server details, wipes and community." },
   "/en/servers": { title: "Server — Rusty.Lub EU Long", description: "Rusty.Lub EU Long server details: Europe, Vanilla x1, procedural map and teams of up to 12." },
@@ -21,9 +21,9 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/en/support": { title: "Support — Rusty.Lub", description: "Answers to common questions and ways to contact Rusty.Lub." },
   "/en/privacy": { title: "Privacy Policy — Rusty.Lub", description: "Information about data processing on the Rusty.Lub website." },
   "/en/terms": { title: "Terms of Use — Rusty.Lub", description: "Terms for using the Rusty.Lub website and services." },
-  "/en/account": { title: "Player Account — Rusty.Lub", description: "Steam sign-in, player profile and VIP Queue Pass." },
+  "/en/account": { title: "Player Account — Rusty.Lub", description: "Steam sign-in and Rusty.Lub player profile." },
   "/en/link": { title: "Account Linking — Rusty.Lub", description: "Link Steam and community accounts on Rusty.Lub." },
-  "/en/leaderboards": { title: "Player Leaderboards — Rusty.Lub", description: "Rusty.Lub EU Long player rankings." },
+  "/en/leaderboards": { title: "Player Leaderboards — coming soon | Rusty.Lub", description: "Rusty.Lub EU Long player rankings are coming soon." },
   "/en/store": { title: "Store — Rusty.Lub", description: "Information about Rusty.Lub store availability." },
 };
 function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {

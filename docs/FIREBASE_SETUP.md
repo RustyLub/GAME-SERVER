@@ -1,48 +1,64 @@
-# Firebase и Steam-вход Rusty.Lub
+# Firebase setup for Rusty.Lub GAME-SERVER
 
-На сайте предусмотрен только вход через Steam. Регистрация выполняется автоматически при первом успешном Steam OpenID входе; email и пароль для аккаунта Rusty.Lub не используются.
+The website supports Steam-only sign-in. Registration is automatic after a successful Steam OpenID login. Email/password registration is not part of this project.
 
-## Firebase Web App
-1. Открой Firebase Console и выбери проект rustylub.
-2. В Project settings → General → Your apps проверь Web App с переданным для сайта appId.
-3. Web App config публичен. Не публикуй Firebase Admin service account или приватные ключи.
+## 1. Select the correct Firebase project
 
-## Firebase Authentication
-Firebase Authentication используется как сессионный слой для Firebase Custom Tokens, которые выдаёт доверенный backend после проверки Steam OpenID.
+This repository must use a dedicated Firebase project for GAME-SERVER, separate from the legacy Rusty.Lub website project. Do not use a remembered project ID or copy a config from another site without confirming it in Firebase Console.
 
-Не включай Email/Password как способ регистрации Rusty.Lub. Steam не является встроенным OAuth-провайдером Firebase: Steam OpenID должен проверяться сервером, после чего сервер находит или создаёт Firebase-пользователя и выдаёт Custom Token.
+The repository intentionally has no hard-coded Firebase project fallback. Until the dedicated project is confirmed and its Web App config is supplied, Firebase Auth and Firestore remain uninitialized in the browser.
 
-Добавь rusty-lub.online в Authentication → Settings → Authorized domains. Backend callback URL должен использовать HTTPS.
+## 2. Firebase Web App
 
-## Cloud Firestore
-1. Создай Firestore Database в Production mode.
-2. Опубликуй правила из firestore.rules.
+In Firebase Console, open Project settings → General → Your apps and create or select the Web App belonging to the dedicated GAME-SERVER project.
 
-Профили находятся в users/{uid}. Клиент может читать только собственный профиль. Создание и изменение профилей запрещено из браузера: это делает доверенный backend через Firebase Admin SDK после проверки Steam.
+The Web App configuration values are public client configuration. Set the following GitHub repository Actions Variables for production builds, or place them in a local untracked .env.local file:
+- VITE_FIREBASE_API_KEY
+- VITE_FIREBASE_AUTH_DOMAIN
+- VITE_FIREBASE_PROJECT_ID
+- VITE_FIREBASE_STORAGE_BUCKET
+- VITE_FIREBASE_MESSAGING_SENDER_ID
+- VITE_FIREBASE_APP_ID
 
-Поля профиля: steamId (проверенный SteamID64), displayName (ник Steam), avatarUrl (аватар Steam), createdAt и updatedAt (server timestamp).
+These values are visible in the browser bundle and are not secrets. Never place Firebase Admin credentials, service-account JSON, private keys, Steam API keys or RCON credentials in VITE_ variables.
 
-## Backend Steam OpenID
-GitHub Pages не запускает серверный код. Разверни доверенный backend и задай VITE_API_BASE_URL в окружении сборки сайта.
+## 3. Firebase Authentication
 
-Backend должен:
-1. Начинать Steam OpenID 2.0 redirect и проверять state/nonce против CSRF.
-2. Принимать callback только по HTTPS и проверять ответ Steam через OpenID check_authentication.
-3. Извлекать SteamID64 только из проверенного claimed_id; не доверять SteamID из query-параметров клиента.
-4. Получать публичные данные профиля Steam на сервере.
-5. Находить или создавать Firebase user по стабильному SteamID.
-6. Создавать Firebase Custom Token через Firebase Admin SDK и безопасно передавать браузеру одноразовый результат для обмена на Firebase session.
-7. Хранить Steam Web API key и Firebase Admin credentials только в серверном secret manager.
+Firebase Authentication is the session layer for Firebase Custom Tokens issued by the trusted backend after Steam OpenID verification.
 
-Frontend ожидает GET {VITE_API_BASE_URL}/auth/steam. Endpoint не считается рабочим, пока backend не развёрнут и callback не протестирован.
+- Add rusty-lub.online to Authentication → Settings → Authorized domains.
+- Do not enable Email/Password for Rusty.Lub login.
+- The backend creates Firebase users with stable UIDs steam_<SteamID64>.
+- Steam is not a built-in Firebase OAuth provider in this flow; the backend validates Steam OpenID and then issues a Firebase Custom Token.
 
-## Проверка
-- Новый Steam аккаунт автоматически создаёт Firebase identity и профиль.
-- Повторный вход открывает тот же профиль.
-- SteamID64 берётся только из проверенного OpenID claim.
-- Подставленный SteamID не проходит проверку.
-- Пользователь не может записать себе чужой SteamID или VIP через Firestore SDK.
-- Logout завершает Firebase-сессию.
+## 4. Cloud Firestore
 
-Платежи, VIP и команды Rust подключаются только после серверной проверки личности и прав доступа.
-\n\n## 6. Развёртывание сервера авторизации\n\nИсходный код backend и инструкция по развёртыванию находятся в `backend/README.md`. Это отдельный Node.js сервис: GitHub Pages не может выполнять callback Steam. Для публикации сервиса нужен Google Cloud Run, настроенный проект Google Cloud, биллинг и сервисный аккаунт с минимальными правами. Ничего из этого нельзя включать или оплачивать без согласия владельца. После публикации укажи HTTPS адрес сервиса в GitHub Repository Variables как `VITE_API_BASE_URL`. Пока переменная пустая, кнопка Steam остаётся выключенной.\n
+Create Firestore Database in Production mode. The committed firestore.rules file allows a signed-in user to get only their own users/{uid} profile. Listing users, writing profiles, and all other client reads/writes are denied.
+
+Publish rules only after confirming the correct Firebase project:
+- firebase use --add
+- select the dedicated GAME-SERVER project
+- firebase deploy --only firestore:rules
+
+The trusted backend uses Firebase Admin SDK and IAM. Admin SDK access bypasses client rules and is restricted by the Cloud Run runtime service account's IAM permissions.
+
+## 5. Required backend collections
+
+The Steam authentication service uses:
+- users/{uid} for the profile created by the trusted backend;
+- steamAuthExchanges/{sha256(code)} for one-time Firebase Custom Token exchange records;
+- steamOpenIdNonces/{sha256(nonce)} to prevent replay of a previously accepted Steam assertion.
+
+Configure Firestore TTL on expiresAt for steamAuthExchanges and steamOpenIdNonces. Application code still checks expiration and does not rely on TTL timing.
+
+## 6. Verification
+
+- A first successful Steam login creates one Firebase identity and one profile.
+- A repeat login resolves to the same identity.
+- A modified or non-canonical claimed_id is rejected.
+- A replayed nonce or exchange code is rejected.
+- A signed-in user can read only their own profile.
+- Client writes to users and all access to internal collections are denied.
+- Logout clears the Firebase client session.
+
+Do not mark Firebase as connected until the project selection, Authentication domain, Firestore database, published rules and end-to-end login have all been checked in the actual Firebase project.

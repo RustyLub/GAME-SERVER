@@ -53,10 +53,10 @@ export function LinkPageEn() {
  return <section className="content-section page-section">{title("ACCOUNT LINKING",<>LINK YOUR <em>ACCOUNTS.</em></>,"A planned secure connection between Steam and Discord.")}{panel(<><h2>NOT CONNECTED YET</h2><p className="page-lead">Account linking will be available after Discord OAuth verification is configured. The website does not request Discord tokens or create a fake account link.</p>{discord}</>)}</section>;
 }
 export function LeaderboardsPageEn() {
- return <section className="content-section page-section">{title("COMMUNITY / RANKING",<>PLAYER <em>LEADERBOARDS.</em></>,"The leaderboard will appear after a verified source of game statistics is connected.")}{panel(<><h2>STATISTICS NOT CONNECTED</h2><p className="page-lead">There is currently no verified source for playtime, kills or other player statistics. No fictional rankings are displayed.</p></>)}</section>;
+ return <section className="content-section page-section">{title("COMMUNITY / RANKING",<>PLAYER <em>LEADERBOARDS.</em></>,"The leaderboard is coming soon.")}{panel(<><h2>COMING SOON</h2><p className="page-lead">The leaderboard will appear after a verified source of game statistics is connected. No player data is collected or fabricated at this time.</p></>)}</section>;
 }
 export function StorePageEn() {
- return <section className="content-section page-section">{title("RUSTY.LUB / STORE",<>COMMUNITY <em>STORE.</em></>,"Purchases and digital products are not available.")}{panel(<><h2>STORE NOT AVAILABLE</h2><p className="page-lead">The payment system and product catalogue are not active. No payments are accepted on this page. VIP Queue Pass is shown separately in the account area and will only become available after the payment integration is verified.</p><a className="text-link" href="/en/account">PLAYER ACCOUNT ↗</a></>)}</section>;
+ return <section className="content-section page-section">{title("RUSTY.LUB / STORE",<>COMMUNITY <em>STORE.</em></>,"This section is not available yet.")}{panel(<><h2>COMING SOON</h2><p className="page-lead">Paid features are not active. The website does not accept payments.</p></>)}</section>;
 }
 export function NotFoundPageEn() {
  return <section className="content-section page-section">{title("ERROR / 404",<>PAGE <em>NOT FOUND.</em></>,"This address does not exist on the Rusty.Lub website.")}<a className="btn btn-red" href="/en">BACK TO HOME</a></section>;

@@ -4,12 +4,16 @@ import assert from "node:assert/strict";
 process.env.NODE_ENV = "test";
 process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
-process.env.FIREBASE_PROJECT_ID = "rustylub";
+process.env.FIREBASE_PROJECT_ID = "rustylub-test";
 
-const { steamIdFromClaim, buildSteamOpenIdUrl } = await import("./server.js");
+const { parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion } =
+  await import("./server.js");
 
 test("accepts a canonical SteamID64 claimed_id", () => {
-  assert.equal(steamIdFromClaim("https://steamcommunity.com/openid/id/76561198000000000"), "76561198000000000");
+  assert.equal(
+    steamIdFromClaim("https://steamcommunity.com/openid/id/76561198000000000"),
+    "76561198000000000",
+  );
 });
 
 test("rejects a claimed_id from a different host", () => {
@@ -21,14 +25,38 @@ test("rejects malformed and out-of-range Steam IDs", () => {
   assert.throws(() => steamIdFromClaim("https://steamcommunity.com/openid/id/76561190000000000"));
 });
 
-test("creates a Steam OpenID request with a callback-bound state", () => {
+test("builds a Steam OpenID request with an exact callback-bound state", () => {
   const url = new URL(buildSteamOpenIdUrl("state-test"));
   assert.equal(url.origin + url.pathname, "https://steamcommunity.com/openid/login");
   assert.equal(url.searchParams.get("openid.mode"), "checkid_setup");
-  assert.equal(url.searchParams.get("openid.return_to"), "https://auth.example.com/auth/steam/callback?state=state-test");
+  assert.equal(
+    url.searchParams.get("openid.return_to"),
+    "https://auth.example.com/auth/steam/callback?state=state-test",
+  );
   assert.equal(url.searchParams.get("openid.realm"), "https://auth.example.com");
 });
 
 test("does not accept arbitrary callback origins from request input", () => {
   assert.equal(buildSteamOpenIdUrl("abc").includes("evil.example"), false);
+});
+
+test("parses valid cookies and safely ignores malformed percent escapes", () => {
+  assert.deepEqual(parseCookies("a=hello%20world; bad=%E0%A4%A; rustylub_steam_state=abc"), {
+    a: "hello world",
+    rustylub_steam_state: "abc",
+  });
+});
+
+test("hashes one-time exchange codes deterministically", () => {
+  assert.equal(sha256("sample-code"), sha256("sample-code"));
+  assert.notEqual(sha256("sample-code"), "sample-code");
+});
+
+test("rejects an OpenID response with a mismatched state before network verification", async () => {
+  const params = new URLSearchParams({
+    state: "wrong-state",
+    "openid.ns": "http://specs.openid.net/auth/2.0",
+    "openid.mode": "id_res",
+  });
+  await assert.rejects(verifySteamAssertion(params, "expected-state"), /State mismatch/);
 });

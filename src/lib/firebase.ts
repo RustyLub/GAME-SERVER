@@ -2,26 +2,21 @@ import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Public Firebase Web App configuration. Environment variables take precedence,
-// so the project can be changed later without editing application code.
+// Firebase Web App values are public client configuration, not secrets.
+// No project is selected by default: configure the dedicated GAME-SERVER
+// Firebase project through the VITE_FIREBASE_* build variables.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAdWMYqPO1mgx2h2DO3Iw8XZxEyZJQitO0",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rustylub.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rustylub",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rustylub.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "835038801032",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:835038801032:web:643113413df82f7af9033d",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const requiredConfig = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.appId,
-];
-
+const requiredConfig = Object.values(firebaseConfig);
 export const isFirebaseConfigured = requiredConfig.every(
-  (value) => typeof value === "string" && value.length > 0,
+  (value) => typeof value === "string" && value.trim().length > 0,
 );
 
 const app = isFirebaseConfigured
