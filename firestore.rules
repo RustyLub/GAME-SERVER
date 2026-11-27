@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny policy. Add collection-specific rules only when
+    // the data model and trusted server-side write paths are implemented.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
