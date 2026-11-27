@@ -6,7 +6,7 @@ For this rollout, reuse the existing Rusty.Lub Firebase project `rustylub` and i
 
 ## Firebase Web App
 
-Create/select the Web App in Firebase Console → Project settings → General. The six current Firebase values are already wired into the frontend defaults. The backend origin `VITE_API_BASE_URL` intentionally remains unset until the Firebase Hosting auth proxy custom domain is live. If you prefer to manage the six Firebase values through GitHub Actions repository Variables, set:
+Select the existing Web App in Firebase Console → Project settings → General. Do not create a duplicate unless the current Web App is missing. The six current Firebase values are already wired into the frontend defaults. The backend origin `VITE_API_BASE_URL` intentionally remains unset until the Firebase Hosting auth proxy custom domain is live. If you prefer to manage the six Firebase values through GitHub Actions repository Variables, set:
 - VITE_FIREBASE_API_KEY
 - VITE_FIREBASE_AUTH_DOMAIN
 - VITE_FIREBASE_PROJECT_ID
@@ -66,7 +66,7 @@ Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNon
 
 ## Set GitHub Actions Variables from a local JSON file
 
-You can export the Web App configuration object from Firebase Console as JSON and save it locally as `firebase-config.local.json` in the repository root. This filename is ignored by Git. Then, from the repository root, run:
+Only after `auth.rusty-lub.online` is live, you can export the Web App configuration object from Firebase Console as JSON and save it locally as `firebase-config.local.json` in the repository root. This helper is optional because the six existing public values already have source defaults. This filename is ignored by Git. Then, from the repository root, run:
 
     node scripts/configure-github-variables.mjs firebase-config.local.json https://auth.rusty-lub.online --dry-run
     node scripts/configure-github-variables.mjs firebase-config.local.json https://auth.rusty-lub.online
