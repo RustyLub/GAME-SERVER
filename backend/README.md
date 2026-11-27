@@ -59,7 +59,8 @@ The backend includes a seven-day VIP Queue Pass checkout flow. The pass is tied 
 
 - `PLATEGA_MERCHANT_ID`
 - `PLATEGA_SECRET`
-- `VIP_PRICE_RUB` (whole RUB amount)\n- `CARBON_SYNC_SECRET` (same long random value as the Carbon plugin config)
+- `VIP_PRICE_RUB` (whole RUB amount)
+- `CARBON_SYNC_SECRET` (same long random value as the Carbon plugin config)
 
 Also set `PLATEGA_API_BASE=https://api.eu.payplatform.cc` (the European Platega API host). Do not place any Platega credential in Vite variables or the frontend.
 
