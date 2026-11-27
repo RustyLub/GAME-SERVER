@@ -91,7 +91,7 @@ jobs:
           npm audit --audit-level=moderate
           npm audit --prefix backend --audit-level=moderate
       - name: Test backend and Firestore rules
-        run: npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
+        run: npx --yes firebase-tools@15.37.0 emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
