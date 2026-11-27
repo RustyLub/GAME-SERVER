@@ -3,6 +3,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 
+const configuredSiteOrigin = process.env.SITE_ORIGIN?.trim() || "https://rusty-lub.online";
+const parsedSiteOrigin = new URL(configuredSiteOrigin);
+assert.equal(parsedSiteOrigin.protocol, "https:", "SITE_ORIGIN must use HTTPS");
+assert.equal(parsedSiteOrigin.origin, configuredSiteOrigin, "SITE_ORIGIN must be an origin without path or credentials");
+const SITE_ORIGIN = parsedSiteOrigin.origin;
 const dist = path.resolve("dist");
 const { serverRoutes, noindexRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
 const routes = [
@@ -36,7 +41,7 @@ for (const [route, file, language] of routes) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
   assert.match(html, /<title>[^<]+<\/title>/, route + " must have a title");
   assert.match(html, /<meta name="description" content="[^"]+"/, route + " must have a description");
-  assert.ok(html.includes("https://rusty-lub.online" + (route === "/" ? "/" : route)), route + " must include its canonical URL");
+  assert.ok(html.includes(SITE_ORIGIN + (route === "/" ? "/" : route)), route + " must include its canonical URL");
   assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
   const robotsPolicy = noindexRoutes.includes(route) ? "noindex, nofollow" : "index, follow";
@@ -55,8 +60,8 @@ for (const [file, language, image] of [
   assert.match(html, /<meta name="description" content="[^"]+"/);
   assert.match(html, /<meta name="robots" content="noindex, nofollow"/);
   assert.ok(html.includes('<html lang="' + language + '">'));
-  assert.ok(html.includes("https://rusty-lub.online/" + image));
-  assert.ok(html.includes("https://rusty-lub.online/" + (language === "en" ? "en/404.html" : "404.html")));
+  assert.ok(html.includes(SITE_ORIGIN + "/" + image));
+  assert.ok(html.includes(SITE_ORIGIN + "/" + (language === "en" ? "en/404.html" : "404.html")));
   assert.equal((html.match(/<h1/g) || []).length, 1);
 }
 
@@ -72,7 +77,7 @@ for (const image of ["og-ru.png", "og-en.png"]) {
 }
 
 const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");
-assert.ok(sitemap.includes("https://rusty-lub.online/en"));
+assert.ok(sitemap.includes(SITE_ORIGIN + "/en"));
 assert.ok((sitemap.match(/<url>/g) || []).length >= 18, "sitemap must contain the public RU/EN routes");
 for (const route of serverRoutes) {
   assert.ok(sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must be present in sitemap");
