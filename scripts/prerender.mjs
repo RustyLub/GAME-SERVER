@@ -9,6 +9,9 @@ if (parsedSiteOrigin.protocol !== "https:" || parsedSiteOrigin.username || parse
   throw new Error("SITE_ORIGIN must be an HTTPS origin without a path, query or credentials.");
 }
 const SITE_ORIGIN = parsedSiteOrigin.origin;
+if (!["https://rusty-lub.online", "https://rusty-lub.ru"].includes(SITE_ORIGIN)) {
+  throw new Error("SITE_ORIGIN must be one of the two approved Rusty.Lub domains.");
+}
 
 const root = process.cwd();
 const dist = path.join(root, "dist");
