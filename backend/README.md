@@ -95,6 +95,11 @@ A real Steam callback requires a publicly reachable HTTPS URL and the configured
 - steamOpenIdNonces/{sha256(nonce)}
 - discordAuthStates/{sha256(state)}
 - discordLinks/{discordId}
+- orders/{orderId} — owner-readable Platega order and payment lifecycle.
+- paymentRequests/{hash} — checkout idempotency records.
+- paymentEvents/{eventKey} — deduplicated provider callback/refund events.
+- entitlements/{orderId} — server-managed VIP Queue Pass state and expiry.
+- paymentLocks/{uid} — per-user checkout lock with expiry.
 
-Configure TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces, discordAuthStates and paymentLocks. Application code independently checks expiration. The scheduler also marks abandoned creating/pending orders expired and releases their per-user payment lock.
+Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. Application code independently checks expiration; TTL is cleanup only. The scheduler also marks abandoned creating/pending orders expired and releases their per-user payment lock.
 
