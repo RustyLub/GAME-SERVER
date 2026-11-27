@@ -43,10 +43,25 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     };
     document.documentElement.lang = isEnglish ? "en" : "ru";
     document.title = meta.title;
-    const description = document.querySelector('meta[name="description"]');
-    if (description) description.setAttribute("content", meta.description);
-    const canonical = document.querySelector('link[rel="canonical"]');
-    if (canonical) canonical.setAttribute("href", "https://rusty-lub.online" + (path === "/" ? "/" : path));
+    const siteOrigin = ["https://rusty-lub.online", "https://rusty-lub.ru"].includes(window.location.origin)
+      ? window.location.origin
+      : "https://rusty-lub.online";
+    const canonicalUrl = siteOrigin + (path === "/" ? "/" : path);
+    const imageUrl = siteOrigin + (isEnglish ? "/og-en.png" : "/og-ru.png");
+    const setMetaContent = (selector: string, content: string) => {
+      const element = document.querySelector(selector);
+      if (element) element.setAttribute("content", content);
+    };
+    setMetaContent('meta[name="description"]', meta.description);
+    setMetaContent('link[rel="canonical"]', canonicalUrl);
+    setMetaContent('meta[property="og:title"]', meta.title);
+    setMetaContent('meta[property="og:description"]', meta.description);
+    setMetaContent('meta[property="og:url"]', canonicalUrl);
+    setMetaContent('meta[property="og:image"]', imageUrl);
+    setMetaContent('meta[property="og:locale"]', isEnglish ? "en_US" : "ru_RU");
+    setMetaContent('meta[name="twitter:title"]', meta.title);
+    setMetaContent('meta[name="twitter:description"]', meta.description);
+    setMetaContent('meta[name="twitter:image"]', imageUrl);
     const robots = document.querySelector('meta[name="robots"]');
     if (robots) robots.setAttribute("content", pageMeta[path] && !isNoindexRoute(path) ? "index, follow" : "noindex, nofollow");
   }, [path, isEnglish]);
