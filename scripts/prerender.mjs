@@ -6,12 +6,13 @@ const root = process.cwd();
 const dist = path.join(root, "dist");
 const template = await fs.readFile(path.join(dist, "index.html"), "utf8");
 const serverEntry = pathToFileURL(path.join(root, "dist-ssr", "entry-server.js")).href;
-const { render } = await import(serverEntry);
+const { render, serverRoutes } = await import(serverEntry);
 const routes = [
-  "/", "/servers", "/servers/eu-long", "/wipes", "/rules", "/support", "/privacy", "/cookies", "/terms",
+  "/", "/servers", "/wipes", "/rules", "/support", "/privacy", "/cookies", "/terms",
   "/account", "/link", "/leaderboards", "/store",
-  "/en", "/en/servers", "/en/servers/eu-long", "/en/wipes", "/en/rules", "/en/support", "/en/privacy", "/en/cookies",
+  "/en", "/en/servers", "/en/wipes", "/en/rules", "/en/support", "/en/privacy", "/en/cookies",
   "/en/terms", "/en/account", "/en/link", "/en/leaderboards", "/en/store",
+  ...serverRoutes,
 ];
 
 function escapeHtml(value) {
@@ -72,3 +73,14 @@ await fs.writeFile(path.join(dist, "404.html"), notFoundHtml("/__not_found__", f
 await fs.mkdir(path.join(dist, "en"), { recursive: true });
 await fs.writeFile(path.join(dist, "en", "404.html"), notFoundHtml("/en/__not_found__", true), "utf8");
 console.log("Prerendered RU and EN 404 pages");
+
+const sitemapPath = path.join(dist, "sitemap.xml");
+let sitemap = await fs.readFile(sitemapPath, "utf8");
+for (const route of serverRoutes) {
+  const url = "https://rusty-lub.online" + route;
+  if (sitemap.includes("<loc>" + url + "</loc>")) continue;
+  const priority = route.startsWith("/en/") ? "0.7" : "0.8";
+  sitemap = sitemap.replace("</urlset>", "  <url><loc>" + url + "</loc><changefreq>monthly</changefreq><priority>" + priority + "</priority></url>\\n</urlset>");
+}
+await fs.writeFile(sitemapPath, sitemap, "utf8");
+console.log("Updated sitemap with all configured server detail routes");
