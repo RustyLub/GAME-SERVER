@@ -34,6 +34,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
 
   useEffect(() => {
     if (!auth || !apiBase) return;
+    const firebaseAuth = auth;
     const params = new URLSearchParams(window.location.search);
     const code = params.get("steamCode");
     const steamError = params.get("steamError");
@@ -65,7 +66,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
       if (!response.ok || typeof payload.customToken !== "string") {
         throw new Error(t("Не удалось обменять одноразовый код Steam.", "Could not exchange the one-time Steam code."));
       }
-      await signInWithCustomToken(auth, payload.customToken);
+      await signInWithCustomToken(firebaseAuth, payload.customToken);
       if (active) setMessage(t("Вход через Steam выполнен.", "Signed in through Steam."));
     }).catch((cause: unknown) => {
       if (active) setError(cause instanceof Error ? cause.message : t("Ошибка входа через Steam.", "Steam sign-in error."));
