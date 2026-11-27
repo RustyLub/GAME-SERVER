@@ -104,9 +104,10 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
      proxy_set_header Connection "Upgrade";
      proxy_set_header Host $host;
      proxy_read_timeout 60s;
+     access_log off;
    }
    ```
-4. Set `RCON_PROTOCOL=wss`, `RCON_HOST` to the TLS proxy hostname, `RCON_PORT` to its TLS port (usually 443), and store `RCON_PASSWORD` only in Secret Manager. Do not publish the RCON password in the browser or repository.
+4. Set `RCON_PROTOCOL=wss`, `RCON_HOST` to the TLS proxy hostname, `RCON_PORT` to its TLS port (usually 443), and store `RCON_PASSWORD` only in Secret Manager. Do not publish the RCON password in the browser or repository. WebRCON carries the password in the WebSocket URL path, so disable access logging on the TLS proxy or explicitly redact the path.
 5. Optionally configure a Cloud Run Serverless VPC Access connector and Cloud NAT with a reserved static egress IP, then allowlist that IP at the TLS proxy. The deployment script accepts `VPC_CONNECTOR` and `VPC_EGRESS=all-traffic`.
 6. Test `/public/server-status`. Without secure RCON it intentionally displays “status unavailable”; VIP checkout remains disabled.
 
