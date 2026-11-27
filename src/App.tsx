@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { isFirebaseConfigured } from "./lib/firebase";
 
 type Tab = "all" | "monthly" | "vanilla";
 
@@ -151,7 +152,7 @@ function App() {
           <div className="rule-row"><b>03</b><span>Командная игра</span><p>Максимальный размер команды — 12 игроков. Правила союзов уточняются администрацией.</p></div>
         </section>
 
-        <section className="account-band" id="account"><div><div className="eyebrow">PLAYER ACCOUNT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div><div><p>Войди через Steam, чтобы управлять профилем и покупками. Авторизация будет включена после настройки Steam OpenID.</p><button className="btn btn-ghost" disabled>STEAM LOGIN — COMING SOON</button></div></section>
+        <section className="account-band" id="account"><div><div className="eyebrow">PLAYER ACCOUNT</div><h2>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h2></div><div><p>Войди через Steam, чтобы управлять профилем и покупками. Авторизация будет включена после настройки Steam OpenID. {isFirebaseConfigured ? "Отдельный Firebase-проект подключён." : "Ожидается конфигурация отдельного Firebase-проекта GAME-SERVER."}</p><button className="btn btn-ghost" disabled>STEAM LOGIN — COMING SOON</button></div></section>
       </main>
 
       <footer className="footer"><a className="logo" href="#home"><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>GAME SERVERS</small></span></a><span>RUSTY.LUB EU LONG · VANILLA X1</span><span>© 2026 RUSTY.LUB</span></footer>
