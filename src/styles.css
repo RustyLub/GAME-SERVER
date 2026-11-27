@@ -333,3 +333,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .btn-steam { width: 100%; border-color: #526d82; background: #1b2838; color: #fff; }
 .btn-steam:hover:not(:disabled) { border-color: #8aa9c2; background: #263d53; }
 .account-avatar-image { width: 48px; height: 48px; object-fit: cover; border: 1px solid #526d82; }
+
+
+/* VIP Queue Pass */
+.vip-shop { margin-top: 22px; padding: 20px; border: 1px solid #654033; background: linear-gradient(145deg, #251d19, #171815 72%); }
+.vip-shop-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #a99a8d; font-size: 7px; font-weight: 900; letter-spacing: .15em; }
+.vip-shop-top b { padding: 6px 8px; border: 1px solid #754333; color: #e58b70; }
+.vip-shop h3 { margin: 18px 0 8px; color: #fff; font: 900 31px var(--display); letter-spacing: .02em; }
+.vip-shop > p { margin: 0; color: #aaa49c; font-size: 9px; line-height: 1.8; }
+.vip-shop-price { min-height: 49px; display: flex; align-items: baseline; gap: 9px; margin: 16px 0 12px; }
+.vip-shop-price strong { color: #f3eee7; font: 900 34px var(--display); }
+.vip-shop-price span { color: #c18b74; font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.vip-shop .btn { width: 100%; }
+.vip-shop .btn:disabled { border-color: #48423d; background: #39332f; color: #a29a92; }
+.vip-shop-note { display: block; margin-top: 12px; color: #888078; font-size: 8px; line-height: 1.7; }
+.vip-info-message { padding: 10px 12px; border-left: 2px solid #c18b74; background: #241e1a; color: #d7b9a8; font-size: 9px; line-height: 1.7; }
+.vip-entitlement { display: flex; flex-direction: column; gap: 7px; margin-top: 18px; padding: 14px 0; border-top: 1px solid #49352e; border-bottom: 1px solid #49352e; }
+.vip-entitlement small, .vip-history > small { color: #c77d62; font-size: 7px; font-weight: 900; letter-spacing: .14em; }
+.vip-entitlement strong { color: #eee5dc; font-size: 10px; line-height: 1.6; }
+.vip-entitlement span { color: #9b958d; font-size: 8px; }
+.vip-history { margin-top: 17px; }
+.vip-history-row { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; padding: 10px 0; border-bottom: 1px solid #34312c; }
+.vip-history-row span { color: #8f8b83; font-size: 8px; }
+.vip-history-row b { color: #e9e4dc; font-size: 9px; }
+.vip-history-row em { grid-column: 1 / -1; color: #b8a79b; font-size: 8px; font-style: normal; }
+@media (max-width: 700px) {
+  .vip-shop { padding: 16px; }
+  .vip-shop h3 { font-size: 27px; }
+}
