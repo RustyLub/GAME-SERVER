@@ -256,7 +256,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
           ? <img className="account-avatar-image" src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" />
           : <span className="account-avatar">{(profile.displayName || user.displayName || "R").slice(0, 1).toUpperCase()}</span>}
         <div>
-          <small>STEAM АККАУНТ ПОДКЛЮЧЁН</small>
+          <small>{t("STEAM АККАУНТ ПОДКЛЮЧЁН", "STEAM ACCOUNT CONNECTED")}</small>
           <strong>{profile.displayName || user.displayName || t("Игрок Rusty.Lub", "Rusty.Lub player")}</strong>
           <span>{profile.steamId ? t("SteamID64: ", "SteamID64: ") + profile.steamId : t("Steam-профиль подтверждён", "Steam profile verified")}</span>
         </div>
@@ -266,25 +266,25 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
       <section className="vip-shop" aria-label="VIP Queue Pass">
         <div className="vip-shop-top"><span>RUSTY.LUB / QUEUE ACCESS</span><b>{vipConfig?.durationDays || 7} DAYS</b></div>
         <h3>VIP QUEUE PASS</h3>
-        <p>Пропуск очереди на Rusty.Lub EU Long. Проходка привязывается к подтверждённому SteamID64 и действует 7 дней с момента подтверждения оплаты. Discord для активации не требуется.</p>
+        <p>{t("Пропуск очереди на Rusty.Lub EU Long. Проходка привязывается к подтверждённому SteamID64 и действует 7 дней с момента подтверждения оплаты. Discord для активации не требуется.", "Queue priority for Rusty.Lub EU Long. The pass is linked to your verified SteamID64 and lasts 7 days from confirmed payment. Discord activation is not required.")}</p>
         <div className="vip-shop-price">
           {vipConfig?.available && vipConfig.priceRub !== null
-            ? <><strong>{vipConfig.priceRub.toLocaleString(en ? "en-GB" : "ru-RU")} ₽</strong><span>за 7 дней</span></>
-            : <span>ОПЛАТА ПОКА НЕ ПОДКЛЮЧЕНА</span>}
+            ? <><strong>{vipConfig.priceRub.toLocaleString(en ? "en-GB" : "ru-RU")} ₽</strong><span>{t("за 7 дней", "for 7 days")}</span></>
+            : <span>{t("ОПЛАТА ПОКА НЕ ПОДКЛЮЧЕНА", "PAYMENTS NOT AVAILABLE YET")}</span>}
         </div>
         <button className="btn btn-red" type="button" onClick={buyVip} disabled={!vipConfig?.available || vipBusy}>
-          {vipBusy ? "СОЗДАЁМ ЗАКАЗ…" : t("КУПИТЬ VIP ↗", "BUY VIP ↗")}
+          {vipBusy ? t("СОЗДАЁМ ЗАКАЗ…", "CREATING ORDER…") : t("КУПИТЬ VIP ↗", "BUY VIP ↗")}
         </button>
-        {!vipConfig?.available && <small className="vip-shop-note">Покупка станет доступна после настройки Platega на защищённом сервере. Деньги сейчас не списываются.</small>}
+        {!vipConfig?.available && <small className="vip-shop-note">{t("Покупка станет доступна после настройки Platega на защищённом сервере. Деньги сейчас не списываются.", "Purchases will be enabled after Platega is configured on the secure server. No money is charged now.")}</small>}
         {vipNotice && <p className="vip-info-message" role="status">{vipNotice}</p>}
         {vipError && <p className="form-message form-error" role="alert">{vipError}</p>}
         {vipAccount?.entitlement && <div className="vip-entitlement">
-          <small>ТЕКУЩАЯ ПРОХОДКА</small>
+          <small>{t("ТЕКУЩАЯ ПРОХОДКА", "CURRENT PASS")}</small>
           <strong>{vipStatusLabel(vipAccount.entitlement.status)}</strong>
-          <span>Действует до: {formatVipDate(vipAccount.entitlement.expiresAt)}</span>
+          <span>{t("Действует до: ", "Valid until: ")}{formatVipDate(vipAccount.entitlement.expiresAt)}</span>
         </div>}
         {vipAccount?.orders?.length ? <div className="vip-history">
-          <small>ИСТОРИЯ ПЛАТЕЖЕЙ</small>
+          <small>{t("ИСТОРИЯ ПЛАТЕЖЕЙ", "PAYMENT HISTORY")}</small>
           {vipAccount.orders.map((order) => <div className="vip-history-row" key={order.transactionId}>
             <span>{formatVipDate(order.createdAt)}</span>
             <b>{order.amount.toLocaleString(en ? "en-GB" : "ru-RU")} {order.currency}</b>
@@ -298,22 +298,22 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
 
       {message && <p className="account-message" role="status">{message}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}
-      <button className="btn btn-ghost" type="button" onClick={logout} disabled={busy}>ВЫЙТИ ИЗ АККАУНТА</button>
+      <button className="btn btn-ghost" type="button" onClick={logout} disabled={busy}>{t("ВЫЙТИ ИЗ АККАУНТА", "SIGN OUT")}</button>
     </div>
   );
 
   return (
     <div className="account-panel">
       <div className="steam-login-mark" aria-hidden="true">STEAM</div>
-      <h3 className="steam-login-title">ТВОЙ STEAM. ТВОЙ ПРОФИЛЬ.</h3>
-      <p className="steam-login-copy">Войди через официальный аккаунт Steam. Если ты здесь впервые, профиль Rusty.Lub создастся автоматически после подтверждения входа.</p>
+      <h3 className="steam-login-title">{t("ТВОЙ STEAM. ТВОЙ ПРОФИЛЬ.", "YOUR STEAM. YOUR PROFILE.")}</h3>
+      <p className="steam-login-copy">{t("Войди через официальный аккаунт Steam. Если ты здесь впервые, профиль Rusty.Lub создастся автоматически после подтверждения входа.", "Sign in with your official Steam account. If this is your first visit, your Rusty.Lub profile will be created automatically after verification.")}</p>
       <button className="btn btn-steam" type="button" onClick={loginWithSteam} disabled={busy || !apiBase}>
         {busy ? t("ПЕРЕХОД К STEAM…", "REDIRECTING TO STEAM…") : t("ВОЙТИ ЧЕРЕЗ STEAM ↗", "SIGN IN WITH STEAM ↗")}
       </button>
-      {!apiBase && <p className="account-disclaimer">Steam-авторизация будет доступна после развёртывания защищённого сервера входа. Других способов регистрации на сайте не будет.</p>}
+      {!apiBase && <p className="account-disclaimer">{t("Steam-авторизация будет доступна после развёртывания защищённого сервера входа. Других способов регистрации на сайте не будет.", "Steam sign-in will be available after the secure authentication server is deployed. No other registration methods will be offered.")}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}
       {message && <p className="account-message" role="status">{message}</p>}
-      <p className="account-disclaimer">Сайт не запрашивает и не хранит пароль от Steam. Авторизация проходит на стороне Steam.</p>
+      <p className="account-disclaimer">{t("Сайт не запрашивает и не хранит пароль от Steam. Авторизация проходит на стороне Steam.", "This website never asks for or stores your Steam password. Authentication takes place on Steam.")}</p>
     </div>
   );
 }
