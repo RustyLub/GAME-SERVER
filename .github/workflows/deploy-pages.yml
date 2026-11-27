@@ -112,6 +112,21 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
+      - name: Diagnose interim apex DNS and GitHub Pages certificate
+        continue-on-error: true
+        run: |
+          echo "Current IPv4 DNS answers:"
+          getent ahostsv4 rusty-lub.online | awk '{print $1}' | sort -u || true
+          echo "Current IPv6 DNS answers:"
+          getent ahostsv6 rusty-lub.online | awk '{print $1}' | sort -u || true
+          echo "Testing GitHub Pages edge addresses with the apex hostname and SNI:"
+          for ip in 185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153; do
+            result="$(curl --silent --show-error --location --max-time 15 --resolve "rusty-lub.online:443:$ip" --output /dev/null --write-out '%{http_code}|%{url_effective}' https://rusty-lub.online/ 2>&1)" || true
+            echo "$ip -> $result"
+          done
+          echo "Certificate currently presented by public DNS:"
+          timeout 15 openssl s_client -connect rusty-lub.online:443 -servername rusty-lub.online </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName || true
+
       - name: Probe interim HTTPS endpoint
         continue-on-error: true
         run: |
