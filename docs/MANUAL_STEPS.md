@@ -136,8 +136,9 @@ Payment code is already merged into `main` after a green build and payment test 
    PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
    gcloud iam service-accounts add-iam-policy-binding rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com --project YOUR_GCP_PROJECT_ID --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com" --role="roles/iam.serviceAccountTokenCreator"
    ```
-   Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. Create a Scheduler job with OIDC authentication (no shared secret):
+   Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The OIDC audience must be the Cloud Run `run.app` service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact audience and create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
+   CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --format="value(status.url)")
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
      --location YOUR_REGION \
      --schedule "*/5 * * * *" \
