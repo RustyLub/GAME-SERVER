@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { isFirebaseConfigured } from "./lib/firebase";
 
 const SERVER = {
@@ -24,6 +24,15 @@ function App() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [formError, setFormError] = useState("");
   const [formReady, setFormReady] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
   async function copyConnect() {
     try {
@@ -62,14 +71,14 @@ function App() {
           <span className="logo-symbol">R<span>.</span></span>
           <span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span>
         </a>
-        <nav className={"main-nav " + (menuOpen ? "nav-open" : "")} aria-label="Основная навигация">
+        <nav id="primary-navigation" className={"main-nav " + (menuOpen ? "nav-open" : "")} aria-label="Основная навигация">
           {navigation.map(([id, label]) => <a key={id} href={"#" + id} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
         <button className="login-button" type="button" disabled title="Steam OpenID будет подключён на следующем этапе">ЛИЧНЫЙ КАБИНЕТ <span>↗</span></button>
-        <button className="mobile-menu" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen}>{menuOpen ? "✕" : "☰"}</button>
+        <button className="mobile-menu" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? "✕" : "☰"}</button>
       </header>
 
-      <main id="home">
+      <main id="main-content">
         <section className="hero">
           <div className="hero-image" />
           <div className="hero-shade" />
@@ -129,7 +138,7 @@ function App() {
 
         <section className="content-section info-section" id="features">
           <div className="section-heading"><div><div className="eyebrow">WHY RUSTY.LUB</div><h2>ТВОЯ ИГРА.<br /><em>ТВОИ УСЛОВИЯ.</em></h2></div></div>
-          <div className="placeholder-grid">
+          <div className="feature-grid">
             <div><small>01 / VANILLA</small><strong>Классический Rust</strong><span>Стандартные рейты x1 без ускоренной добычи и лишних модификаций.</span></div>
             <div><small>02 / COMMUNITY</small><strong>Играйте вместе</strong><span>Команды до 12 игроков. Кланы и альянсы разрешены.</span></div>
             <div><small>03 / MONTHLY</small><strong>Понятный вайп</strong><span>Новый цикл каждый первый четверг месяца.</span></div>
