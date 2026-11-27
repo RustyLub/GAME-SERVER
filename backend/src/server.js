@@ -455,7 +455,9 @@ app.post("/auth/steam/exchange", async (req, res) => {
 app.post("/auth/discord/start", async (req, res) => {
   const frontendOrigin = requestFrontendOrigin(req);
   if (!frontendOrigin) return res.sendStatus(403);
-  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) return res.status(503).json({ error: "discord_not_configured" });
+  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    return res.redirect(303, frontendOrigin + "/account?discordError=not_configured");
+  }
   try {
     const uid = await authenticatedSteamUid(req, true);
     const state = crypto.randomBytes(32).toString("base64url");
@@ -467,7 +469,8 @@ app.post("/auth/discord/start", async (req, res) => {
     setDiscordStateCookie(res, state);
     return res.redirect(303, buildDiscordAuthorizeUrl(state));
   } catch (error) {
-    return res.status(error?.message === "unauthorized" ? 401 : 500).json({ error: "discord_link_start_failed" });
+    const reason = error?.message === "unauthorized" ? "unauthorized" : "link_start_failed";
+    return res.redirect(303, frontendOrigin + "/account?discordError=" + reason);
   }
 });
 
