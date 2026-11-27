@@ -88,3 +88,8 @@ This is an independent implementation using Rusty.Lub branding and original code
 - [Dependency updates](.github/dependabot.yml) are checked weekly by Dependabot.
 
 Pull requests run the separate Build workflow. Production deployment is handled by the GitHub Pages workflow, avoiding duplicate production builds on every push.
+
+
+## VIP Queue Pass
+
+The Steam-only account panel includes the seven-day VIP Queue Pass shop, payment history, and current entitlement status. The checkout and game-server delivery path is implemented in the trusted backend and Carbon plugin, but remains disabled until Platega credentials, the chosen price, the backend deployment, and the Carbon plugin configuration are supplied and tested. See [backend setup and operations](backend/README.md).
