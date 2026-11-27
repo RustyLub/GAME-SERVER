@@ -727,16 +727,21 @@ app.post("/payments/orders", async (req, res) => {
     const idempotencyRef = db.collection("paymentRequests").doc(sha256(uid + ":" + requestId));
     const orderLockRef = db.collection("paymentLocks").doc(uid);
     const reservation = await db.runTransaction(async (transaction) => {
-      const [existing, lock] = await Promise.all([
+      const activeEntitlementsQuery = db.collection("entitlements").where("userId", "==", uid).limit(20);
+      const [existing, lock, currentEntitlements] = await Promise.all([
         transaction.get(idempotencyRef),
         transaction.get(orderLockRef),
+        transaction.get(activeEntitlementsQuery),
       ]);
       if (existing.exists) return { existing: true, ...existing.data() };
-      if (lock.exists) {
-        const lockData = lock.data();
-        if (isCheckoutLockActive(lockData)) {
-          return { locked: true };
-        }
+      const hasActiveEntitlement = currentEntitlements.docs.some((doc) => {
+        const item = doc.data();
+        return ["grant_pending", "revoke_pending", "suspended"].includes(item.status) ||
+          (item.status === "active" && item.expiresAt?.toMillis?.() > Date.now());
+      });
+      if (hasActiveEntitlement) return { alreadyActive: true };
+      if (lock.exists && isCheckoutLockActive(lock.data())) {
+        return { locked: true };
       }
 
       const expiresAt = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
@@ -752,6 +757,7 @@ app.post("/payments/orders", async (req, res) => {
       });
       return { existing: false, orderId, status: "creating" };
     });
+    if (reservation.alreadyActive) return res.status(409).json({ error: "vip_already_active" });
     if (reservation.locked) return res.status(409).json({ error: "payment_already_pending" });
     if (reservation.existing) {
       if (reservation.redirectUrl) return res.status(200).json({ orderId: reservation.orderId, redirectUrl: reservation.redirectUrl });
