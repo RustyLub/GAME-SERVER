@@ -2,6 +2,15 @@ const servers = [
   { id: "eu-long", slug: "eu-long", name: "Rusty.Lub EU Long", host: "202.36.95.125", port: 26227, address: "202.36.95.125:26227", maxPlayers: 200, region: "Europe", map: "Procedural", rates: "Vanilla x1", teamLimit: 12, wipe: "Monthly", statusAvailable: true },
 ] as const;
 
+export const NOINDEX_ROUTES = [
+  "/account", "/link", "/leaderboards", "/store",
+  "/en/account", "/en/link", "/en/leaderboards", "/en/store",
+] as const;
+
+export function isNoindexRoute(path: string): boolean {
+  return (NOINDEX_ROUTES as readonly string[]).includes(path);
+}
+
 export const SITE_CONFIG = {
   servers,
   server: servers[0],
