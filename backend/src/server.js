@@ -295,7 +295,10 @@ async function sendRconCommand(command, timeoutMs = 5000) {
       socket.close();
       reject(new Error("RCON command timed out"));
     }, timeoutMs);
+    let settled = false;
     const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       try { socket.close(); } catch {}
       if (error) reject(error); else resolve(value);
@@ -313,7 +316,7 @@ async function sendRconCommand(command, timeoutMs = 5000) {
     });
     socket.addEventListener("error", () => finish(new Error("RCON connection failed")), { once: true });
     socket.addEventListener("close", () => {
-      clearTimeout(timer);
+      finish(new Error("RCON connection closed before a response"));
     }, { once: true });
   });
 }
