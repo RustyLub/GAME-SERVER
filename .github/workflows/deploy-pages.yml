@@ -57,6 +57,7 @@ jobs:
           node --check scripts/configure-github-variables.test.mjs
           node --test scripts/configure-github-variables.test.mjs
           bash -n backend/deploy-cloud-run.sh
+          bash -n backend/deploy-auth-hosting.sh
       - name: Setup Java for Firestore Emulator
         uses: actions/setup-java@v5
         with:
