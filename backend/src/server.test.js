@@ -5,6 +5,7 @@ import { once } from "node:events";
 
 process.env.NODE_ENV = "test";
 process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
+process.env.FRONTEND_ORIGINS = "https://rusty-lub.online;https://rusty-lub.ru";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
 process.env.FIREBASE_PROJECT_ID = "rustylub-test";
 // server.js captures RCON configuration at module initialization.
@@ -212,6 +213,35 @@ test("preserves the RCON timeout error when closing the timed-out socket", async
     }
     if (previous.websocket) Object.defineProperty(globalThis, "WebSocket", previous.websocket);
     else delete globalThis.WebSocket;
+  }
+});
+
+test("accepts CORS preflight from the secondary independent frontend domain", async () => {
+  const server = createServer(app);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  try {
+    const address = server.address();
+    const response = await fetch(`http://127.0.0.1:${address.port}/vip/config`, {
+      method: "OPTIONS", headers: { Origin: "https://rusty-lub.ru" },
+    });
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://rusty-lub.ru");
+  } finally {
+    if (server.listening) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("rejects a Steam login return origin outside the configured allowlist", async () => {
+  const server = createServer(app);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  try {
+    const address = server.address();
+    const response = await fetch(`http://127.0.0.1:${address.port}/auth/steam?origin=https%3A%2F%2Fevil.example`);
+    assert.equal(response.status, 400);
+  } finally {
+    if (server.listening) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 });
 
