@@ -118,3 +118,25 @@ export function isCheckoutLockActive(lock, now = Date.now()) {
   const expiresAt = lock?.expiresAt;
   return typeof expiresAt?.toMillis === "function" && expiresAt.toMillis() > now;
 }
+
+export function isValidVipRuntimeConfig({
+  legalDetailsComplete, merchantId, plategaSecret, plategaApiBase,
+  schedulerServiceAccount, rconHost, rconPort, rconProtocol,
+  rconPassword, vipPriceRub, paymentMethod,
+}) {
+  let api;
+  try { api = new URL(plategaApiBase); } catch { return false; }
+  const validHost = typeof rconHost === "string" &&
+    /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/i.test(rconHost);
+  return api.protocol === "https:" &&
+    ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
+    !api.username && !api.password && api.pathname === "/" && !api.search && !api.hash &&
+    legalDetailsComplete === true &&
+    typeof merchantId === "string" && merchantId.trim().length > 0 &&
+    typeof plategaSecret === "string" && plategaSecret.length > 0 &&
+    typeof schedulerServiceAccount === "string" && schedulerServiceAccount.trim().length > 0 &&
+    validHost && Number.isInteger(rconPort) && rconPort >= 1 && rconPort <= 65535 &&
+    rconProtocol === "wss" && typeof rconPassword === "string" && rconPassword.length > 0 &&
+    Number.isInteger(vipPriceRub) && vipPriceRub > 0 &&
+    [2, 3, 11, 12, 13, 14].includes(paymentMethod);
+}
