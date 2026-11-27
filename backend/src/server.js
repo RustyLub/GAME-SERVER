@@ -451,8 +451,41 @@ app.post("/payments/platega/callback", async (req, res) => {
         transaction.get(orderRef),
       ]);
       if (!currentOrderSnapshot.exists) throw new Error("VIP order disappeared");
-      if (paymentSnapshot.exists) return;
       const now = Date.now();
+      if (paymentSnapshot.exists) {
+        // Platega may resolve a DISPUTED payment with a later CONFIRMED event.
+        // Re-queue the idempotent grant if the paid entitlement is still in date.
+        if (currentOrderSnapshot.data().status === "disputed") {
+          const currentExpiry = entitlementSnapshot.data()?.expiresAt?.toMillis?.() || 0;
+          if (entitlementSnapshot.exists && currentExpiry > now) {
+            const restoreRef = db.collection("vipDeliveryQueue").doc("dispute_restore_" + transactionId);
+            transaction.set(paymentRef, {
+              status: "confirmed",
+              reviewRequired: false,
+              deliveryStatus: "pending",
+              providerUpdatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+            transaction.set(entitlementRef, {
+              status: "pending_delivery",
+              reviewReason: FieldValue.delete(),
+              updatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+            transaction.set(restoreRef, {
+              type: "grant_vip_queue_skip",
+              transactionId,
+              steamId64: order.steamId64,
+              status: "pending",
+              createdAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+          }
+          transaction.set(orderRef, {
+            status: "confirmed",
+            reviewRequired: false,
+            providerUpdatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+        return;
+      }
       const currentExpiry = entitlementSnapshot.data()?.expiresAt?.toMillis?.() || 0;
       const expiresAtMs = nextVipExpiry(now, currentExpiry);
       const startsAtMs = currentExpiry > now ? currentExpiry : now;
