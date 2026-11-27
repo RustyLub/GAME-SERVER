@@ -15,8 +15,8 @@ test("auth hostname is a dedicated Firebase Hosting site that proxies every dyna
     source: "**",
     run: { serviceId: "rusty-lub-auth", region: "europe-west1" },
   }]);
-  assert.match(deployScript, /SERVICE_NAME="\$\{SERVICE_NAME:-rusty-lub-auth\}"/);
-  assert.match(deployScript, /REGION="\$\{REGION:-europe-west1\}"/);
+  assert.match(deployScript, /\[\[ -n "\$SERVICE_NAME" \]\] \|\| SERVICE_NAME="rusty-lub-auth"/);
+  assert.match(deployScript, /\[\[ -n "\$REGION" \]\] \|\| REGION="europe-west1"/);
   await access(new URL("../hosting-auth/404.html", import.meta.url), constants.R_OK);
   await assert.rejects(access(new URL("../hosting-auth/index.html", import.meta.url), constants.F_OK));
 });
