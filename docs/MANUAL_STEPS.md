@@ -93,6 +93,7 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
 3. Set the application ID as `DISCORD_CLIENT_ID` on Cloud Run. Store the client secret in Secret Manager and map it to `DISCORD_CLIENT_SECRET`.
 4. The implementation requests only the `identify` scope. It does not request guild membership, email or bot permissions and does not persist the OAuth access token.
 5. Test link, relink, unlink and rejection when the Discord account is already linked to another Rusty.Lub profile.
+6. Discord linking starts through a top-level form POST to the auth domain. Keep this navigation flow: it makes the short-lived `SameSite=Lax` state cookie first-party even when the player opened the site on `rusty-lub.ru`. Do not replace it with a cross-site `fetch` that relies on third-party cookies.
 
 ## 5. Live status and secure Vanilla RCON
 
