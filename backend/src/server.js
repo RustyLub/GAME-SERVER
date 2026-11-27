@@ -27,7 +27,7 @@ const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID || "";
 const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
 const CARBON_SYNC_SECRET = process.env.CARBON_SYNC_SECRET || "";
 const VIP_PRICE_RUB = parseVipPrice(process.env.VIP_PRICE_RUB);
-const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB);
+const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB && CARBON_SYNC_SECRET);
 
 if (process.env.NODE_ENV === "production" &&
     (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://") || !FIREBASE_SERVICE_ACCOUNT_EMAIL)) {
