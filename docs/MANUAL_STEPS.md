@@ -165,7 +165,9 @@ The game server stays strictly Vanilla. VIP uses only native Rust queue permissi
 
 ## 7. Domain and HTTPS
 
-The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` file alone does not set the Pages custom domain.
+The repository currently uses a custom GitHub Actions Pages workflow with `rusty-lub.online` as its configured primary domain. The `public/CNAME` file alone does not set the Pages custom domain.
+
+**Important — two independent apex domains:** the required setup is for both `rusty-lub.online` and `rusty-lub.ru` to serve the site without forcing visitors from one domain to the other. GitHub Pages does not support two independent apex custom domains for one site: its custom-domain configuration accepts one domain, and GitHub documents that additional domains require a redirect. Therefore, do not add `rusty-lub.ru` as a second Pages alias or point it at Pages while claiming the no-redirect requirement is met. Before declaring the public release complete, move the frontend to a host that supports both custom domains on the same deployment (or maintain two independent deployments), configure and validate HTTPS for each hostname, and update canonical/alternate metadata so each hostname remains on itself. Keep both domains available; do not introduce a redirect between them. The current Pages deployment is only the `.online` endpoint until that hosting migration is completed.
 
 1. Open GitHub → RustyLub/GAME-SERVER → Settings → Pages.
 2. Under Custom domain, set `rusty-lub.online` and save.
