@@ -39,12 +39,14 @@ Firestore rules allow a user to read only their own profile, update only `custom
 3. Grant the Cloud Run runtime service account:
    - `roles/firebaseauth.admin`
    - `roles/datastore.user`
+   Grant the identity running `gcloud run deploy --source` `roles/iam.serviceAccountUser` on the runtime service account. In IAM, verify the Cloud Build service account used by the project has `roles/run.builder` and Artifact Registry write access.
 4. Allow the Cloud Run runtime service account to mint Firebase custom tokens by granting `roles/iam.serviceAccountTokenCreator` on that same runtime service account to itself.
 5. Configure Secret Manager secrets:
    - `DISCORD_CLIENT_SECRET`
    - `RCON_PASSWORD`
    - `PLATEGA_SECRET` (only after Platega approves the merchant)
    - `STEAM_API_KEY` (optional; only for public nickname/avatar enrichment)
+   Grant the Cloud Run runtime service account `roles/secretmanager.secretAccessor` on each secret it uses. Do not grant broad project-wide secret access if per-secret access is practical.
 6. Run the deployment script from a trusted terminal with gcloud installed. Use the exact service account/project values you created:
    ```bash
    export GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
@@ -188,6 +190,7 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 ## 10. Final acceptance
 
 - [ ] RU/EN routes and language switch work, including the 404 fallback.
+- [ ] Check 360px and 390px phone widths, open/close the mobile navigation, and confirm there is no horizontal page overflow.
 - [ ] Home shows the configured server address, copy action, Steam connect link, next wipe and server status.
 - [ ] Steam sign-in, repeat sign-in and logout pass against the real Firebase project.
 - [ ] Discord link/unlink and unique-account enforcement pass.
