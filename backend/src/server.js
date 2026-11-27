@@ -45,6 +45,7 @@ const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
 const VIP_PRICE_RUB = Number(process.env.VIP_PRICE_RUB || 0);
 const PLATEGA_PAYMENT_METHOD = Number(process.env.PLATEGA_PAYMENT_METHOD || 2);
 const VIP_SCHEDULER_SERVICE_ACCOUNT = process.env.VIP_SCHEDULER_SERVICE_ACCOUNT?.trim() || "";
+const LEGAL_DETAILS_COMPLETE = process.env.LEGAL_DETAILS_COMPLETE === "true";
 const googleAuthClient = new OAuth2Client();
 const VIP_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -555,7 +556,7 @@ function isVipCheckoutEnabled() {
     const api = new URL(PLATEGA_API_BASE);
     return api.protocol === "https:" &&
       ["api.eu.payplatform.cc", "api.payplatform.cc"].includes(api.hostname) &&
-      Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_SCHEDULER_SERVICE_ACCOUNT &&
+      Boolean(LEGAL_DETAILS_COMPLETE && PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_SCHEDULER_SERVICE_ACCOUNT &&
         RCON_HOST && RCON_PORT > 0 && RCON_PASSWORD &&
         Number.isInteger(VIP_PRICE_RUB) && VIP_PRICE_RUB > 0 &&
         [2, 3, 11, 12, 13, 14].includes(PLATEGA_PAYMENT_METHOD));
@@ -801,7 +802,7 @@ app.post("/payments/platega/callback", async (req, res) => {
           }
         }
       } else if (status === "DISPUTED" || status === "CHARGEBACKED" || (status === "PARTIALLY_REFUNDED" && fullyRefunded)) {
-        if (entitlementSnapshot.exists && ["active", "grant_pending", "suspended"].includes(entitlementSnapshot.data()?.status)) {
+        if (entitlementSnapshot.exists && ["active", "grant_pending", "suspended", "revoke_pending"].includes(entitlementSnapshot.data()?.status)) {
           transaction.update(entitlementRef, {
             status: "revoke_pending",
             revokeToStatus: status === "DISPUTED" ? "suspended" : "revoked",
