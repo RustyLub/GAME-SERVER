@@ -96,7 +96,7 @@ The backend exposes a narrow queue API for the Rust server plugin:
 - `GET /internal/carbon/jobs`
 - `POST /internal/carbon/ack`
 
-Both require `Authorization: Bearer <CARBON_SYNC_SECRET>`. Set the same long random value in the backend secret manager and the Carbon plugin config. This secret is never sent to the website. The backend leases jobs for 60 seconds and retries unacknowledged jobs after the lease expires.
+Both require `Authorization: Bearer <CARBON_SYNC_SECRET>`. Generate a separate secret of at least 32 bytes (for example, `openssl rand -hex 32`) and set the same value in the backend secret manager and the Carbon plugin config. It must be different from the Platega API secret and is never sent to the website. The backend leases jobs for 60 seconds and retries unacknowledged jobs after the lease expires.
 
 The plugin file is `carbon/RustyLubVipQueue.cs`. Install it in the server's `carbon/plugins` directory, configure its API URL and shared secret, then watch the Carbon console logs. The plugin polls every 15 seconds; each authenticated poll refreshes a backend heartbeat. VIP checkout remains disabled unless that heartbeat is newer than 90 seconds, so the website will not accept a new payment while the Carbon bridge is offline. It executes only fixed Rust commands with a validated 17-digit SteamID64:
 
