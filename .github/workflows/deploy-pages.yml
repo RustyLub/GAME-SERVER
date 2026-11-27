@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm install
       - name: Type-check and build
         env:
@@ -36,7 +36,11 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: npm run build
-      - name: Test Steam auth backend\n        run: |\n          npm install --prefix backend\n          npm test --prefix backend\n      - name: Configure Pages
+      - name: Test Steam auth backend
+        run: |
+          npm install --prefix backend
+          npm test --prefix backend
+      - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true

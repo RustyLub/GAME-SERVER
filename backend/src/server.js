@@ -2,8 +2,13 @@ import crypto from "node:crypto";
 import express from "express";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue } from "firebase-admin/firestore";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error("Missing required environment variable: " + name);
+  return value;
+}
 
 const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = requiredEnv("FRONTEND_ORIGIN").replace(/\/$/, "");
@@ -16,14 +21,11 @@ const IDENTIFIER_SELECT = OPENID_NS + "/identifier_select";
 const STATE_COOKIE = "rustylub_steam_state";
 const EXCHANGE_COLLECTION = "steamAuthExchanges";
 
-if (process.env.NODE_ENV === "production") {
-  if (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://")) {
-    throw new Error("FRONTEND_ORIGIN and BACKEND_PUBLIC_URL must use HTTPS in production.");
-  }
+if (process.env.NODE_ENV === "production" &&
+    (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://"))) {
+  throw new Error("FRONTEND_ORIGIN and BACKEND_PUBLIC_URL must use HTTPS in production.");
 }
-if (!getApps().length) {
-  initializeApp({ credential: applicationDefault(), projectId: FIREBASE_PROJECT_ID });
-}
+if (!getApps().length) initializeApp({ credential: applicationDefault(), projectId: FIREBASE_PROJECT_ID });
 const auth = getAuth();
 const db = getFirestore();
 const app = express();
@@ -46,11 +48,6 @@ app.use((req, res, next) => {
   next();
 });
 
-function requiredEnv(name) {
-  const value = process.env[name];
-  if (!value) throw new Error("Missing required environment variable: " + name);
-  return value;
-}
 function parseCookies(header = "") {
   return Object.fromEntries(header.split(";").map((part) => {
     const index = part.indexOf("=");
@@ -61,20 +58,21 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 function steamIdFromClaim(claimedId) {
-  const match = /^https:\/\/steamcommunity\.com\/openid\/id\/(7656119\d{10})$/.exec(claimedId || "");
+  const match = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/.exec(claimedId || "");
   if (!match) throw new Error("Invalid Steam claimed_id");
+  const id = BigInt(match[1]);
+  if (id < 76561197960265728n || id > 76561202255233023n) throw new Error("SteamID64 is out of range");
   return match[1];
 }
 function buildSteamOpenIdUrl(state) {
   const callback = BACKEND_PUBLIC_URL + "/auth/steam/callback?state=" + encodeURIComponent(state);
   const url = new URL(STEAM_OPENID_ENDPOINT);
-  const params = url.searchParams;
-  params.set("openid.ns", OPENID_NS);
-  params.set("openid.mode", "checkid_setup");
-  params.set("openid.return_to", callback);
-  params.set("openid.realm", BACKEND_PUBLIC_URL);
-  params.set("openid.identity", IDENTIFIER_SELECT);
-  params.set("openid.claimed_id", IDENTIFIER_SELECT);
+  url.searchParams.set("openid.ns", OPENID_NS);
+  url.searchParams.set("openid.mode", "checkid_setup");
+  url.searchParams.set("openid.return_to", callback);
+  url.searchParams.set("openid.realm", BACKEND_PUBLIC_URL);
+  url.searchParams.set("openid.identity", IDENTIFIER_SELECT);
+  url.searchParams.set("openid.claimed_id", IDENTIFIER_SELECT);
   return url.toString();
 }
 async function verifySteamAssertion(params, expectedState) {
@@ -87,6 +85,7 @@ async function verifySteamAssertion(params, expectedState) {
   const identity = params.get("openid.identity");
   const steamId64 = steamIdFromClaim(claimedId);
   if (identity !== claimedId) throw new Error("Identity mismatch");
+
   const signed = (params.get("openid.signed") || "").split(",");
   for (const field of ["claimed_id", "identity", "return_to", "op_endpoint", "response_nonce", "assoc_handle"]) {
     if (!signed.includes(field)) throw new Error("Required OpenID field is not signed");
@@ -111,6 +110,11 @@ async function verifySteamAssertion(params, expectedState) {
   if (!response.ok) throw new Error("Steam assertion verification request failed");
   const body = await response.text();
   if (!/^is_valid:true\s*$/m.test(body)) throw new Error("Steam assertion is not valid");
+
+  // Store each verified nonce once to prevent replay of an otherwise valid assertion.
+  await db.collection("steamOpenIdNonces").doc(sha256(nonce)).create({
+    expiresAt: Timestamp.fromMillis(Date.now() + 10 * 60 * 1000),
+  });
   return steamId64;
 }
 async function getSteamProfile(steamId64) {
@@ -148,25 +152,26 @@ async function createOrUpdateSteamUser(steamId64) {
   const profileRef = db.collection("users").doc(uid);
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(profileRef);
-    const now = FieldValue.serverTimestamp();
     const data = {
       steamId: steamId64,
       steamId64,
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl || null,
       authProvider: "steam",
-      updatedAt: now,
+      updatedAt: FieldValue.serverTimestamp(),
     };
-    if (!snapshot.exists) data.createdAt = now;
+    if (!snapshot.exists) data.createdAt = FieldValue.serverTimestamp();
     transaction.set(profileRef, data, { merge: true });
   });
   return uid;
 }
 function setStateCookie(res, state) {
-  res.setHeader("Set-Cookie", STATE_COOKIE + "=" + encodeURIComponent(state) + "; HttpOnly; " + (process.env.NODE_ENV === "production" ? "Secure; " : "") + "SameSite=Lax; Path=/auth/steam; Max-Age=300");
+  const secure = process.env.NODE_ENV === "production" ? "Secure; " : "";
+  res.setHeader("Set-Cookie", STATE_COOKIE + "=" + encodeURIComponent(state) + "; HttpOnly; " + secure + "SameSite=Lax; Path=/auth/steam; Max-Age=300");
 }
 function clearStateCookie(res) {
-  res.setHeader("Set-Cookie", STATE_COOKIE + "=; HttpOnly; Secure; SameSite=Lax; Path=/auth/steam; Max-Age=0");
+  const secure = process.env.NODE_ENV === "production" ? "Secure; " : "";
+  res.setHeader("Set-Cookie", STATE_COOKIE + "=; HttpOnly; " + secure + "SameSite=Lax; Path=/auth/steam; Max-Age=0");
 }
 function frontendError(res) {
   clearStateCookie(res);
@@ -226,9 +231,7 @@ app.post("/auth/steam/exchange", async (req, res) => {
 });
 
 if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log("Rusty.Lub Steam auth backend listening on port " + PORT);
-  });
+  app.listen(PORT, "0.0.0.0", () => console.log("Rusty.Lub Steam auth backend listening on port " + PORT));
 }
 
 export { steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion };

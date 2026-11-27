@@ -11,4 +11,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: npm install
-      - run: npm run build      - name: Test Steam auth backend\n        run: |\n          npm install --prefix backend\n          npm test --prefix backend\n
+      - run: npm run build
+      - name: Test Steam auth backend
+        run: |
+          npm install --prefix backend
+          npm test --prefix backend
