@@ -119,6 +119,9 @@ jobs:
             final_url="${result%%|*}"
             status="${result##*|}"
             echo "HTTPS probe: $final_url (HTTP $status)"
+            if (( status < 200 || status >= 400 )); then
+              echo "::warning::The interim HTTPS endpoint returned HTTP $status."
+            fi
             case "$final_url" in
               https://rusty-lub.online/*) ;;
               *) echo "::warning::The interim site redirected away from rusty-lub.online." ;;
