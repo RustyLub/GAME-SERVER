@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { SITE_CONFIG } from "./config/site";
+import { SITE_CONFIG, isNoindexRoute } from "./config/site";
 import {
   HomePage, ServersPage, ServerDetailsPage, WipesPage, RulesPage, SupportPage, PrivacyPage, CookiesPage, TermsPage,
   AccountPage, LinkPage, LeaderboardsPage, StorePage, NotFoundPage, pageMeta,
@@ -17,11 +17,6 @@ const enNav = [
   ["/servers", "Servers"], ["/wipes", "Wipes"], ["/rules", "Community"],
   ["/support", "Support"], ["/leaderboards", "Leaderboard"], ["/store", "Store"], ["/account", "Account"],
 ] as const;
-const noindexPaths = new Set([
-  "/account", "/link", "/leaderboards", "/store",
-  "/en/account", "/en/link", "/en/leaderboards", "/en/store",
-]);
-
 function App({ initialPath }: { initialPath?: string } = {}) {
   const getPath = () => initialPath ?? (typeof window !== "undefined" ? window.location.pathname.replace(/\/$/, "") || "/" : "/");
   const [path, setPath] = useState(getPath);
@@ -53,7 +48,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute("href", "https://rusty-lub.online" + (path === "/" ? "/" : path));
     const robots = document.querySelector('meta[name="robots"]');
-    if (robots) robots.setAttribute("content", pageMeta[path] && !noindexPaths.has(path) ? "index, follow" : "noindex, nofollow");
+    if (robots) robots.setAttribute("content", pageMeta[path] && !isNoindexRoute(path) ? "index, follow" : "noindex, nofollow");
   }, [path, isEnglish]);
 
   const ruPages: Record<string, ReactNode> = {
