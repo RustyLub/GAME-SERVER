@@ -22,6 +22,15 @@ GitHub Pages is static hosting. It does not run Express, API routes, background 
 3. **Trusted backend (not yet provisioned):** Steam OpenID verification, Firebase Admin custom-token minting, authorization checks, payment webhook signature verification, idempotency, VIP entitlement records, and server-side game integration.
 4. **Rust server:** VIP delivery must happen only after a trusted backend validates the payment provider event and records the entitlement. The browser must never issue privileged server commands or mark an order paid.
 
+## Current implementation status
+
+- Firebase Web SDK is initialized from the dedicated Web App config in the frontend; GitHub Actions Variables can override the public config.
+- Email/password registration, login, logout, password-reset email, account state, and editable display name are implemented in the client.
+- User profile documents are stored at `users/{uid}`. Firestore rules restrict reads and writes to the authenticated owner and deny all other collections.
+- Firebase Console setup is still required: enable Email/Password, create the Firestore database, publish `firestore.rules`, and authorize `rusty-lub.online`.
+- Authentication and Firestore runtime behavior have not been verified against the live Firebase project until those Console steps are complete and a real test account is registered.
+- Steam login is not implemented yet. It must not be simulated in the browser; it requires a trusted backend and secret storage.
+
 ## Integration decisions
 
 - Use a dedicated Firebase project for this repository; never reuse the legacy site's Firebase credentials.
