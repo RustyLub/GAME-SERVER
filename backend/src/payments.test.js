@@ -11,6 +11,7 @@ import {
   validatePlategaTransaction,
   VIP_DURATION_MS,
   isSafePlategaRedirect,
+  isCheckoutLockActive,
 } from "./payments.js";
 
 const steamId64 = "76561198000000000";
@@ -120,4 +121,13 @@ test("only redirects browsers to the official HTTPS Platega payment form", () =>
   assert.equal(isSafePlategaRedirect("https://attacker.example"), false);
   assert.equal(isSafePlategaRedirect("https://user:pass@pay.platega.io"), false);
   assert.equal(isSafePlategaRedirect("not-a-url"), false);
+});
+
+
+test("blocks a live VIP checkout lock and allows an expired one to be reclaimed", () => {
+  const now = 1_800_000_000_000;
+  assert.equal(isCheckoutLockActive({ expiresAt: { toMillis: () => now + 1000 } }, now), true);
+  assert.equal(isCheckoutLockActive({ expiresAt: { toMillis: () => now } }, now), false);
+  assert.equal(isCheckoutLockActive({ expiresAt: { toMillis: () => now - 1000 } }, now), false);
+  assert.equal(isCheckoutLockActive({}, now), false);
 });

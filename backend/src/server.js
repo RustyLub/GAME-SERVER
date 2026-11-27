@@ -5,7 +5,7 @@ import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect } from "./payments.js";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive } from "./payments.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -725,18 +725,40 @@ app.post("/payments/orders", async (req, res) => {
     const orderId = crypto.randomUUID();
     const orderRef = db.collection("orders").doc(orderId);
     const idempotencyRef = db.collection("paymentRequests").doc(sha256(uid + ":" + requestId));
+    const orderLockRef = db.collection("paymentLocks").doc(uid);
     const reservation = await db.runTransaction(async (transaction) => {
-      const existing = await transaction.get(idempotencyRef);
+      const activeEntitlementsQuery = db.collection("entitlements").where("userId", "==", uid).limit(20);
+      const [existing, lock, currentEntitlements] = await Promise.all([
+        transaction.get(idempotencyRef),
+        transaction.get(orderLockRef),
+        transaction.get(activeEntitlementsQuery),
+      ]);
       if (existing.exists) return { existing: true, ...existing.data() };
+      const hasActiveEntitlement = currentEntitlements.docs.some((doc) => {
+        const item = doc.data();
+        return ["grant_pending", "revoke_pending", "suspended"].includes(item.status) ||
+          (item.status === "active" && item.expiresAt?.toMillis?.() > Date.now());
+      });
+      if (hasActiveEntitlement) return { alreadyActive: true };
+      if (lock.exists && isCheckoutLockActive(lock.data())) {
+        return { locked: true };
+      }
+
+      const expiresAt = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
       transaction.create(idempotencyRef, { userId: uid, orderId, status: "creating", createdAt: FieldValue.serverTimestamp() });
       transaction.create(orderRef, {
         userId: uid, steamId64, displayName, product: "vip_queue_pass_7d",
         amount: VIP_PRICE_RUB, currency: "RUB", status: "creating",
-        createdAt: FieldValue.serverTimestamp(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+        createdAt: FieldValue.serverTimestamp(), expiresAt,
+      });
+      transaction.set(orderLockRef, {
+        userId: uid, orderId, status: "creating", expiresAt,
+        updatedAt: FieldValue.serverTimestamp(),
       });
       return { existing: false, orderId, status: "creating" };
     });
+    if (reservation.alreadyActive) return res.status(409).json({ error: "vip_already_active" });
+    if (reservation.locked) return res.status(409).json({ error: "payment_already_pending" });
     if (reservation.existing) {
       if (reservation.redirectUrl) return res.status(200).json({ orderId: reservation.orderId, redirectUrl: reservation.redirectUrl });
       return res.status(409).json({ error: "order_creation_in_progress" });
@@ -755,16 +777,42 @@ app.post("/payments/orders", async (req, res) => {
       if (typeof providerResponse.transactionId !== "string" || !/^[0-9a-f-]{36}$/i.test(providerResponse.transactionId)) {
         throw new Error("Invalid Platega transaction ID");
       }
-      await orderRef.update({
-        status: "pending", provider: "platega", providerTransactionId: providerResponse.transactionId,
-        providerStatus: providerResponse.status || "PENDING", redirectUrl: redirectUrl.toString(),
-        paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
+      await db.runTransaction(async (transaction) => {
+        const [currentOrder, currentLock] = await Promise.all([
+          transaction.get(orderRef), transaction.get(orderLockRef),
+        ]);
+        if (!currentOrder.exists || currentOrder.data()?.status !== "creating") {
+          throw new Error("Order is no longer in the creating state");
+        }
+        transaction.update(orderRef, {
+          status: "pending", provider: "platega", providerTransactionId: providerResponse.transactionId,
+          providerStatus: providerResponse.status || "PENDING", redirectUrl: redirectUrl.toString(),
+          paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
+        });
+        if (currentLock.exists && currentLock.data()?.orderId === orderId) {
+          transaction.update(orderLockRef, { status: "pending", updatedAt: FieldValue.serverTimestamp() });
+        }
       });
       await idempotencyRef.update({ status: "created", redirectUrl: redirectUrl.toString(), updatedAt: FieldValue.serverTimestamp() });
       return res.status(201).json({ orderId, redirectUrl: redirectUrl.toString(), amount: VIP_PRICE_RUB, currency: "RUB" });
     } catch (error) {
-      await orderRef.update({ status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
-      await idempotencyRef.update({ status: "failed", updatedAt: FieldValue.serverTimestamp() });
+      await db.runTransaction(async (transaction) => {
+        const [currentOrder, currentRequest, lock] = await Promise.all([
+          transaction.get(orderRef), transaction.get(idempotencyRef), transaction.get(orderLockRef),
+        ]);
+        if (currentOrder.exists && currentOrder.data()?.status === "creating") {
+          transaction.update(orderRef, { status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
+        }
+        if (currentRequest.exists) {
+          transaction.update(idempotencyRef, { status: "failed", updatedAt: FieldValue.serverTimestamp() });
+        }
+        if (lock.exists && lock.data()?.orderId === orderId) {
+          transaction.update(orderLockRef, {
+            status: "failed", expiresAt: Timestamp.fromMillis(Date.now()),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      });
       console.error("Platega order creation failed:", error?.message || "unknown error");
       return res.status(502).json({ error: "payment_creation_failed" });
     }
@@ -797,10 +845,11 @@ app.post("/payments/platega/callback", async (req, res) => {
     const fullyRefunded = isFullyRefunded(verified.refundedAmount, order.amount);
     const eventRef = db.collection("paymentEvents").doc(paymentEventKey(callback.id, status, callback.refundId || "", verified.refundedAmount));
     const entitlementRef = db.collection("entitlements").doc(order.id);
+    const orderLockRef = db.collection("paymentLocks").doc(order.userId);
 
     await db.runTransaction(async (transaction) => {
-      const [currentOrder, eventSnapshot, entitlementSnapshot] = await Promise.all([
-        transaction.get(orderRef), transaction.get(eventRef), transaction.get(entitlementRef),
+      const [currentOrder, eventSnapshot, entitlementSnapshot, lockSnapshot] = await Promise.all([
+        transaction.get(orderRef), transaction.get(eventRef), transaction.get(entitlementRef), transaction.get(orderLockRef),
       ]);
       if (!currentOrder.exists) throw new Error("Order disappeared during callback processing");
       if (eventSnapshot.exists && currentOrder.data()?.lastProviderStatus === status) return;
@@ -817,6 +866,13 @@ app.post("/payments/platega/callback", async (req, res) => {
         status: orderStatus, lastProviderStatus: status,
         refundedAmount: verified.refundedAmount, updatedAt: FieldValue.serverTimestamp(),
       });
+      if (lockSnapshot.exists && lockSnapshot.data()?.orderId === order.id) {
+        transaction.update(orderLockRef, {
+          status: orderStatus,
+          expiresAt: Timestamp.fromMillis(Date.now()),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       if (status === "CONFIRMED") {
         if (!entitlementSnapshot.exists) {

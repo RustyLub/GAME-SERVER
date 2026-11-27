@@ -1,4 +1,5 @@
 import test from "node:test";
+import assert from "node:assert/strict";
 import {
   assertFails,
   assertSucceeds,
@@ -14,6 +15,8 @@ import {
   setDoc,
   updateDoc,
   where,
+  runTransaction,
+  Timestamp,
 } from "firebase/firestore";
 import { readFile } from "node:fs/promises";
 

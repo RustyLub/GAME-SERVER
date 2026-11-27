@@ -112,3 +112,9 @@ export function isSafePlategaRedirect(value) {
     return false;
   }
 }
+
+
+export function isCheckoutLockActive(lock, now = Date.now()) {
+  const expiresAt = lock?.expiresAt;
+  return typeof expiresAt?.toMillis === "function" && expiresAt.toMillis() > now;
+}
