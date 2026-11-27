@@ -21,7 +21,7 @@ function statusLabel(status: string | undefined, english: boolean) {
   return pair ? pair[english ? 1 : 0] : status || "—";
 }
 
-const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "https://auth.rusty-lub.online";
+const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 
 export default function AccountPanel({ language = "ru" }: { language?: "ru" | "en" }) {
   const en = language === "en";
