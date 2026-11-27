@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import AccountPanel from "../AccountPanel";
 
 export const pageMeta: Record<string, { title: string; description: string }> = {
@@ -13,10 +14,10 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/leaderboards": { title: "Рейтинг игроков — Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long." },
   "/store": { title: "Магазин — Rusty.Lub", description: "Информация о доступности магазина Rusty.Lub." },
 };
-function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: React.ReactNode; subtitle?: string }) {
+function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
   return <div className="section-heading page-heading"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{subtitle && <p className="page-lead">{subtitle}</p>}</div></div>;
 }
-function Panel({ children }: { children: React.ReactNode }) { return <div className="server-card page-panel">{children}</div>; }
+function Panel({ children }: { children: ReactNode }) { return <div className="server-card page-panel">{children}</div>; }
 function DiscordLink() { return <a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ОТКРЫТЬ DISCORD ↗</a>; }
 
 export function HomePage() {
