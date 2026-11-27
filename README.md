@@ -26,7 +26,7 @@ Live online counts, Steam identity, map data, purchases and VIP delivery must co
 
 ## Local development
 
-Requirements: Node.js 22 or newer and npm.
+Requirements: Node.js 22 (see `.nvmrc`) and npm.
 
 ```bash
 npm install
@@ -78,3 +78,11 @@ See `.env.example` for the public Firebase Web App variable names.
 The React application contains the initial Rusty.Lub portal interface. Sections that need external data or backend actions are explicitly marked as not connected. The next implementation stages will add real integrations rather than fake counters, fake reviews, or simulated payment success.
 
 This is an independent implementation using Rusty.Lub branding and original code. It does not reuse Rusticated source code or protected assets.
+
+## Project documentation
+
+- [Architecture and integration boundaries](docs/ARCHITECTURE.md)
+- [Security policy](SECURITY.md)
+- [Dependency updates](.github/dependabot.yml) are checked weekly by Dependabot.
+
+Pull requests run the separate Build workflow. Production deployment is handled by the GitHub Pages workflow, avoiding duplicate production builds on every push.
