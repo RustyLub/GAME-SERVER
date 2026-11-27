@@ -384,7 +384,8 @@ app.post("/payments/platega/callback", async (req, res) => {
     const verifiedAmount = Number(verified.paymentDetails?.amount);
     const verifiedCurrency = verified.paymentDetails?.currency;
     const verifiedStatus = verified.status;
-    if (verified.id && verified.id !== transactionId) return res.sendStatus(400);\n    if (verified.payload !== order.orderId) return res.sendStatus(400);
+    if (verified.id && verified.id !== transactionId) return res.sendStatus(400);
+    if (verified.payload !== order.orderId) return res.sendStatus(400);
 
     if (verifiedStatus === "CHARGEBACKED" || verifiedStatus === "PARTIALLY_REFUNDED" || verifiedStatus === "DISPUTED") {
       const paymentRef = db.collection("vipPayments").doc(transactionId);
