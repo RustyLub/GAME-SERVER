@@ -49,7 +49,7 @@ if (!/^\d+$/.test(mapping.VITE_FIREBASE_MESSAGING_SENDER_ID)) {
   console.error("Firebase messagingSenderId must contain only digits.");
   process.exit(2);
 }
-if (/[\\s/]/.test(mapping.VITE_FIREBASE_AUTH_DOMAIN)) {
+if (/[\s/]/.test(mapping.VITE_FIREBASE_AUTH_DOMAIN)) {
   console.error("Firebase authDomain must be a hostname.");
   process.exit(2);
 }
