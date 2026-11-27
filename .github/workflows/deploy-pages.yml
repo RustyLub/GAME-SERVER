@@ -36,12 +36,16 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: npm run build
-      - name: Test Steam auth backend
+      - name: Verify prerendered routes, metadata and public assets
+        run: npm run verify:release
+      - name: Check backend and deployment script syntax
+        run: |
+          node --check backend/src/server.js
+          bash -n backend/deploy-cloud-run.sh
+      - name: Test backend and Firestore rules
         run: |
           npm install --prefix backend --no-audit --no-fund
           npm test --prefix backend
-      - name: Verify prerendered 404 fallback
-        run: test -s dist/404.html
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
