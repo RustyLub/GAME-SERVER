@@ -10,6 +10,7 @@ const routes = [
   ["/rules", "rules/index.html", "ru"],
   ["/support", "support/index.html", "ru"],
   ["/privacy", "privacy/index.html", "ru"],
+  ["/cookies", "cookies/index.html", "ru"],
   ["/terms", "terms/index.html", "ru"],
   ["/account", "account/index.html", "ru"],
   ["/link", "link/index.html", "ru"],
@@ -21,6 +22,7 @@ const routes = [
   ["/en/rules", "en/rules/index.html", "en"],
   ["/en/support", "en/support/index.html", "en"],
   ["/en/privacy", "en/privacy/index.html", "en"],
+  ["/en/cookies", "en/cookies/index.html", "en"],
   ["/en/terms", "en/terms/index.html", "en"],
   ["/en/account", "en/account/index.html", "en"],
   ["/en/link", "en/link/index.html", "en"],
@@ -67,7 +69,7 @@ for (const image of ["og-ru.png", "og-en.png"]) {
 
 const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");
 assert.ok(sitemap.includes("https://rusty-lub.online/en"));
-assert.equal((sitemap.match(/<url>/g) || []).length, 14, "sitemap must contain the 14 public RU/EN routes");
+assert.equal((sitemap.match(/<url>/g) || []).length, 16, "sitemap must contain the 16 public RU/EN routes");
 
 const allAssets = (await fs.readdir(path.join(dist, "assets"))).filter((name) => name.endsWith(".js"));
 for (const asset of allAssets) {
@@ -76,4 +78,4 @@ for (const asset of allAssets) {
     assert.equal(js.includes(forbidden), false, "frontend bundle must not contain " + forbidden);
   }
 }
-console.log("Release verification passed: 22 routes, RU/EN 404, metadata, OG artwork, sitemap and secret scan.");
+console.log("Release verification passed: 24 routes, RU/EN 404, metadata, OG artwork, sitemap and secret scan.");
