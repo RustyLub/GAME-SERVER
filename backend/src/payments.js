@@ -134,8 +134,7 @@ export function isValidVipRuntimeConfig({
     legalDetailsComplete === true &&
     typeof merchantId === "string" && merchantId.trim().length > 0 &&
     typeof plategaSecret === "string" && plategaSecret.length > 0 &&
-    typeof schedulerServiceAccount === "string" && schedulerServiceAccount.trim().length > 0 &&
-    validHost && Number.isInteger(rconPort) && rconPort >= 1 && rconPort <= 65535 &&
+    validSchedulerAccount && validHost && Number.isInteger(rconPort) && rconPort >= 1 && rconPort <= 65535 &&
     rconProtocol === "wss" && typeof rconPassword === "string" && rconPassword.length > 0 &&
     Number.isInteger(vipPriceRub) && vipPriceRub > 0 &&
     [2, 3, 11, 12, 13, 14].includes(paymentMethod);
