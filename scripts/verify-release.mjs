@@ -45,7 +45,7 @@ for (const [file, language, image] of [
   ["en/404.html", "en", "og-en.png"],
 ]) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
-  assert.match(html, /<title>[^<]+<\\/title>/);
+  assert.match(html, /<title>[^<]+<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]+"/);
   assert.match(html, /<meta name="robots" content="noindex, nofollow"/);
   assert.ok(html.includes('<html lang="' + language + '">'));
