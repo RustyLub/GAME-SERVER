@@ -14,6 +14,17 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/link": { title: "Привязка аккаунтов — Rusty.Lub", description: "Связь игровых и community-аккаунтов Rusty.Lub." },
   "/leaderboards": { title: "Рейтинг игроков — Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long." },
   "/store": { title: "Магазин — Rusty.Lub", description: "Информация о доступности магазина Rusty.Lub." },
+  "/en": { title: "Rusty.Lub — EU Long | Rust Server", description: "Rusty.Lub EU Long — classic Rust Vanilla x1 in Europe. Server details, wipes and community." },
+  "/en/servers": { title: "Server — Rusty.Lub EU Long", description: "Rusty.Lub EU Long server details: Europe, Vanilla x1, procedural map and teams of up to 12." },
+  "/en/wipes": { title: "Wipes — Rusty.Lub EU Long", description: "Monthly wipe schedule for Rusty.Lub EU Long." },
+  "/en/rules": { title: "Rules — Rusty.Lub", description: "Fair play and community rules for Rusty.Lub." },
+  "/en/support": { title: "Support — Rusty.Lub", description: "Answers to common questions and ways to contact Rusty.Lub." },
+  "/en/privacy": { title: "Privacy Policy — Rusty.Lub", description: "Information about data processing on the Rusty.Lub website." },
+  "/en/terms": { title: "Terms of Use — Rusty.Lub", description: "Terms for using the Rusty.Lub website and services." },
+  "/en/account": { title: "Player Account — Rusty.Lub", description: "Steam sign-in, player profile and VIP Queue Pass." },
+  "/en/link": { title: "Account Linking — Rusty.Lub", description: "Link Steam and community accounts on Rusty.Lub." },
+  "/en/leaderboards": { title: "Player Leaderboards — Rusty.Lub", description: "Rusty.Lub EU Long player rankings." },
+  "/en/store": { title: "Store — Rusty.Lub", description: "Information about Rusty.Lub store availability." },
 };
 function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
   return <div className="section-heading page-heading"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{subtitle && <p className="page-lead">{subtitle}</p>}</div></div>;
