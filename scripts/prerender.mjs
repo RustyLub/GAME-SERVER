@@ -37,16 +37,17 @@ for (const route of routes) {
   console.log("Prerendered " + route + " -> " + path.relative(dist, output));
 }
 
+
 const notFound = render("/__not_found__");
 const notFoundCanonical = "https://rusty-lub.online/404.html";
 const notFoundHtml = template
-  .replace(/<title>[^<]*<\\/title>/, "<title>Страница не найдена — Rusty.Lub</title>")
-  .replace(/<meta name="description" content="[^"]*"\\s*\\/>/, '<meta name="description" content="Запрошенная страница не найдена." />')
-  .replace(/<meta name="robots" content="[^"]*"\\s*\\/>/, '<meta name="robots" content="noindex, nofollow" />')
-  .replace(/<link rel="canonical" href="[^"]*"\\s*\\/>/, '<link rel="canonical" href="' + notFoundCanonical + '" />')
-  .replace(/<meta property="og:title" content="[^"]*"\\s*\\/>/, '<meta property="og:title" content="Страница не найдена — Rusty.Lub" />')
-  .replace(/<meta property="og:description" content="[^"]*"\\s*\\/>/, '<meta property="og:description" content="Запрошенная страница не найдена." />')
-  .replace(/<meta property="og:url" content="[^"]*"\\s*\\/>/, '<meta property="og:url" content="' + notFoundCanonical + '" />')
+  .replace(/<title>[^<]*<\/title>/, "<title>Страница не найдена — Rusty.Lub</title>")
+  .replace(/<meta name="description" content="[^"]*"\s*\/>/, '<meta name="description" content="Запрошенная страница не найдена." />')
+  .replace(/<meta name="robots" content="[^"]*"\s*\/>/, '<meta name="robots" content="noindex, nofollow" />')
+  .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, '<link rel="canonical" href="' + notFoundCanonical + '" />')
+  .replace(/<meta property="og:title" content="[^"]*"\s*\/>/, '<meta property="og:title" content="Страница не найдена — Rusty.Lub" />')
+  .replace(/<meta property="og:description" content="[^"]*"\s*\/>/, '<meta property="og:description" content="Запрошенная страница не найдена." />')
+  .replace(/<meta property="og:url" content="[^"]*"\s*\/>/, '<meta property="og:url" content="' + notFoundCanonical + '" />')
   .replace('<div id="root"></div>', '<div id="root">' + notFound.html + '</div>');
 await fs.writeFile(path.join(dist, "404.html"), notFoundHtml, "utf8");
 console.log("Prerendered 404.html");
