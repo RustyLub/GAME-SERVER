@@ -6,6 +6,7 @@ import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive } from "./payments.js";
+import { createCachedServerStatusReader } from "./server-status.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -540,10 +541,14 @@ app.post("/auth/discord/unlink", async (req, res) => {
   }
 });
 
+const readCachedServerStatus = createCachedServerStatusReader(async () => {
+  const response = await sendRconCommand("serverinfo", 4500);
+  return parseRustServerInfo(response);
+}, { ttlMs: 10_000 });
+
 app.get("/public/server-status", async (_req, res) => {
   try {
-    const response = await sendRconCommand("serverinfo", 4500);
-    const status = parseRustServerInfo(response);
+    const status = await readCachedServerStatus();
     res.setHeader("Cache-Control", "public, max-age=20, stale-while-revalidate=10");
     return res.status(200).json(status);
   } catch {
