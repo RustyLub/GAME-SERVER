@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import express from "express";
 import { OAuth2Client } from "google-auth-library";
-import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
+import { isExpectedSchedulerIdentity, normalizeCloudRunAudience } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -29,6 +29,9 @@ function configuredOrigin(name) {
 const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = configuredOrigin("FRONTEND_ORIGIN");
 const BACKEND_PUBLIC_URL = configuredOrigin("BACKEND_PUBLIC_URL");
+const CLOUD_RUN_SERVICE_URL = process.env.CLOUD_RUN_SERVICE_URL?.trim()
+  ? normalizeCloudRunAudience(process.env.CLOUD_RUN_SERVICE_URL)
+  : BACKEND_PUBLIC_URL;
 const FIREBASE_PROJECT_ID = requiredEnv("FIREBASE_PROJECT_ID");
 const FIREBASE_SERVICE_ACCOUNT_EMAIL = process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL?.trim() || "";
 const STEAM_API_KEY = process.env.STEAM_API_KEY?.trim() || "";
@@ -926,7 +929,7 @@ async function isVipSchedulerRequest(req) {
   try {
     const ticket = await googleAuthClient.verifyIdToken({
       idToken: match[1],
-      audience: BACKEND_PUBLIC_URL + "/internal/vip/reconcile",
+      audience: CLOUD_RUN_SERVICE_URL,
     });
     const payload = ticket.getPayload();
     return isExpectedSchedulerIdentity(payload, VIP_SCHEDULER_SERVICE_ACCOUNT);
