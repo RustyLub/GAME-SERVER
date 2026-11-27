@@ -90,10 +90,22 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
 
 ## 5. Live server status and Vanilla RCON
 
-1. Enable WebRCON in the Rust server panel and confirm the correct RCON host, port and password. Do not change server gameplay settings or install Carbon/Oxide.
-2. Set RCON_HOST and RCON_PORT as Cloud Run environment variables. Store RCON_PASSWORD in Secret Manager and map it to the same-named Cloud Run variable.
-3. Confirm the Cloud Run service can reach the WebRCON port. The public website requests only the read-only `serverinfo` command.
-4. Test `/public/server-status`. If RCON is unavailable, the UI intentionally displays “status unavailable” rather than inventing online players.
+1. Enable WebRCON in the Rust server panel and confirm the correct RCON host, port and password. Do not change gameplay settings or install Carbon/Oxide.
+2. Do not expose plain `ws://` WebRCON over the public internet. Production backend deliberately rejects plaintext RCON. Use a hosting-provider secure WebSocket endpoint (`wss://`) or a TLS reverse proxy that forwards WebSocket upgrades to the private WebRCON port.
+3. If you manage the host yourself, place Nginx/another TLS proxy in front of the local WebRCON listener, install a valid certificate for a dedicated hostname, preserve the request path, and allow inbound access only from the Cloud Run egress IP. Example Nginx location:
+   ```nginx
+   location / {
+     proxy_pass http://127.0.0.1:26229;
+     proxy_http_version 1.1;
+     proxy_set_header Upgrade $http_upgrade;
+     proxy_set_header Connection "Upgrade";
+     proxy_set_header Host $host;
+     proxy_read_timeout 60s;
+   }
+   ```
+4. Set RCON_PROTOCOL=wss, RCON_HOST to the TLS proxy hostname, RCON_PORT to its TLS port (usually 443), and store RCON_PASSWORD only in Secret Manager. Do not publish the RCON password in the browser or repository.
+5. Optionally configure a Cloud Run Serverless VPC Access connector and Cloud NAT with a reserved static egress IP, then allowlist that IP at the TLS proxy. The deployment script accepts VPC_CONNECTOR and VPC_EGRESS.
+6. The public website requests only the read-only `serverinfo` command. Test `/public/server-status`; without secure RCON it intentionally displays “status unavailable” and VIP checkout remains disabled.
 
 ## 6. Platega activation (payment branch only)
 

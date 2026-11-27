@@ -29,7 +29,7 @@ Payment routes create a Platega transaction, verify callbacks using the document
 - Firebase UID is steam_<SteamID64>; Admin SDK creates the user and profile.
 - Discord OAuth requests only identify. State is bound to the authenticated Steam UID; one Discord ID cannot be linked to multiple profiles. Access tokens are discarded after profile lookup.
 - CORS allows only the exact frontend origin and credentials for the same-site auth subdomain.
-- The RCON password is server-only. The public status route exposes only parsed online/player counts and never arbitrary command execution.
+- The RCON password is server-only. Production refuses plaintext ws:// and requires wss://. The public status route exposes only parsed online/player counts and never arbitrary command execution.
 - No privileged secret is exposed via VITE_ variables.
 
 ## Required server environment
@@ -43,7 +43,8 @@ Payment routes create a Platega transaction, verify callbacks using the document
 - DISCORD_CLIENT_ID=<Discord application ID>
 - DISCORD_CLIENT_SECRET=<Secret Manager mapping>
 - DISCORD_REDIRECT_URI=<BACKEND_PUBLIC_URL>/auth/discord/callback
-- RCON_HOST / RCON_PORT (optional)
+- RCON_PROTOCOL=wss (production requires TLS-protected WebSocket)
+- RCON_HOST / RCON_PORT (optional; point to a TLS WebSocket proxy)
 - RCON_PASSWORD (Secret Manager mapping; required for live status and VIP)
 - PLATEGA_API_BASE, PLATEGA_MERCHANT_ID, PLATEGA_PAYMENT_METHOD, VIP_PRICE_RUB
 - PLATEGA_SECRET (Secret Manager mapping)
