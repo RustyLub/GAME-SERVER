@@ -11,9 +11,9 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
 5. Use the existing Cloud Firestore database in project `rustylub`; do not delete or recreate it. If Firestore has not yet been initialized in this project, create it in Production mode.
 6. Before changing Firestore rules, save/backup the currently deployed rules and export any existing data. The following deployment replaces the active rules and indexes, so review `firestore.rules` against the existing project first. From the repository root, publish only after that review:
    ```bash
-   firebase login
-   firebase use --add
-   firebase deploy --only firestore:rules,firestore:indexes --project rustylub
+   npx --yes firebase-tools@15.37.0 login
+   npx --yes firebase-tools@15.37.0 use --add
+   npx --yes firebase-tools@15.37.0 deploy --only firestore:rules,firestore:indexes --project rustylub
    ```
 7. In GitHub → Settings → Secrets and variables → Actions → Variables, set these six public Firebase Web App values:
    - `VITE_FIREBASE_API_KEY`
@@ -70,7 +70,7 @@ Firestore rules allow a user to read only their own profile, update only `custom
    The first run creates the Cloud Run service and prints its `run.app` URL. Do not set `LEGAL_DETAILS_COMPLETE=true` yet.
 7. Publish the dedicated Firebase Hosting auth proxy. The Cloud Run service and the Hosting rewrite are both pinned to `europe-west1`. `FIREBASE_PROJECT_ID` must equal `GCP_PROJECT_ID`, because the Hosting rewrite targets a Cloud Run service in that same Google Cloud project:
    ```bash
-   firebase hosting:sites:create rustylub-auth --project "$FIREBASE_PROJECT_ID"
+   npx --yes firebase-tools@15.37.0 hosting:sites:create rustylub-auth --project "$FIREBASE_PROJECT_ID"
    bash backend/deploy-auth-hosting.sh
    ```
    The Firebase CLI account needs Firebase Hosting Admin (`roles/firebasehosting.admin`) and API Keys Viewer (`roles/serviceusage.apiKeysViewer`) on the project. If the site already exists, skip the `hosting:sites:create` command. If an earlier setup already created a Cloud Run domain mapping for this auth hostname, inspect it and remove that mapping before attaching the Firebase Hosting custom domain:
