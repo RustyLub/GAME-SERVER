@@ -80,7 +80,7 @@ function App() {
       </header>
 
       <main id="main-content">
-        <section className="hero">
+        <section className="hero" id="home">
           <div className="hero-image" />
           <div className="hero-shade" />
           <div className="hero-inner">
@@ -171,9 +171,9 @@ function App() {
           <div className="contact-layout">
             <div className="contact-details"><a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD COMMUNITY ↗</a><a href="mailto:rusty.lub-slq@inbox.ru">RUSTY.LUB-SLQ@INBOX.RU ↗</a><span>Форма подготовит письмо и откроет его в твоём почтовом приложении. Автоматическая отправка пока не подключена.</span></div>
             <form className="contact-form" onSubmit={submitContact} noValidate>
-              <label>ИМЯ<input autoComplete="name" value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="Как к тебе обращаться?" /></label>
-              <label>EMAIL<input type="email" autoComplete="email" value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="name@example.com" /></label>
-              <label>СООБЩЕНИЕ<textarea value={form.message} onChange={e => setForm({...form,message:e.target.value})} placeholder="Опиши свой вопрос..." rows={4} /></label>
+              <label>ИМЯ<input name="name" autoComplete="name" maxLength={80} required value={form.name} onChange={e => { setForm({...form,name:e.target.value}); setFormReady(false); setFormError(""); }} placeholder="Как к тебе обращаться?" /></label>
+              <label>EMAIL<input name="email" type="email" autoComplete="email" maxLength={254} required value={form.email} onChange={e => { setForm({...form,email:e.target.value}); setFormReady(false); setFormError(""); }} placeholder="name@example.com" /></label>
+              <label>СООБЩЕНИЕ<textarea name="message" minLength={10} maxLength={2000} required value={form.message} onChange={e => { setForm({...form,message:e.target.value}); setFormReady(false); setFormError(""); }} placeholder="Опиши свой вопрос..." rows={4} /></label>
               {formError && <p className="form-message form-error" role="alert">{formError}</p>}
               {formReady && <p className="form-message" role="status">Почтовое приложение должно открыться с подготовленным сообщением.</p>}
               <button className="btn btn-red" type="submit">ПОДГОТОВИТЬ СООБЩЕНИЕ ↗</button>
