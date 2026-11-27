@@ -30,6 +30,13 @@ export function HomePageEn() {
  </>;
 }
 export function ServersPageEn() {
+ return <section className="content-section page-section">
+  {title("RUSTY.LUB / SERVER NETWORK",<>OUR <em>SERVERS.</em></>,"Choose a game world by its mode and features. The directory will grow with the project.")}
+  <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Classic Rust · procedural map · teams up to 12 players</p></div><div className="network-server-live"><ServerStatus language="en" /><small>200 SLOTS</small></div><div className="network-server-actions"><a className="btn btn-red" href="/en/servers/eu-long">SERVER DETAILS ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>CONNECT</a></div></article></div>
+  <p className="page-lead">One server is currently available. New servers will appear here as separate entries without changing the site's overall structure.</p>
+ </section>;
+}
+export function ServerDetailsPageEn() {
  return <section className="content-section page-section">{title("RUSTY.LUB / EU LONG",<>ONE SERVER.<br /><em>PURE RUST.</em></>,"Server information and connection details for Rusty.Lub EU Long.")}{panel(<>
   <div className="server-card-top"><div className="server-region"><span className="region-flag">EU</span><span>EUROPE</span><b>MONTHLY WIPE</b></div><span className="server-status"><ServerStatus language="en" /></span></div>
   <div className="server-main"><div className="server-title"><h2>Rusty.Lub EU Long</h2><p>CLASSIC SURVIVAL · PROCEDURAL MAP · VANILLA</p></div><div className="server-capacity"><strong>— <small>/ 200</small></strong><span>PLAYERS ONLINE</span></div></div>
