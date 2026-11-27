@@ -112,3 +112,18 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
+      - name: Probe interim HTTPS endpoint
+        continue-on-error: true
+        run: |
+          if result="$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{url_effective}|%{http_code}' https://rusty-lub.online/)"; then
+            final_url="${result%%|*}"
+            status="${result##*|}"
+            echo "HTTPS probe: $final_url (HTTP $status)"
+            case "$final_url" in
+              https://rusty-lub.online/*) ;;
+              *) echo "::warning::The interim site redirected away from rusty-lub.online." ;;
+            esac
+          else
+            echo "::warning::HTTPS is not yet verifiable for rusty-lub.online. Check DNS, certificate status and Enforce HTTPS in Settings → Pages."
+          fi
+
