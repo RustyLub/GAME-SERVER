@@ -162,7 +162,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     }
     setBusy(true);
     setError("");
-    window.location.assign(apiBase + "/auth/steam");
+    window.location.assign(apiBase + "/auth/steam?origin=" + encodeURIComponent(window.location.origin));
   }
 
   async function linkDiscord() {
