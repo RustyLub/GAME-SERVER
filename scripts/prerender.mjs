@@ -24,7 +24,7 @@ for (const route of routes) {
   const result = render(route);
   const canonical = "https://rusty-lub.online" + (route === "/" ? "/" : route);
   let html = template
-    .replace(/<html lang="[^"]*">/, '<html lang="ru">')
+    .replace(/<html lang="[^"]*">/, '<html lang="' + (route.startsWith("/en") ? "en" : "ru") + '">')
     .replace(/<title>[^<]*<\/title>/, "<title>" + escapeHtml(result.meta.title) + "</title>")
     .replace(/<meta name="description" content="[^"]*"\s*\/>/, '<meta name="description" content="' + escapeHtml(result.meta.description) + '" />')
     .replace(/<meta name="robots" content="[^"]*"\s*\/>/, '<meta name="robots" content="' + (result.noindex ? "noindex, nofollow" : "index, follow") + '" />')
