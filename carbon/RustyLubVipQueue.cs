@@ -11,7 +11,7 @@ namespace Oxide.Plugins
     public class RustyLubVipQueue : RustPlugin
     {
         private PluginConfig _config;
-        private Oxide.Core.Libraries.Timer _pollTimer;
+        private Timer _pollTimer;
         private bool _polling;
         private readonly HashSet<string> _processing = new HashSet<string>();
 
