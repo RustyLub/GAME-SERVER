@@ -16,7 +16,7 @@ process.env.RCON_PORT = "443";
 process.env.RCON_PROTOCOL = "wss";
 process.env.RCON_PASSWORD = "test-password";
 
-const { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand } =
+const { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, requestFrontendOrigin } =
   await import("./server.js");
 
 test("accepts a canonical SteamID64 claimed_id", () => {
@@ -291,8 +291,15 @@ test("accepts Discord OAuth form posts only from the secondary frontend origin",
       headers: { Origin: "https://rusty-lub.ru", "Content-Type": "application/x-www-form-urlencoded" },
       body: "idToken=invalid",
     });
-    assert.equal(response.status, 401);
+    assert.equal(response.status, 303);
+    assert.equal(response.headers.get("location"), "https://rusty-lub.ru/account?discordError=unauthorized");
   } finally {
     if (server.listening) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+});
+
+test("resolves only the configured frontend domains for API origin checks", () => {
+  assert.equal(requestFrontendOrigin({ headers: { origin: "https://rusty-lub.ru" } }), "https://rusty-lub.ru");
+  assert.equal(requestFrontendOrigin({ headers: { origin: "https://rusty-lub.online" } }), "https://rusty-lub.online");
+  assert.equal(requestFrontendOrigin({ headers: { origin: "https://evil.example" } }), null);
 });
