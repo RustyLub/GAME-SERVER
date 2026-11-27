@@ -289,7 +289,7 @@ test("accepts Discord OAuth form posts only from the secondary frontend origin",
     const response = await fetch(`http://127.0.0.1:${address.port}/auth/discord/start`, {
       method: "POST",
       headers: { Origin: "https://rusty-lub.ru", "Content-Type": "application/x-www-form-urlencoded" },
-      body: "idToken=invalid",
+      body: "idToken=invalid", redirect: "manual",
     });
     assert.equal(response.status, 303);
     assert.equal(response.headers.get("location"), "https://rusty-lub.ru/account?discordError=unauthorized");
