@@ -53,13 +53,13 @@ function App({ initialPath }: { initialPath?: string } = {}) {
   }, [path, isEnglish]);
 
   const ruPages: Record<string, ReactNode> = {
-    "/": <HomePage />, "/servers": <ServersPage />, "/servers/eu-long": <ServerDetailsPage />, "/wipes": <WipesPage />,
+    "/": <HomePage />, "/servers": <ServersPage />, "/wipes": <WipesPage />,
     "/rules": <RulesPage />, "/support": <SupportPage />, "/privacy": <PrivacyPage />, "/cookies": <CookiesPage />,
     "/terms": <TermsPage />, "/account": <AccountPage />, "/link": <LinkPage />,
     "/leaderboards": <LeaderboardsPage />, "/store": <StorePage />,
   };
   const enPages: Record<string, ReactNode> = {
-    "/": <HomePageEn />, "/servers": <ServersPageEn />, "/servers/eu-long": <ServerDetailsPageEn />, "/wipes": <WipesPageEn />,
+    "/": <HomePageEn />, "/servers": <ServersPageEn />, "/wipes": <WipesPageEn />,
     "/rules": <RulesPageEn />, "/support": <SupportPageEn />, "/privacy": <PrivacyPageEn />, "/cookies": <CookiesPageEn />,
     "/terms": <TermsPageEn />, "/account": <AccountPageEn />, "/link": <LinkPageEn />,
     "/leaderboards": <LeaderboardsPageEn />, "/store": <StorePageEn />,
