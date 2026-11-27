@@ -11,6 +11,6 @@ export function render(path: string) {
   return {
     html: renderToString(<App initialPath={normalizedPath} />),
     meta,
-    noindex: !pageMeta[normalizedPath] || ["/account", "/link", "/leaderboards", "/store"].includes(normalizedPath),
+    noindex: !pageMeta[normalizedPath] || ["/account", "/link", "/leaderboards", "/store", "/en/account", "/en/link", "/en/leaderboards", "/en/store"].includes(normalizedPath),
   };
 }
