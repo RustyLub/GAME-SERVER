@@ -8,7 +8,7 @@ process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
 process.env.FIREBASE_PROJECT_ID = "rustylub-test";
 
-const { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo } =
+const { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand } =
   await import("./server.js");
 
 test("accepts a canonical SteamID64 claimed_id", () => {
@@ -86,6 +86,51 @@ test("rejects malformed or incomplete Rust serverinfo responses", () => {
   assert.throws(() => parseRustServerInfo('{"Players":1}'), /player counts/);
 });
 
+
+test("rejects an RCON request when WebSocket closes before returning a response", async () => {
+  const previous = {
+    host: process.env.RCON_HOST,
+    port: process.env.RCON_PORT,
+    protocol: process.env.RCON_PROTOCOL,
+    password: process.env.RCON_PASSWORD,
+    websocket: Object.getOwnPropertyDescriptor(globalThis, "WebSocket"),
+  };
+  class ClosingWebSocket extends EventTarget {
+    static instance;
+    constructor(url) {
+      super();
+      this.url = url;
+      ClosingWebSocket.instance = this;
+      queueMicrotask(() => this.dispatchEvent(new Event("open")));
+    }
+    send() {}
+    close() { this.dispatchEvent(new Event("close")); }
+  }
+
+  process.env.RCON_HOST = "rcon.example.com";
+  process.env.RCON_PORT = "443";
+  process.env.RCON_PROTOCOL = "wss";
+  process.env.RCON_PASSWORD = "test-password";
+  globalThis.WebSocket = ClosingWebSocket;
+  try {
+    const pending = sendRconCommand("serverinfo");
+    await Promise.resolve();
+    ClosingWebSocket.instance.close();
+    await assert.rejects(pending, /RCON connection closed before a response/);
+  } finally {
+    for (const [key, value] of Object.entries({
+      RCON_HOST: previous.host,
+      RCON_PORT: previous.port,
+      RCON_PROTOCOL: previous.protocol,
+      RCON_PASSWORD: previous.password,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    if (previous.websocket) Object.defineProperty(globalThis, "WebSocket", previous.websocket);
+    else delete globalThis.WebSocket;
+  }
+});
 
 test("serves the Cloud Run compatible health endpoint", async () => {
   const server = createServer(app);
