@@ -1,6 +1,6 @@
 # Rusty.Lub — GAME-SERVER
 
-Bilingual public website for Rusty.Lub EU Long.
+Bilingual public website for the Rusty.Lub Rust server network. The server catalog is driven by a shared configuration; EU Long is the network's first listed server.
 
 - Production domain: https://rusty-lub.online
 - Repository: https://github.com/RustyLub/GAME-SERVER
@@ -8,7 +8,7 @@ Bilingual public website for Rusty.Lub EU Long.
 - Frontend: React 19 + TypeScript + Vite 8
 - Trusted backend: Node.js + Firebase Admin on Google Cloud Run
 
-## Game server
+## Current game server — EU Long
 
 | Setting | Value |
 | --- | --- |
@@ -27,7 +27,8 @@ The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins
 ## Website features
 
 - Russian and English route sets with language switching.
-- Server connection address, copy action, Steam connect link, live status indicator and next wipe date.
+- Configuration-driven server directory with dedicated Russian/English detail routes for each listed server.
+- Server connection address, Steam connect link, live status indicator and wipe schedule.
 - Server, wipe, rules, support, privacy, terms, account, account-linking, store and leaderboard pages.
 - Steam OpenID sign-in with server verification and Firebase Custom Tokens.
 - Discord account linking through server-side OAuth2.
@@ -35,6 +36,10 @@ The Rust server remains strictly Vanilla. No Carbon, Oxide/uMod or other plugins
 - VIP Queue Pass checkout uses Platega and grants a seven-day native Rust queue-skip permission via server-side RCON. Cloud Scheduler removes expired permissions; no game plugin is used.
 - Player leaderboard remains “Скоро” until a trusted game statistics source is connected.
 - Route prerendering, sitemap, robots, canonical URLs and separate RU/EN OG artwork.
+
+## Adding another network server
+
+Add a new entry to the `servers` array in `src/config/site.ts` with a unique `id` and URL-safe `slug`. The catalog, server detail route, Russian/English prerendered pages, metadata and sitemap entries are generated from that list. Keep `statusAvailable: false` until the public status API has been extended to return that specific server; the current status endpoint is for EU Long only. The current wipe calculator uses the network's first-Thursday Moscow-time schedule.
 
 ## Local checks
 
