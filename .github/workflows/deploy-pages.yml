@@ -25,7 +25,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install frontend dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Type-check and build
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
@@ -38,7 +38,7 @@ jobs:
         run: npm run build
       - name: Test Steam auth backend
         run: |
-          npm install --prefix backend
+          npm install --prefix backend --no-audit --no-fund
           npm test --prefix backend
       - name: Verify prerendered 404 fallback
         run: test -s dist/404.html
