@@ -3,7 +3,7 @@ import express from "express";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { VIP_DURATION_DAYS, VIP_DURATION_MS, buildPlategaPaymentBody, constantTimeSecretMatch, isValidSteamId64, nextVipExpiry, parseVipPrice } from "./vip.js";
+import { VIP_DURATION_DAYS, buildPlategaPaymentBody, constantTimeSecretMatch, isValidSteamId64, nextVipExpiry, parseVipPrice } from "./vip.js";
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -50,7 +50,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   }
   if (req.method === "OPTIONS") {
     if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
@@ -334,7 +334,7 @@ app.get("/vip/me", requireSteamUser, async (req, res) => {
   try {
     const [entitlementSnapshot, ordersSnapshot] = await Promise.all([
       db.collection("vipEntitlements").doc(req.steamUser.steamId64).get(),
-      db.collection("vipOrders").where("uid", "==", req.steamUser.uid).orderBy("createdAt", "desc").limit(20).get(),
+      db.collection("vipOrders").where("uid", "==", req.steamUser.uid).limit(20).get(),
     ]);
     const entitlement = entitlementSnapshot.exists ? entitlementSnapshot.data() : null;
     const orders = ordersSnapshot.docs.map((item) => {
@@ -386,6 +386,32 @@ app.post("/payments/platega/callback", async (req, res) => {
     const verifiedStatus = verified.status;
     if (verified.id && verified.id !== transactionId) return res.sendStatus(400);
 
+    if (verifiedStatus === "CHARGEBACKED" || verifiedStatus === "PARTIALLY_REFUNDED" || verifiedStatus === "DISPUTED") {
+      const paymentRef = db.collection("vipPayments").doc(transactionId);
+      const entitlementRef = db.collection("vipEntitlements").doc(order.steamId64);
+      await db.runTransaction(async (transaction) => {
+        const [paymentSnapshot, entitlementSnapshot] = await Promise.all([
+          transaction.get(paymentRef),
+          transaction.get(entitlementRef),
+        ]);
+        transaction.set(orderRef, {
+          status: verifiedStatus.toLowerCase(),
+          providerUpdatedAt: FieldValue.serverTimestamp(),
+          reviewRequired: true,
+        }, { merge: true });
+        if (paymentSnapshot.exists) transaction.set(paymentRef, {
+          status: verifiedStatus.toLowerCase(),
+          reviewRequired: true,
+          providerUpdatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        if (entitlementSnapshot.exists) transaction.set(entitlementRef, {
+          status: "review_required",
+          reviewReason: verifiedStatus.toLowerCase(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      });
+      return res.sendStatus(200);
+    }
     if (verifiedStatus !== "CONFIRMED") {
       await orderRef.set({
         status: typeof verifiedStatus === "string" ? verifiedStatus.toLowerCase() : "pending",
@@ -394,8 +420,8 @@ app.post("/payments/platega/callback", async (req, res) => {
       return res.sendStatus(200);
     }
     if (verifiedAmount !== order.amount || verifiedCurrency !== order.currency ||
-        Number(callback.amount) !== order.amount || callback.currency !== order.currency ||
-        callback.status !== "CONFIRMED") {
+        (callback.amount !== undefined && Number(callback.amount) !== order.amount) ||
+        (callback.currency !== undefined && callback.currency !== order.currency)) {
       await orderRef.set({ status: "manual_review", reviewReason: "payment_amount_or_currency_mismatch", providerUpdatedAt: FieldValue.serverTimestamp() }, { merge: true });
       return res.sendStatus(200);
     }
