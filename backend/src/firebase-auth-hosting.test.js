@@ -1,0 +1,27 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const configUrl = new URL("../../firebase.auth.json", import.meta.url);
+const config = JSON.parse(await readFile(configUrl, "utf8"));
+const hosting = config.hosting;
+const deployScript = await readFile(new URL("../deploy-cloud-run.sh", import.meta.url), "utf8");
+
+test("auth hostname is a dedicated Firebase Hosting site that proxies every dynamic route to Cloud Run", async () => {
+  assert.equal(hosting.site, "rustylub-auth");
+  assert.equal(hosting.public, "backend/hosting-auth");
+  assert.deepEqual(hosting.rewrites, [{
+    source: "**",
+    run: { serviceId: "rusty-lub-auth", region: "europe-west1" },
+  }]);
+  assert.match(deployScript, /SERVICE_NAME="\$\{SERVICE_NAME:-rusty-lub-auth\}"/);
+  assert.match(deployScript, /REGION="\$\{REGION:-europe-west1\}"/);
+  await access(new URL("../hosting-auth/404.html", import.meta.url), constants.R_OK);
+  await assert.rejects(access(new URL("../hosting-auth/index.html", import.meta.url), constants.F_OK));
+});
+
+test("auth Hosting config contains no redirect that would change the auth hostname", () => {
+  assert.equal(hosting.redirects, undefined);
+});
