@@ -170,9 +170,9 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 
 1. After the domain and HTTPS are active, open the home page source and confirm canonical, title, description, Open Graph and Twitter metadata.
 2. Test the public RU and EN OG image URLs:
-   - `https://rusty-lub.online/og-ru.svg`
-   - `https://rusty-lub.online/og-en.svg`
-3. Submit the homepage to the Facebook Sharing Debugger and LinkedIn Post Inspector to refresh cached previews. Some social crawlers may not support SVG Open Graph images; if a target platform rejects SVG, replace them with 1200×630 PNGs without changing the metadata URLs.
+   - `https://rusty-lub.online/og-ru.png`
+   - `https://rusty-lub.online/og-en.png`
+3. Submit the homepage to the Facebook Sharing Debugger and LinkedIn Post Inspector to refresh cached previews. The public OG assets are 1200×630 PNGs for broad crawler compatibility; optimized WebP counterparts are also generated for future in-site use.
 4. Submit `https://rusty-lub.online/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
 
 ## 10. Final acceptance
@@ -183,6 +183,6 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 - [ ] Discord link/unlink and unique-account enforcement pass.
 - [ ] Firestore owner-only profile and order reads are verified against the deployed rules.
 - [ ] Platega callback and payment tests pass before checkout is opened.
-- [ ] RCON status works without installing any game plugin.
+- [ ] Secure WSS RCON status and VIP issuance work without installing any game plugin; plaintext WebRCON is rejected in production.
 - [ ] DNS, TLS certificate, HTTPS redirect and social previews are verified.
 - [ ] Legal operator details are completed and reviewed.
