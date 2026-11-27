@@ -101,6 +101,40 @@ test("rejects malformed, incomplete or impossible Rust serverinfo counts", () =>
 });
 
 
+test("returns only the RCON response matching the generated identifier", async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "WebSocket");
+  class RespondingWebSocket extends EventTarget {
+    constructor(url) {
+      super();
+      this.url = url;
+      queueMicrotask(() => this.dispatchEvent(new Event("open")));
+    }
+    send(payload) {
+      const { Identifier } = JSON.parse(payload);
+      queueMicrotask(() => {
+        const unrelated = new Event("message");
+        Object.defineProperty(unrelated, "data", {
+          value: JSON.stringify({ Identifier: Identifier + 1, Message: "unrelated" }),
+        });
+        this.dispatchEvent(unrelated);
+        const matching = new Event("message");
+        Object.defineProperty(matching, "data", {
+          value: JSON.stringify({ Identifier, Message: "serverinfo response" }),
+        });
+        this.dispatchEvent(matching);
+      });
+    }
+    close() { this.dispatchEvent(new Event("close")); }
+  }
+  globalThis.WebSocket = RespondingWebSocket;
+  try {
+    assert.equal(await sendRconCommand("serverinfo"), "serverinfo response");
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "WebSocket", previous);
+    else delete globalThis.WebSocket;
+  }
+});
+
 test("rejects an RCON request when WebSocket closes before returning a response", async () => {
   const previous = {
     host: process.env.RCON_HOST,
