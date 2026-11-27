@@ -439,7 +439,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* Rusty.Lub network homepage */
 .network-hero .hero-inner { width: min(100%, 1120px); }
-.network-hero .hero h1 { max-width: 900px; }
+.network-hero h1 { max-width: 900px; }
 .network-hero .hero-meta { gap: 18px 30px; }
 .network-intro { padding-bottom: 28px; }
 .network-servers { padding-top: 48px; }
