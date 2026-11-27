@@ -8,7 +8,7 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/": { title: "Rusty.Lub — сеть серверов Rust и игровое сообщество", description: "Официальный сайт проекта Rusty.Lub: игровые серверы Rust, сообщество, новости, гайды и полезные инструменты." },
   "/servers": { title: "Серверы Rusty.Lub — каталог игровых серверов", description: "Каталог серверов проекта Rusty.Lub. Сравните режимы и выберите игровой сервер." },
   "/servers/eu-long": { title: "Rusty.Lub EU Long — информация о сервере", description: "Параметры, онлайн, расписание вайпов и подключение к Rusty.Lub EU Long." },
-  "/wipes": { title: "Вайпы — Rusty.Lub EU Long", description: "Расписание ежемесячных вайпов Rusty.Lub EU Long." },
+  "/wipes": { title: "Вайпы серверов Rusty.Lub", description: "Расписание плановых вайпов игровых серверов сети Rusty.Lub." },
   "/rules": { title: "Правила — Rusty.Lub", description: "Правила честной игры и поведения в сообществе Rusty.Lub." },
   "/support": { title: "Поддержка — Rusty.Lub", description: "Ответы на вопросы и способы связаться с командой Rusty.Lub." },
   "/privacy": { title: "Политика конфиденциальности — Rusty.Lub", description: "Информация об обработке данных на сайте Rusty.Lub." },
@@ -16,12 +16,12 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/terms": { title: "Условия использования — Rusty.Lub", description: "Условия использования сайта и сервисов Rusty.Lub." },
   "/account": { title: "Личный кабинет — Rusty.Lub", description: "Вход через Steam и профиль игрока Rusty.Lub." },
   "/link": { title: "Привязка аккаунтов — Rusty.Lub", description: "Связь игровых и community-аккаунтов Rusty.Lub." },
-  "/leaderboards": { title: "Рейтинг игроков — скоро | Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long скоро появится." },
+  "/leaderboards": { title: "Рейтинг игроков — скоро | Rusty.Lub", description: "Общий рейтинг игроков серверов сети Rusty.Lub скоро появится." },
   "/store": { title: "VIP Queue Pass — Магазин Rusty.Lub", description: "Разовый VIP Queue Pass на 7 дней для Rusty.Lub EU Long." },
   "/en": { title: "Rusty.Lub — Rust server network and gaming community", description: "Official Rusty.Lub project website: Rust game servers, community, news, guides and useful tools." },
   "/en/servers": { title: "Rusty.Lub Servers — Game Server Directory", description: "Browse the Rusty.Lub server network and choose a game server." },
   "/en/servers/eu-long": { title: "Rusty.Lub EU Long — Server Details", description: "Server settings, live status, wipe schedule and connection details for Rusty.Lub EU Long." },
-  "/en/wipes": { title: "Wipes — Rusty.Lub EU Long", description: "Monthly wipe schedule for Rusty.Lub EU Long." },
+  "/en/wipes": { title: "Wipes — Rusty.Lub Servers", description: "Planned wipe schedules for the Rusty.Lub server network." },
   "/en/rules": { title: "Rules — Rusty.Lub", description: "Fair play and community rules for Rusty.Lub." },
   "/en/support": { title: "Support — Rusty.Lub", description: "Answers to common questions and ways to contact Rusty.Lub." },
   "/en/privacy": { title: "Privacy Policy — Rusty.Lub", description: "Information about data processing on the Rusty.Lub website." },
@@ -29,7 +29,7 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/en/terms": { title: "Terms of Use — Rusty.Lub", description: "Terms for using the Rusty.Lub website and services." },
   "/en/account": { title: "Player Account — Rusty.Lub", description: "Steam sign-in and Rusty.Lub player profile." },
   "/en/link": { title: "Account Linking — Rusty.Lub", description: "Link Steam and community accounts on Rusty.Lub." },
-  "/en/leaderboards": { title: "Player Leaderboards — coming soon | Rusty.Lub", description: "Rusty.Lub EU Long player rankings are coming soon." },
+  "/en/leaderboards": { title: "Player Leaderboards — coming soon | Rusty.Lub", description: "A combined player leaderboard for the Rusty.Lub server network is coming soon." },
   "/en/store": { title: "Store — Rusty.Lub", description: "Information about Rusty.Lub store availability." },
 };
 function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: ReactNode; subtitle?: string }) {
@@ -37,6 +37,14 @@ function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: React
 }
 function Panel({ children }: { children: ReactNode }) { return <div className="server-card page-panel">{children}</div>; }
 function DiscordLink() { return <a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ОТКРЫТЬ DISCORD ↗</a>; }
+function ServerDirectory() {
+  return <div className="network-server-list">{SITE_CONFIG.servers.map((server, index) => <article className="network-server-row" key={server.id}>
+    <div className="network-server-index">{String(index + 1).padStart(2, "0")}</div>
+    <div className="network-server-main"><div className="network-server-tags"><span>{server.region.toUpperCase()}</span><span>{server.rates.toUpperCase()}</span><span>{server.wipe.toUpperCase()} WIPE</span></div><h3>{server.name}</h3><p>Классический Rust · {server.map.toLowerCase()} карта · команда до {server.teamLimit} игроков</p></div>
+    <div className="network-server-live">{server.statusAvailable ? <ServerStatus /> : <span className="server-live-status">СТАТУС НЕ ПОДКЛЮЧЁН</span>}<small>{server.maxPlayers} СЛОТОВ</small></div>
+    <div className="network-server-actions"><a className="btn btn-red" href={"/servers/" + server.slug}>О СЕРВЕРЕ ↗</a><a className="text-link" href={"steam://connect/" + server.address}>ИГРАТЬ</a></div>
+  </article>)}</div>;
+}
 
 export function HomePage() {
  return <>
@@ -50,7 +58,7 @@ export function HomePage() {
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
   <section className="network-intro content-section"><div className="section-heading"><div><div className="eyebrow">О ПРОЕКТЕ / RUSTY.LUB</div><h2>ОДНО СООБЩЕСТВО.<br /><em>РАЗНЫЕ МИРЫ.</em></h2></div><div className="section-note">Rusty.Lub объединяет игровые серверы, полезные материалы и игроков Rust в одном пространстве.</div></div></section>
   <section className="content-section network-servers" id="servers"><div className="section-heading"><div><div className="eyebrow">НАШИ СЕРВЕРЫ / NETWORK</div><h2>ВЫБЕРИ СВОЙ <em>МИР.</em></h2></div><span className="section-note">Сейчас доступен первый сервер сети. Новые направления будут появляться в этом каталоге.</span></div>
-   <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Классический Rust · процедурная карта · команда до 12 игроков</p></div><div className="network-server-live"><ServerStatus /><small>200 СЛОТОВ</small></div><div className="network-server-actions"><a className="btn btn-red" href="/servers/eu-long">О СЕРВЕРЕ ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>ИГРАТЬ</a></div></article></div>
+  <ServerDirectory />
   </section>
   <section className="content-section network-directions" id="community"><div className="section-heading"><div><div className="eyebrow">БОЛЬШЕ, ЧЕМ СЕРВЕРЫ</div><h2>ПРОСТРАНСТВО ДЛЯ <em>ИГРОКОВ.</em></h2></div><div className="section-note">Всё необходимое для игры, общения и знакомства с проектом.</div></div>
    <div className="feature-grid"><div id="news"><small>01 / COMMUNITY</small><strong>Новости и события</strong><span>Объявления проекта, важные изменения и события сообщества.</span><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">СЛЕДИТЬ ЗА НОВОСТЯМИ ↗</a></div><div id="guides"><small>02 / KNOWLEDGE</small><strong>Гайды и инструменты</strong><span>Практические материалы, игровые справочники и полезные калькуляторы Rust.</span><a className="text-link" href="/support">ПОЛЕЗНАЯ ИНФОРМАЦИЯ ↗</a></div><div id="stats"><small>03 / PLAYERS</small><strong>Игроки и рейтинги</strong><span>Статистика и таблицы лидеров будут развиваться вместе с сетью.</span><a className="text-link" href="/leaderboards">ОТКРЫТЬ РЕЙТИНГ ↗</a></div><div id="monitoring"><small>04 / LIVE NETWORK</small><strong>Мониторинг серверов</strong><span>Состояние, доступность и параметры игровых миров сети.</span><a className="text-link" href="/servers">СОСТОЯНИЕ СЕТИ ↗</a></div><div id="clans"><small>05 / TEAMS</small><strong>Кланы и команды</strong><span>Место для поиска союзников и развития игрового сообщества.</span><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">НАЙТИ КОМАНДУ ↗</a></div><div id="tools"><small>06 / KNOWLEDGE</small><strong>Игровые инструменты</strong><span>Гайды, справочники и калькуляторы для выживания в Rust.</span><a className="text-link" href="/support">ПОЛЕЗНЫЕ МАТЕРИАЛЫ ↗</a></div></div>
@@ -61,7 +69,7 @@ export function HomePage() {
 export function ServersPage() {
  return <section className="content-section page-section">
   <PageTitle eyebrow="RUSTY.LUB / SERVER NETWORK" title={<>НАШИ <em>СЕРВЕРЫ.</em></>} subtitle="Выбирай игровой мир по режиму и особенностям. Список будет расширяться вместе с проектом." />
-  <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Классический Rust · процедурная карта · команда до 12 игроков</p></div><div className="network-server-live"><ServerStatus /><small>200 СЛОТОВ</small></div><div className="network-server-actions"><a className="btn btn-red" href="/servers/eu-long">ПОДРОБНЕЕ ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>ПОДКЛЮЧИТЬСЯ</a></div></article></div>
+  <ServerDirectory />
   <p className="page-lead">Сейчас в сети представлен один действующий сервер. Новые серверы будут добавляться сюда отдельными позициями, не меняя общую структуру сайта.</p>
  </section>;
 }
