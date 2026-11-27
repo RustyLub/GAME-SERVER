@@ -32,7 +32,7 @@ VPC_EGRESS="$(printenv VPC_EGRESS || true)"
 [[ -n "$SERVICE_NAME" ]] || SERVICE_NAME="rusty-lub-auth"
 
 FRONTEND_ORIGIN="https://rusty-lub.online"
-[[ -n "$FRONTEND_ORIGINS" ]] || FRONTEND_ORIGINS="$FRONTEND_ORIGIN"
+[[ -n "$FRONTEND_ORIGINS" ]] || FRONTEND_ORIGINS="$FRONTEND_ORIGIN;https://rusty-lub.ru"
 BACKEND_DIR="$(cd "$(dirname "$0")" && pwd)"
 secret_bindings=()
 [[ -n "$STEAM_API_KEY_SECRET_NAME" ]] && secret_bindings+=("STEAM_API_KEY=$STEAM_API_KEY_SECRET_NAME:latest")
