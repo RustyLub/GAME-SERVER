@@ -148,6 +148,9 @@ test("enables VIP checkout only with a complete and valid production runtime con
   for (const rconHost of ["", "wss://rcon.example.com", "rcon.example.com/path", "bad host"]) {
     assert.equal(isValidVipRuntimeConfig({ ...valid, rconHost }), false, "rejects RCON host " + rconHost);
   }
+  for (const rconHost of ["localhost", "127.0.0.1"]) {
+    assert.equal(isValidVipRuntimeConfig({ ...valid, rconHost }), false, "rejects loopback RCON host " + rconHost);
+  }
   for (const plategaApiBase of [
     "http://api.eu.payplatform.cc", "https://api.eu.payplatform.cc/v1",
     "https://api.eu.payplatform.cc?redirect=example", "https://api.attacker.example",
@@ -155,5 +158,6 @@ test("enables VIP checkout only with a complete and valid production runtime con
     assert.equal(isValidVipRuntimeConfig({ ...valid, plategaApiBase }), false, "rejects Platega API origin " + plategaApiBase);
   }
   assert.equal(isValidVipRuntimeConfig({ ...valid, legalDetailsComplete: false }), false);
+  assert.equal(isValidVipRuntimeConfig({ ...valid, schedulerServiceAccount: "not-an-email" }), false);
   assert.equal(isValidVipRuntimeConfig({ ...valid, rconProtocol: "ws" }), false);
 });
