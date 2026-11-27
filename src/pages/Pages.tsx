@@ -37,7 +37,6 @@ function Panel({ children }: { children: ReactNode }) { return <div className="s
 function DiscordLink() { return <a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ОТКРЫТЬ DISCORD ↗</a>; }
 
 export function HomePage() {
- const wipe = formatNextWipe("ru-RU");
  return <>
   <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
    <div className="kicker"><span /> RUSTY.LUB / СЕТЬ СЕРВЕРОВ RUST</div>
