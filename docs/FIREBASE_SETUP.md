@@ -50,7 +50,7 @@ Rules deny browser profile creation/deletion, all order writes, payment and enti
 - entitlements/{orderId} — server-managed VIP Queue Pass state and expiry.
 - paymentLocks/{uid} — per-user checkout lock with expiry.
 
-Configure Firestore TTL on expiresAt for steamAuthExchanges, steamOpenIdNonces and discordAuthStates. TTL is cleanup only; backend code independently checks expiration.
+Configure Firestore TTL on `expiresAt` for `steamAuthExchanges`, `steamOpenIdNonces`, `discordAuthStates` and `paymentLocks`. TTL is cleanup only; backend code independently checks expiration and never relies on TTL deletion for authorization or payment state.
 
 ## Acceptance checks
 
