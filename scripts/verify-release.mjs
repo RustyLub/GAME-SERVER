@@ -42,7 +42,7 @@ for (const [route, file, language] of routes) {
   assert.match(html, /<title>[^<]+<\/title>/, route + " must have a title");
   assert.match(html, /<meta name="description" content="[^"]+"/, route + " must have a description");
   assert.ok(html.includes(SITE_ORIGIN + (route === "/" ? "/" : route)), route + " must include its canonical URL");
-  assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
+  assert.ok(html.includes(SITE_ORIGIN + "/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
   const robotsPolicy = noindexRoutes.includes(route) ? "noindex, nofollow" : "index, follow";
   assert.ok(html.includes('<meta name="robots" content="' + robotsPolicy + '"'), route + " must preserve its indexing policy");
@@ -80,13 +80,13 @@ const sitemap = await fs.readFile(path.join(dist, "sitemap.xml"), "utf8");
 assert.ok(sitemap.includes(SITE_ORIGIN + "/en"));
 assert.ok((sitemap.match(/<url>/g) || []).length >= 18, "sitemap must contain the public RU/EN routes");
 for (const route of serverRoutes) {
-  assert.ok(sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must be present in sitemap");
+  assert.ok(sitemap.includes("<loc>" + SITE_ORIGIN + route + "</loc>"), route + " must be present in sitemap");
 }
 for (const route of noindexRoutes) {
   assert.ok(!sitemap.includes("<loc>https://rusty-lub.online" + route + "</loc>"), route + " must not be present in sitemap");
 }
 const robots = await fs.readFile(path.join(dist, "robots.txt"), "utf8");
-assert.ok(robots.includes("Sitemap: https://rusty-lub.online/sitemap.xml"), "robots.txt must advertise the production sitemap");
+assert.ok(robots.includes("Sitemap: " + SITE_ORIGIN + "/sitemap.xml"), "robots.txt must advertise the production sitemap");
 
 const allAssets = (await fs.readdir(path.join(dist, "assets"))).filter((name) => name.endsWith(".js"));
 for (const asset of allAssets) {
