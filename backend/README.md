@@ -87,3 +87,20 @@ The callback marks chargebacks, partial refunds and disputes for review instead 
 ### Important activation boundary
 
 A confirmed Platega payment creates the seven-day entitlement and a pending Carbon delivery job. It does **not** directly issue an RCON command from the public website. Do not advertise the pass as live until the Carbon worker consumes the queue, executes the server-supported queue-skip command, acknowledges the job, and an expiry-removal mechanism is verified.
+
+## Carbon delivery bridge
+
+The backend exposes a narrow queue API for the Rust server plugin:
+
+- `GET /internal/carbon/jobs`
+- `POST /internal/carbon/ack`
+
+Both require `Authorization: Bearer <CARBON_SYNC_SECRET>`. Set the same long random value in the backend secret manager and the Carbon plugin config. This secret is never sent to the website. The backend leases jobs for 60 seconds and retries unacknowledged jobs after the lease expires.
+
+The plugin file is `carbon/RustyLubVipQueue.cs`. Install it in the server's `carbon/plugins` directory, configure its API URL and shared secret, then watch the Carbon console logs. It executes only fixed Rust commands with a validated 17-digit SteamID64:
+
+- Grant: `global.skipqueueid <SteamID64> "Rusty.Lub VIP" "7-day pass"`
+- Expire: `global.removeskipqueue <SteamID64>`
+- It runs `server.writecfg` after changes so queue permissions persist.
+
+The backend creates one expiry schedule per SteamID64 and renewals move that schedule forward. The plugin must be tested on the actual Rust/Carbon build before accepting payments. A successful HTTP acknowledgement means the command was submitted by the plugin; it is not a substitute for a live server-side verification test.
