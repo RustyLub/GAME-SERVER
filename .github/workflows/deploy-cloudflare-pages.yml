@@ -31,13 +31,13 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Audit production frontend dependencies
         run: npm audit --audit-level=moderate
 
       - name: Install backend dependencies
-        run: npm install --prefix backend --no-audit --no-fund
+        run: npm ci --prefix backend --no-audit --no-fund
 
       - name: Audit production backend dependencies
         run: npm audit --prefix backend --audit-level=moderate
