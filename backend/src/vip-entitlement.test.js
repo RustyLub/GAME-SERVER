@@ -173,6 +173,47 @@ test("converts an already-expired pending grant into a revocation", async () => 
   assert.deepEqual(commands, ["remove:" + steamId64, "server.writecfg"]);
 });
 
+test("revokes a grant that expires while its RCON command is in flight", async () => {
+  let currentTime = 1000;
+  const ref = {
+    data: {
+      status: "grant_pending",
+      steamId64,
+      displayName: "Player",
+      expiresAt: { toMillis: () => 2000 },
+    },
+  };
+  const commands = [];
+  let releaseGrant;
+  let markGrantStarted;
+  const grantStarted = new Promise((resolve) => { markGrantStarted = resolve; });
+  const { processor } = createProcessor({
+    ref,
+    now: () => currentTime,
+    sendRconCommand: async (command) => {
+      commands.push(command);
+      if (command === "grant:" + steamId64) {
+        markGrantStarted();
+        await new Promise((resolve) => { releaseGrant = resolve; });
+      }
+    },
+  });
+
+  const pending = processor(ref);
+  await grantStarted;
+  currentTime = 2001;
+  releaseGrant();
+
+  assert.equal(await pending, "expired");
+  assert.equal(ref.data.status, "expired");
+  assert.deepEqual(commands, [
+    "grant:" + steamId64,
+    "server.writecfg",
+    "remove:" + steamId64,
+    "server.writecfg",
+  ]);
+});
+
 test("releases the lease after an RCON failure so the scheduler can retry immediately", async () => {
   const ref = { data: { status: "grant_pending", steamId64, displayName: "Player" } };
   let fail = true;
