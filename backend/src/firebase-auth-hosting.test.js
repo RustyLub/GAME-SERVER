@@ -19,8 +19,12 @@ test("auth hostname is a dedicated Firebase Hosting site that proxies every dyna
   assert.match(deployScript, /\[\[ -n "\$SERVICE_NAME" \]\] \|\| SERVICE_NAME="rusty-lub-auth"/);
   assert.match(deployScript, /\[\[ -n "\$REGION" \]\] \|\| REGION="europe-west1"/);
   assert.match(deployScript, /\[\[ "\$REGION" == "europe-west1" \]\]/);
+  assert.match(deployScript, /\[\[ "\$FIREBASE_PROJECT_ID" == "\$GCP_PROJECT_ID" \]\]/);
+  assert.match(deployScript, /\[\[ "\$SERVICE_NAME" == "rusty-lub-auth" \]\]/);
   assert.match(hostingDeployScript, /firebase-tools@latest deploy --config firebase\\.auth\\.json --only hosting/);
   assert.match(hostingDeployScript, /\[\[ "\$REGION" == "europe-west1" \]\]/);
+  assert.match(hostingDeployScript, /\[\[ "\$FIREBASE_PROJECT_ID" == "\$GCP_PROJECT_ID" \]\]/);
+  assert.match(hostingDeployScript, /\[\[ "\$SERVICE_NAME" == "rusty-lub-auth" \]\]/);
   await access(new URL("../hosting-auth/404.html", import.meta.url), constants.R_OK);
   await assert.rejects(access(new URL("../hosting-auth/index.html", import.meta.url), constants.F_OK));
 });
