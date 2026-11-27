@@ -17,6 +17,10 @@ const enNav = [
   ["/servers", "Servers"], ["/wipes", "Wipes"], ["/rules", "Community"],
   ["/support", "Support"], ["/leaderboards", "Leaderboard"], ["/store", "Store"], ["/account", "Account"],
 ] as const;
+const noindexPaths = new Set([
+  "/account", "/link", "/leaderboards", "/store",
+  "/en/account", "/en/link", "/en/leaderboards", "/en/store",
+]);
 
 function App({ initialPath }: { initialPath?: string } = {}) {
   const getPath = () => initialPath ?? (typeof window !== "undefined" ? window.location.pathname.replace(/\/$/, "") || "/" : "/");
@@ -49,7 +53,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute("href", "https://rusty-lub.online" + (path === "/" ? "/" : path));
     const robots = document.querySelector('meta[name="robots"]');
-    if (robots) robots.setAttribute("content", pageMeta[path] ? "index, follow" : "noindex, nofollow");
+    if (robots) robots.setAttribute("content", pageMeta[path] && !noindexPaths.has(path) ? "index, follow" : "noindex, nofollow");
   }, [path, isEnglish]);
 
   const ruPages: Record<string, ReactNode> = {
