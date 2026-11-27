@@ -320,7 +320,7 @@ app.post("/vip/order", requireSteamUser, async (req, res) => {
       body: JSON.stringify(paymentBody),
     });
     const transactionId = payment.transactionId || payment.id;
-    const redirect = payment.redirect;
+    const redirect = payment.url;
     if (typeof transactionId !== "string" || typeof redirect !== "string" || new URL(redirect).protocol !== "https:") {
       throw new Error("Platega returned an invalid payment response");
     }
