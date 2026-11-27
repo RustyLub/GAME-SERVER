@@ -962,4 +962,4 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
-export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, processVipEntitlement, processVipQueueWorker, isVipCheckoutEnabled, isVipSchedulerRequest };
+export { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand, processVipEntitlement, processVipQueueWorker, isVipCheckoutEnabled, isVipSchedulerRequest, requestFrontendOrigin };
