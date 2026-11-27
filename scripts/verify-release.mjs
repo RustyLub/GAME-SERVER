@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 
 const dist = path.resolve("dist");
-const { serverRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
+const { serverRoutes, noindexRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
 const routes = [
   ["/", "index.html", "ru"],
   ["/servers", "servers/index.html", "ru"],
@@ -32,11 +32,6 @@ const routes = [
   ["/en/store", "en/store/index.html", "en"],
 ];
 routes.push(...serverRoutes.map((route) => [route, path.join(route.slice(1), "index.html"), route.startsWith("/en/") ? "en" : "ru"]));
-const noindexRoutes = new Set([
-  "/account", "/link", "/leaderboards", "/store",
-  "/en/account", "/en/link", "/en/leaderboards", "/en/store",
-]);
-
 for (const [route, file, language] of routes) {
   const html = await fs.readFile(path.join(dist, file), "utf8");
   assert.match(html, /<title>[^<]+<\/title>/, route + " must have a title");
@@ -44,7 +39,7 @@ for (const [route, file, language] of routes) {
   assert.ok(html.includes("https://rusty-lub.online" + (route === "/" ? "/" : route)), route + " must include its canonical URL");
   assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
-  const robotsPolicy = noindexRoutes.has(route) ? "noindex, nofollow" : "index, follow";
+  const robotsPolicy = noindexRoutes.includes(route) ? "noindex, nofollow" : "index, follow";
   assert.ok(html.includes('<meta name="robots" content="' + robotsPolicy + '"'), route + " must preserve its indexing policy");
   assert.ok(html.includes('<html lang="' + language + '">'), route + " must have correct language");
   const h1Count = (html.match(/<h1/g) || []).length;
