@@ -31,7 +31,7 @@ function configuredOrigin(name) {
 
 const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = configuredOrigin("FRONTEND_ORIGIN");
-const FRONTEND_ORIGINS = parseFrontendOrigins(FRONTEND_ORIGIN, process.env.FRONTEND_ORIGINS);
+const FRONTEND_ORIGINS = parseFrontendOrigins(FRONTEND_ORIGIN, process.env.FRONTEND_ORIGINS || "https://rusty-lub.ru");
 function requestFrontendOrigin(req) {
   return resolveFrontendOrigin(req.headers.origin, FRONTEND_ORIGINS);
 }
