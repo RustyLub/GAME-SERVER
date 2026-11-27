@@ -590,7 +590,7 @@ async function processVipEntitlement(entitlementRef) {
   if (data.status === "active" && data.expiresAt?.toMillis?.() > now) return "active";
 
   if (data.status === "grant_pending") {
-    if (!data.expiresAt || data.expiresAt.toMillis() <= now) {
+    if (data.expiresAt && data.expiresAt.toMillis() <= now) {
       await entitlementRef.update({ status: "revoke_pending", revokeToStatus: "expired", updatedAt: FieldValue.serverTimestamp() });
       return processVipEntitlement(entitlementRef);
     }
@@ -598,7 +598,8 @@ async function processVipEntitlement(entitlementRef) {
     await sendRconCommand("server.writecfg", 5000);
     await entitlementRef.update({
       status: "active",
-      grantedAt: FieldValue.serverTimestamp(),
+      grantedAt: data.grantedAt || FieldValue.serverTimestamp(),
+      expiresAt: data.expiresAt || Timestamp.fromMillis(Date.now() + VIP_DURATION_MS),
       updatedAt: FieldValue.serverTimestamp(),
       revokeToStatus: FieldValue.delete(),
     });
@@ -694,7 +695,8 @@ app.post("/payments/orders", async (req, res) => {
     const entitlements = await db.collection("entitlements").where("userId", "==", uid).limit(20).get();
     const active = entitlements.docs.some((doc) => {
       const item = doc.data();
-      return ["active", "grant_pending", "revoke_pending", "suspended"].includes(item.status) && item.expiresAt?.toMillis?.() > Date.now();
+      return ["grant_pending", "revoke_pending", "suspended"].includes(item.status) ||
+        (item.status === "active" && item.expiresAt?.toMillis?.() > Date.now());
     });
     if (active) return res.status(409).json({ error: "vip_already_active" });
     const recentOrders = await db.collection("orders").where("userId", "==", uid).limit(20).get();
@@ -808,7 +810,6 @@ app.post("/payments/platega/callback", async (req, res) => {
             userId: order.userId, orderId: order.id, steamId64: order.steamId64,
             displayName: order.displayName, status: "grant_pending",
             createdAt: FieldValue.serverTimestamp(),
-            expiresAt: Timestamp.fromMillis(Date.now() + VIP_DURATION_MS),
           });
         } else {
           const currentEntitlement = entitlementSnapshot.data();
