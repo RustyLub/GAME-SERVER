@@ -28,6 +28,12 @@ const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
 const CARBON_SYNC_SECRET = process.env.CARBON_SYNC_SECRET || "";
 const VIP_PRICE_RUB = parseVipPrice(process.env.VIP_PRICE_RUB);
 const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB && CARBON_SYNC_SECRET);
+if (CARBON_SYNC_SECRET && Buffer.byteLength(CARBON_SYNC_SECRET, "utf8") < 32) {
+  throw new Error("CARBON_SYNC_SECRET must contain at least 32 bytes.");
+}
+if (CARBON_SYNC_SECRET && CARBON_SYNC_SECRET === PLATEGA_SECRET) {
+  throw new Error("CARBON_SYNC_SECRET must be different from PLATEGA_SECRET.");
+}
 
 if (process.env.NODE_ENV === "production" &&
     (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://") || !FIREBASE_SERVICE_ACCOUNT_EMAIL)) {
