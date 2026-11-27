@@ -170,10 +170,16 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     setBusy(true); setError("");
     try {
       const token = await auth.currentUser.getIdToken();
-      const response = await fetch(apiBase + "/auth/discord/start", { method: "POST", credentials: "include", headers: { Authorization: "Bearer " + token } });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || typeof payload.redirectUrl !== "string") throw new Error("Discord OAuth is not configured.");
-      window.location.assign(payload.redirectUrl);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = apiBase + "/auth/discord/start";
+      const field = document.createElement("input");
+      field.type = "hidden";
+      field.name = "idToken";
+      field.value = token;
+      form.appendChild(field);
+      document.body.appendChild(form);
+      form.submit();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t("Не удалось начать привязку Discord.", "Could not start Discord linking."));
       setBusy(false);
