@@ -23,6 +23,7 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/en/rules": { title: "Rules — Rusty.Lub", description: "Fair play and community rules for Rusty.Lub." },
   "/en/support": { title: "Support — Rusty.Lub", description: "Answers to common questions and ways to contact Rusty.Lub." },
   "/en/privacy": { title: "Privacy Policy — Rusty.Lub", description: "Information about data processing on the Rusty.Lub website." },
+  "/en/cookies": { title: "Cookie Policy — Rusty.Lub", description: "Which technical cookies the Rusty.Lub website uses and why." },
   "/en/terms": { title: "Terms of Use — Rusty.Lub", description: "Terms for using the Rusty.Lub website and services." },
   "/en/account": { title: "Player Account — Rusty.Lub", description: "Steam sign-in and Rusty.Lub player profile." },
   "/en/link": { title: "Account Linking — Rusty.Lub", description: "Link Steam and community accounts on Rusty.Lub." },
