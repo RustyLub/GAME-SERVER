@@ -55,7 +55,7 @@ test("Platega payment metadata is tied to the authenticated Steam identity", () 
   assert.equal(body.paymentDetails.amount, 300);
   assert.equal(body.paymentDetails.currency, "RUB");
   assert.equal(body.payload, "order-123");
-  assert.equal(body.metadata.userId, "steam_76561198000000000".replace(/^/, "steam_"));
+  assert.equal(body.metadata.userId, "steam_76561198000000000");
   assert.equal(body.metadata.user_email, "76561198000000000@mail.ru");
   assert.throws(() => buildPlategaPaymentBody({
     price: 300, steamId64: "76561198000000000", uid: "someone-else",
