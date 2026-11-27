@@ -6,7 +6,7 @@ For this rollout, reuse the existing Rusty.Lub Firebase project `rustylub` and i
 
 ## Firebase Web App
 
-Create/select the Web App in Firebase Console → Project settings → General. The current values are already wired into the frontend defaults. If you prefer to manage them through GitHub Actions repository Variables, set:
+Create/select the Web App in Firebase Console → Project settings → General. The six current Firebase values are already wired into the frontend defaults. The backend origin `VITE_API_BASE_URL` intentionally remains unset until the Firebase Hosting auth proxy custom domain is live. If you prefer to manage the six Firebase values through GitHub Actions repository Variables, set:
 - VITE_FIREBASE_API_KEY
 - VITE_FIREBASE_AUTH_DOMAIN
 - VITE_FIREBASE_PROJECT_ID
