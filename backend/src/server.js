@@ -541,16 +541,18 @@ async function leaseCarbonJob(collectionName, documentId, kind) {
 
 app.get("/internal/carbon/jobs", requireCarbon, async (_req, res) => {
   try {
-    const [pendingGrants, retryingGrants, scheduledExpiries, retryingExpiries] = await Promise.all([
-      db.collection("vipDeliveryQueue").where("status", "==", "pending").limit(20).get(),
-      db.collection("vipDeliveryQueue").where("status", "==", "processing").limit(20).get(),
-      db.collection("vipExpiryQueue").where("status", "==", "scheduled").limit(50).get(),
-      db.collection("vipExpiryQueue").where("status", "==", "processing").limit(50).get(),
-    ]);
     const now = Date.now();
-    const grantDocs = [...pendingGrants.docs, ...retryingGrants.docs];
-    const expiryDocs = [...scheduledExpiries.docs, ...retryingExpiries.docs]
-      .filter((snapshot) => (snapshot.data().dueAt?.toMillis?.() || Infinity) <= now);
+    const nowTimestamp = Timestamp.fromMillis(now);
+    const [pendingGrants, expiredGrantLeases, dueExpiries] = await Promise.all([
+      db.collection("vipDeliveryQueue").where("status", "==", "pending").limit(20).get(),
+      db.collection("vipDeliveryQueue").where("leaseUntil", "<=", nowTimestamp).limit(20).get(),
+      db.collection("vipExpiryQueue").where("dueAt", "<=", nowTimestamp).limit(50).get(),
+    ]);
+    const grantDocs = [
+      ...pendingGrants.docs,
+      ...expiredGrantLeases.docs.filter((snapshot) => snapshot.data().status === "processing"),
+    ];
+    const expiryDocs = dueExpiries.docs;
     const jobs = [];
     for (const snapshot of grantDocs) {
       const job = await leaseCarbonJob("vipDeliveryQueue", snapshot.id, "grant");
