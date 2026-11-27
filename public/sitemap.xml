@@ -6,6 +6,7 @@
   <url><loc>https://rusty-lub.online/rules</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://rusty-lub.online/support</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://rusty-lub.online/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://rusty-lub.online/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://rusty-lub.online/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://rusty-lub.online/en</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://rusty-lub.online/en/servers</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
@@ -13,5 +14,6 @@
   <url><loc>https://rusty-lub.online/en/rules</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://rusty-lub.online/en/support</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://rusty-lub.online/en/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://rusty-lub.online/en/cookies</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://rusty-lub.online/en/terms</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
 </urlset>
