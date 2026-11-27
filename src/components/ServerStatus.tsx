@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "https://auth.rusty-lub.online";
+const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 type ServerStatusResponse = { online: boolean; players?: number; maxPlayers?: number };
 
 export default function ServerStatus({ language = "ru" }: { language?: "ru" | "en" }) {
