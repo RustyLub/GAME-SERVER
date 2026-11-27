@@ -91,6 +91,7 @@ test("payment, entitlement and OAuth internals are denied to browser clients", a
   await seed("paymentEvents/event-1", { userId: uid, status: "CONFIRMED" });
   await seed("paymentLocks/" + uid, { orderId: "vip-order" });
   await seed("steamAuthExchanges/hash-1", { uid });
+  await seed("steamAuthStates/hash-3", { uid, frontendOrigin: "https://rusty-lub.ru" });
   await seed("discordAuthStates/hash-2", { uid });
 
   const db = testEnv.authenticatedContext(uid).firestore();
@@ -98,5 +99,6 @@ test("payment, entitlement and OAuth internals are denied to browser clients", a
   await assertFails(getDoc(doc(db, "paymentEvents", "event-1")));
   await assertFails(getDoc(doc(db, "paymentLocks", uid)));
   await assertFails(getDoc(doc(db, "steamAuthExchanges", "hash-1")));
+  await assertFails(getDoc(doc(db, "steamAuthStates", "hash-3")));
   await assertFails(getDoc(doc(db, "discordAuthStates", "hash-2")));
 });
