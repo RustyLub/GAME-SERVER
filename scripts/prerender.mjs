@@ -8,9 +8,9 @@ const template = await fs.readFile(path.join(dist, "index.html"), "utf8");
 const serverEntry = pathToFileURL(path.join(root, "dist-ssr", "entry-server.js")).href;
 const { render } = await import(serverEntry);
 const routes = [
-  "/", "/servers", "/wipes", "/rules", "/support", "/privacy", "/terms",
+  "/", "/servers", "/wipes", "/rules", "/support", "/privacy", "/cookies", "/terms",
   "/account", "/link", "/leaderboards", "/store",
-  "/en", "/en/servers", "/en/wipes", "/en/rules", "/en/support", "/en/privacy",
+  "/en", "/en/servers", "/en/wipes", "/en/rules", "/en/support", "/en/privacy", "/en/cookies",
   "/en/terms", "/en/account", "/en/link", "/en/leaderboards", "/en/store",
 ];
 
