@@ -137,7 +137,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     setBusy(true); setError("");
     try {
       const token = await auth.currentUser.getIdToken();
-      const response = await fetch(apiBase + "/auth/discord/start", { method: "POST", headers: { Authorization: "Bearer " + token } });
+      const response = await fetch(apiBase + "/auth/discord/start", { method: "POST", credentials: "include", headers: { Authorization: "Bearer " + token } });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || typeof payload.redirectUrl !== "string") throw new Error("Discord OAuth is not configured.");
       window.location.assign(payload.redirectUrl);
@@ -200,7 +200,7 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     <div className="account-panel">
       <div className="account-profile">
         {profile.avatarUrl
-          ? <img className="account-avatar-image" src={profile.avatarUrl} alt={t("Аватар Steam игрока", "Steam player avatar")} referrerPolicy="no-referrer" />
+          ? <img className="account-avatar-image" src={profile.avatarUrl} alt={t("Аватар Steam игрока", "Steam player avatar")} loading="lazy" decoding="async" width="88" height="88" referrerPolicy="no-referrer" />
           : <span className="account-avatar">{(profile.displayName || user.displayName || "R").slice(0, 1).toUpperCase()}</span>}
         <div>
           <small>{t("STEAM АККАУНТ ПОДКЛЮЧЁН", "STEAM ACCOUNT CONNECTED")}</small>

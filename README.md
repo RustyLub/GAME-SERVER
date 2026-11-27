@@ -6,7 +6,7 @@ Production website for Rusty.Lub EU Long.
 - Repository: https://github.com/RustyLub/GAME-SERVER
 - Hosting: GitHub Pages (GitHub Actions deployment)
 - Frontend: React 19 + TypeScript + Vite
-- Steam authentication backend: Node.js + Firebase Admin, intended for Google Cloud Run
+- Steam/Discord auth backend: Node.js + Firebase Admin, intended for Google Cloud Run
 
 ## Server configuration
 

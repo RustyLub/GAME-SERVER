@@ -73,6 +73,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
   }
   if (req.method === "OPTIONS") {
     if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
@@ -241,12 +242,16 @@ function clearDiscordStateCookie(res) {
 }
 
 async function authenticatedSteamUid(req) {
-  const authorization = req.headers.authorization || "";
-  const match = /^Bearer\s+(.+)$/i.exec(authorization);
-  if (!match) throw new Error("unauthorized");
-  const decoded = await auth.verifyIdToken(match[1]);
-  if (!/^steam_\d{17}$/.test(decoded.uid)) throw new Error("unauthorized");
-  return decoded.uid;
+  try {
+    const authorization = req.headers.authorization || "";
+    const match = /^Bearer\s+(.+)$/i.exec(authorization);
+    if (!match) throw new Error("unauthorized");
+    const decoded = await auth.verifyIdToken(match[1]);
+    if (!/^steam_\d{17}$/.test(decoded.uid)) throw new Error("unauthorized");
+    return decoded.uid;
+  } catch {
+    throw new Error("unauthorized");
+  }
 }
 
 function buildDiscordAuthorizeUrl(state) {
