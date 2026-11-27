@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "site": "rustylub-auth",
+    "public": "backend/hosting-auth",
+    "ignore": [
+      "firebase.auth.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "rusty-lub-auth",
+          "region": "europe-west1"
+        }
+      }
+    ]
+  }
+}
