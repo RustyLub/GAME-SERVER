@@ -138,7 +138,14 @@ Payment code is already merged into `main` after a green build and payment test 
    ```
    Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
 7. Publish the final seller/operator identity, legal address/contact details required by applicable law, tax status, payment recipient details, approved price and reviewed refund/cancellation terms on the legal pages. Have the actual operator jurisdiction and Platega merchant agreement reviewed. Only after this review, set `LEGAL_DETAILS_COMPLETE=true` in Cloud Run and run the deployment script again. This server-side gate keeps checkout disabled until those details are complete.
-8. Test native Rust RCON commands on a non-production/test SteamID64 first. Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, `server.writecfg`, reconnect, seven-day expiry and removals before sales.
+8. Test the native Rust commands on a non-production/test SteamID64 first:
+   ```text
+   global.skipqueueid <SteamID64> "<nickname>" "Rusty.Lub VIP Queue Pass"
+   server.writecfg
+   global.removeskipqueue <SteamID64>
+   server.writecfg
+   ```
+   Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, reconnect, seven-day expiry and removal before sales. Facepunch references: https://wiki.facepunch.com/rust/Creating_a_hidden_whitelisted_server and https://commits.facepunch.com/Rohan/rust_reboot/main/general_qol/skipqueue.
 9. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
 10. For a refund request, verify the order and entitlement in Firestore, process the refund in the Platega merchant dashboard, then verify the provider callback changes the order status and revokes the native queue permission on full refund or chargeback. Partial refunds do not automatically revoke a pass unless the provider reports the full amount refunded.
 
