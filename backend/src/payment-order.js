@@ -19,8 +19,22 @@ export async function persistCreatedVipOrder({
     if (!currentOrder.exists || currentOrder.data()?.status !== "creating") {
       throw new Error("Order is no longer in the creating state");
     }
-    if (!currentRequest.exists || currentRequest.data()?.orderId !== orderId) {
-      throw new Error("Payment idempotency record does not match the order");
+    const order = currentOrder.data();
+    const lock = currentLock.exists ? currentLock.data() : null;
+    const request = currentRequest.exists ? currentRequest.data() : null;
+    const now = Date.now();
+    const orderExpiresAt = order.expiresAt?.toMillis?.();
+    const lockExpiresAt = lock?.expiresAt?.toMillis?.();
+
+    if (!Number.isFinite(orderExpiresAt) || orderExpiresAt <= now) {
+      throw new Error("Order reservation has expired");
+    }
+    if (!request || request.orderId !== orderId || request.status !== "creating" || request.userId !== order.userId) {
+      throw new Error("Payment idempotency record does not match the creating order");
+    }
+    if (!lock || lock.orderId !== orderId || lock.status !== "creating" || lock.userId !== order.userId ||
+        !Number.isFinite(lockExpiresAt) || lockExpiresAt <= now) {
+      throw new Error("Checkout lock is no longer reserved for this order");
     }
 
     transaction.update(orderRef, {
@@ -32,12 +46,10 @@ export async function persistCreatedVipOrder({
       paymentMethod,
       updatedAt: FieldValue.serverTimestamp(),
     });
-    if (currentLock.exists && currentLock.data()?.orderId === orderId) {
-      transaction.update(orderLockRef, {
-        status: "pending",
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    }
+    transaction.update(orderLockRef, {
+      status: "pending",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     transaction.update(idempotencyRef, {
       status: "created",
       redirectUrl,
