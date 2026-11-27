@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import express from "express";
 import { OAuth2Client } from "google-auth-library";
+import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -823,7 +824,7 @@ app.post("/payments/platega/callback", async (req, res) => {
 
 async function isVipSchedulerRequest(req) {
   if (!VIP_SCHEDULER_SERVICE_ACCOUNT) return false;
-  const match = /^Bearer\\s+(.+)$/i.exec(String(req.headers.authorization || ""));
+  const match = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization || ""));
   if (!match) return false;
   try {
     const ticket = await googleAuthClient.verifyIdToken({
@@ -831,7 +832,7 @@ async function isVipSchedulerRequest(req) {
       audience: BACKEND_PUBLIC_URL + "/internal/vip/reconcile",
     });
     const payload = ticket.getPayload();
-    return payload?.email === VIP_SCHEDULER_SERVICE_ACCOUNT && payload.email_verified === true;
+    return isExpectedSchedulerIdentity(payload, VIP_SCHEDULER_SERVICE_ACCOUNT);
   } catch { return false; }
 }
 
