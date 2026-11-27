@@ -81,9 +81,18 @@ test("parses the Rust serverinfo player counts from RCON", () => {
   });
 });
 
-test("rejects malformed or incomplete Rust serverinfo responses", () => {
+test("rejects malformed, incomplete or impossible Rust serverinfo counts", () => {
   assert.throws(() => parseRustServerInfo("not-json"), /not JSON/);
   assert.throws(() => parseRustServerInfo('{"Players":1}'), /player counts/);
+  assert.throws(() => parseRustServerInfo('{"Players":-1,"MaxPlayers":200}'), /invalid player counts/);
+  assert.throws(() => parseRustServerInfo('{"Players":1.5,"MaxPlayers":200}'), /invalid player counts/);
+  assert.throws(() => parseRustServerInfo('{"Players":201,"MaxPlayers":200}'), /invalid player counts/);
+  assert.throws(() => parseRustServerInfo('{"Players":0,"MaxPlayers":0}'), /invalid player counts/);
+  assert.deepEqual(parseRustServerInfo('{"Players":"0","MaxPlayers":"200"}'), {
+    online: true,
+    players: 0,
+    maxPlayers: 200,
+  });
 });
 
 
@@ -117,6 +126,41 @@ test("rejects an RCON request when WebSocket closes before returning a response"
     await Promise.resolve();
     ClosingWebSocket.instance.close();
     await assert.rejects(pending, /RCON connection closed before a response/);
+  } finally {
+    for (const [key, value] of Object.entries({
+      RCON_HOST: previous.host,
+      RCON_PORT: previous.port,
+      RCON_PROTOCOL: previous.protocol,
+      RCON_PASSWORD: previous.password,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    if (previous.websocket) Object.defineProperty(globalThis, "WebSocket", previous.websocket);
+    else delete globalThis.WebSocket;
+  }
+});
+
+test("preserves the RCON timeout error when closing the timed-out socket", async () => {
+  const previous = {
+    host: process.env.RCON_HOST,
+    port: process.env.RCON_PORT,
+    protocol: process.env.RCON_PROTOCOL,
+    password: process.env.RCON_PASSWORD,
+    websocket: Object.getOwnPropertyDescriptor(globalThis, "WebSocket"),
+  };
+  class SilentWebSocket extends EventTarget {
+    constructor(url) { super(); this.url = url; }
+    send() {}
+    close() { this.dispatchEvent(new Event("close")); }
+  }
+  process.env.RCON_HOST = "rcon.example.com";
+  process.env.RCON_PORT = "443";
+  process.env.RCON_PROTOCOL = "wss";
+  process.env.RCON_PASSWORD = "test-password";
+  globalThis.WebSocket = SilentWebSocket;
+  try {
+    await assert.rejects(sendRconCommand("serverinfo", 5), /RCON command timed out/);
   } finally {
     for (const [key, value] of Object.entries({
       RCON_HOST: previous.host,
