@@ -24,7 +24,7 @@ for (const route of routes) {
   const result = render(route);
   const english = route.startsWith("/en");
   const canonical = "https://rusty-lub.online" + (route === "/" ? "/" : route);
-  const image = "https://rusty-lub.online/" + (english ? "og-en.svg" : "og-ru.svg");
+  const image = "https://rusty-lub.online/" + (english ? "og-en.png" : "og-ru.png");
   let html = template
     .replace(/<html lang="[^"]*">/, '<html lang="' + (english ? "en" : "ru") + '">')
     .replace(/<title>[^<]*<\/title>/, "<title>" + escapeHtml(result.meta.title) + "</title>")
@@ -49,7 +49,7 @@ for (const route of routes) {
 function notFoundHtml(pathname, english) {
   const result = render(pathname);
   const canonical = english ? "https://rusty-lub.online/en/404.html" : "https://rusty-lub.online/404.html";
-  const image = "https://rusty-lub.online/" + (english ? "og-en.svg" : "og-ru.svg");
+  const image = "https://rusty-lub.online/" + (english ? "og-en.png" : "og-ru.png");
   const title = english ? "Page not found — Rusty.Lub" : "Страница не найдена — Rusty.Lub";
   const description = english ? "The requested page could not be found." : "Запрошенная страница не найдена.";
   return template
