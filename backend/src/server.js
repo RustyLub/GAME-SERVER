@@ -281,13 +281,24 @@ async function plategaRequest(path, options = {}) {
   return payload;
 }
 
-app.get("/vip/config", (_req, res) => {
-  res.status(200).json({
-    available: PLATEGA_CONFIGURED,
-    durationDays: VIP_DURATION_DAYS,
-    priceRub: PLATEGA_CONFIGURED ? VIP_PRICE_RUB : null,
-    product: "VIP Queue Pass",
-  });
+async function isCarbonBridgeOnline() {
+  const snapshot = await db.collection("systemStatus").doc("carbonBridge").get();
+  const lastSeen = snapshot.data()?.lastSeenAt?.toMillis?.() || 0;
+  return Date.now() - lastSeen < 90 * 1000;
+}
+
+app.get("/vip/config", async (_req, res) => {
+  try {
+    const available = PLATEGA_CONFIGURED && await isCarbonBridgeOnline();
+    res.status(200).json({
+      available,
+      durationDays: VIP_DURATION_DAYS,
+      priceRub: available ? VIP_PRICE_RUB : null,
+      product: "VIP Queue Pass",
+    });
+  } catch {
+    res.status(200).json({ available: false, durationDays: VIP_DURATION_DAYS, priceRub: null, product: "VIP Queue Pass" });
+  }
 });
 
 app.post("/vip/order", requireSteamUser, async (req, res) => {
@@ -541,6 +552,10 @@ async function leaseCarbonJob(collectionName, documentId, kind) {
 
 app.get("/internal/carbon/jobs", requireCarbon, async (_req, res) => {
   try {
+    await db.collection("systemStatus").doc("carbonBridge").set({
+      lastSeenAt: FieldValue.serverTimestamp(),
+      status: "online",
+    }, { merge: true });
     const now = Date.now();
     const nowTimestamp = Timestamp.fromMillis(now);
     const [pendingGrants, expiredGrantLeases, dueExpiries] = await Promise.all([
