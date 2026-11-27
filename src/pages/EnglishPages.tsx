@@ -45,8 +45,8 @@ export function ServersPageEn() {
   <p className="page-lead">One server is currently available. New servers will appear here as separate entries without changing the site's overall structure.</p>
  </section>;
 }
-export function ServerDetailsPageEn() {
- const server = SITE_CONFIG.server;
+export function ServerDetailsPageEn({ slug = SITE_CONFIG.server.slug }: { slug?: string }) {
+ const server = SITE_CONFIG.servers.find((item) => item.slug === slug) ?? SITE_CONFIG.server;
  return <section className="content-section page-section">{title("RUSTY.LUB / " + server.region.toUpperCase(),<>RUSTY.LUB <em>{server.name.replace("Rusty.Lub ", "").toUpperCase()}.</em></>,"A dedicated server page in the Rusty.Lub network, with its mode, world details and connection information.")}{panel(<>
   <div className="server-card-top"><div className="server-region"><span className="region-flag">{server.region.slice(0, 2).toUpperCase()}</span><span>{server.region.toUpperCase()}</span><b>{server.wipe.toUpperCase()} WIPE</b></div><span className="server-status"><ServerStatus language="en" /></span></div>
   <div className="server-main"><div className="server-title"><h2>{server.name}</h2><p>CLASSIC SURVIVAL · {server.map.toUpperCase()} MAP · {server.rates.toUpperCase()}</p></div><div className="server-capacity"><strong>— <small>/ {server.maxPlayers}</small></strong><span>PLAYERS ONLINE</span></div></div>
