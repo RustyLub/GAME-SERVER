@@ -343,7 +343,7 @@ function frontendError(res) {
   return res.redirect(302, FRONTEND_ORIGIN + "/?steamError=verification_failed");
 }
 
-app.get("/healthz", (_req, res) => res.status(200).json({ ok: true }));
+app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
 app.get("/auth/steam", (_req, res) => {
   const state = crypto.randomBytes(32).toString("base64url");
