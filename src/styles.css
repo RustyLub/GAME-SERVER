@@ -414,3 +414,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .rule-preview-grid strong { color:#eee; font:800 17px var(--display); }
 .rule-preview-grid span { color:#999; font-size:10px; line-height:1.7; }
 @media(max-width:700px) { .hero-server-connect { align-items:stretch; } .hero-server-connect .copy-button,.hero-server-connect .btn { width:100%; text-align:center; } .rule-preview-grid { grid-template-columns:1fr; } }
+
+.account-edit-name,.account-linked-service { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; padding:14px 0; border-top:1px solid var(--line); }
+.account-edit-name label,.account-linked-service small,.account-orders > small { flex-basis:100%; color:#888; font-size:7px; font-weight:900; letter-spacing:.13em; }
+.account-edit-name input { flex:1 1 150px; min-width:0; padding:11px; border:1px solid #44463e; background:#11120f; color:#eee; }
+.account-edit-name .btn,.account-linked-service .btn { padding:10px 12px; font-size:8px; }
+.account-linked-service > div { display:flex; flex:1; flex-direction:column; gap:5px; }
+.account-linked-service strong { color:#eee; font-size:12px; }
+.account-linked-service span { color:#888; font-size:8px; }
+.account-orders { margin-top:18px; padding-top:15px; border-top:1px solid var(--line); }
+.account-orders > p { color:#888; font-size:9px; }
+.account-order { display:grid; grid-template-columns:1fr auto; gap:4px 12px; padding:11px 0; border-bottom:1px solid #30312c; color:#aaa; font-size:9px; }
+.account-order b { color:#eee; }
+.account-order em { font-style:normal; color:#c18b74; }
+.account-order time { grid-column:1/-1; color:#777; font-size:8px; }

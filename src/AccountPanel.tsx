@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { auth, db } from "./lib/firebase";
 
-type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string };
+type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string; customDisplayName?: string; discordId?: string; discordUsername?: string; discordAvatarUrl?: string };
+type OrderRow = { id: string; status?: string; amount?: number; currency?: string; createdAt?: { toDate?: () => Date } };
 const apiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 
 export default function AccountPanel({ language = "ru" }: { language?: "ru" | "en" }) {
@@ -11,6 +12,8 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
   const t = (ru: string, english: string) => en ? english : ru;
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<SteamProfile>({});
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [customDisplayName, setCustomDisplayName] = useState("");
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +33,17 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
       setChecking(false);
       setError(t("Не удалось проверить состояние авторизации.", "Could not check the sign-in status."));
     });
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("discordLinked") === "1") setMessage(t("Discord успешно привязан.", "Discord account linked successfully."));
+    const discordError = params.get("discordError");
+    if (discordError) setError(t("Не удалось привязать Discord. Проверь настройки OAuth или используй другой Discord-аккаунт.", "Could not link Discord. Check OAuth settings or use another Discord account."));
+    if (params.has("discordLinked") || params.has("discordError")) {
+      params.delete("discordLinked"); params.delete("discordError");
+      window.history.replaceState({}, document.title, window.location.pathname + (params.toString() ? "?" + params.toString() : "") + window.location.hash);
+    }
   }, []);
 
   useEffect(() => {
@@ -89,10 +103,18 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
         displayName: typeof data.displayName === "string" ? data.displayName : user.displayName || t("Игрок Rusty.Lub", "Rusty.Lub player"),
         steamId: typeof data.steamId64 === "string" ? data.steamId64 : undefined,
         avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
+        customDisplayName: typeof data.customDisplayName === "string" ? data.customDisplayName : "",
+        discordId: typeof data.discordId === "string" ? data.discordId : undefined,
+        discordUsername: typeof data.discordUsername === "string" ? data.discordUsername : undefined,
+        discordAvatarUrl: typeof data.discordAvatarUrl === "string" ? data.discordAvatarUrl : undefined,
       });
+      setCustomDisplayName(typeof data.customDisplayName === "string" ? data.customDisplayName : "");
     }).catch(() => {
       if (active) setError(t("Не удалось загрузить Steam-профиль. Проверь доступ к Firestore.", "Could not load the Steam profile. Check Firestore access."));
     });
+    getDocs(query(collection(db, "orders"), where("userId", "==", user.uid), orderBy("createdAt", "desc"), limit(10)))
+      .then((snapshot) => { if (active) setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as OrderRow))); })
+      .catch(() => { if (active) setOrders([]); });
     return () => { active = false; };
   }, [user]);
 
@@ -108,6 +130,47 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     setBusy(true);
     setError("");
     window.location.assign(apiBase + "/auth/steam");
+  }
+
+  async function linkDiscord() {
+    if (!auth?.currentUser || !apiBase) return;
+    setBusy(true); setError("");
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(apiBase + "/auth/discord/start", { method: "POST", headers: { Authorization: "Bearer " + token } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || typeof payload.redirectUrl !== "string") throw new Error("Discord OAuth is not configured.");
+      window.location.assign(payload.redirectUrl);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("Не удалось начать привязку Discord.", "Could not start Discord linking."));
+      setBusy(false);
+    }
+  }
+
+  async function unlinkDiscord() {
+    if (!auth?.currentUser || !apiBase) return;
+    setBusy(true); setError("");
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(apiBase + "/auth/discord/unlink", { method: "POST", headers: { Authorization: "Bearer " + token } });
+      if (!response.ok) throw new Error("Could not unlink Discord.");
+      setProfile((current) => ({ ...current, discordId: undefined, discordUsername: undefined, discordAvatarUrl: undefined }));
+      setMessage(t("Discord отвязан.", "Discord account unlinked."));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Discord unlink failed."); }
+    finally { setBusy(false); }
+  }
+
+  async function saveDisplayName() {
+    if (!user || !db) return;
+    const value = customDisplayName.trim();
+    if (value.length < 2 || value.length > 24) { setError(t("Имя должно содержать от 2 до 24 символов.", "Name must contain 2 to 24 characters.")); return; }
+    setBusy(true); setError("");
+    try {
+      await updateDoc(doc(db, "users", user.uid), { customDisplayName: value });
+      setProfile((current) => ({ ...current, customDisplayName: value }));
+      setMessage(t("Имя профиля сохранено.", "Profile name saved."));
+    } catch { setError(t("Не удалось сохранить имя профиля.", "Could not save profile name.")); }
+    finally { setBusy(false); }
   }
 
   async function logout() {
@@ -137,15 +200,18 @@ export default function AccountPanel({ language = "ru" }: { language?: "ru" | "e
     <div className="account-panel">
       <div className="account-profile">
         {profile.avatarUrl
-          ? <img className="account-avatar-image" src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" />
+          ? <img className="account-avatar-image" src={profile.avatarUrl} alt={t("Аватар Steam игрока", "Steam player avatar")} referrerPolicy="no-referrer" />
           : <span className="account-avatar">{(profile.displayName || user.displayName || "R").slice(0, 1).toUpperCase()}</span>}
         <div>
           <small>{t("STEAM АККАУНТ ПОДКЛЮЧЁН", "STEAM ACCOUNT CONNECTED")}</small>
-          <strong>{profile.displayName || user.displayName || t("Игрок Rusty.Lub", "Rusty.Lub player")}</strong>
+          <strong>{profile.customDisplayName || profile.displayName || user.displayName || t("Игрок Rusty.Lub", "Rusty.Lub player")}</strong>
           <span>{profile.steamId ? "SteamID64: " + profile.steamId : t("Steam-профиль подтверждён", "Steam profile verified")}</span>
         </div>
       </div>
       <div className="account-profile-meta"><span>FIREBASE UID</span><code>{user.uid}</code></div>
+      <div className="account-edit-name"><label htmlFor="profile-name">{t("ИМЯ В ПРОФИЛЕ", "PROFILE DISPLAY NAME")}</label><input id="profile-name" maxLength={24} value={customDisplayName} onChange={(event) => setCustomDisplayName(event.target.value)} /><button className="btn btn-ghost" type="button" onClick={saveDisplayName} disabled={busy}>{t("СОХРАНИТЬ ИМЯ", "SAVE NAME")}</button></div>
+      <div className="account-linked-service"><div><small>{t("DISCORD", "DISCORD")}</small><strong>{profile.discordUsername || t("Не привязан", "Not linked")}</strong>{profile.discordId && <span>Discord ID: {profile.discordId}</span>}</div>{profile.discordId ? <button className="btn btn-ghost" type="button" onClick={unlinkDiscord} disabled={busy}>{t("ОТВЯЗАТЬ", "UNLINK")}</button> : <button className="btn btn-ghost" type="button" onClick={linkDiscord} disabled={busy || !apiBase}>{t("ПРИВЯЗАТЬ DISCORD", "LINK DISCORD")}</button>}</div>
+      <section className="account-orders"><small>{t("ИСТОРИЯ ЗАКАЗОВ", "ORDER HISTORY")}</small>{orders.length ? orders.map((order) => <div className="account-order" key={order.id}><span>#{order.id.slice(0, 10)}</span><b>{order.amount != null ? order.amount + " " + (order.currency || "RUB") : "—"}</b><em>{order.status || "—"}</em>{order.createdAt?.toDate && <time>{order.createdAt.toDate().toLocaleDateString(en ? "en-GB" : "ru-RU")}</time>}</div>) : <p>{t("Заказов пока нет.", "No orders yet.")}</p>}</section>
       {message && <p className="account-message" role="status">{message}</p>}
       {error && <p className="form-message form-error" role="alert">{error}</p>}
       <button className="btn btn-ghost" type="button" onClick={logout}>{t("ВЫЙТИ ИЗ АККАУНТА", "SIGN OUT")}</button>
