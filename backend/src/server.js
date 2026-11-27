@@ -3,6 +3,7 @@ import express from "express";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { VIP_DURATION_DAYS, VIP_DURATION_MS, buildPlategaPaymentBody, constantTimeSecretMatch, isValidSteamId64, nextVipExpiry, parseVipPrice } from "./vip.js";
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -21,6 +22,11 @@ const OPENID_NS = "http://specs.openid.net/auth/2.0";
 const IDENTIFIER_SELECT = OPENID_NS + "/identifier_select";
 const STATE_COOKIE = "rustylub_steam_state";
 const EXCHANGE_COLLECTION = "steamAuthExchanges";
+const PLATEGA_API_BASE = (process.env.PLATEGA_API_BASE || "https://api.eu.payplatform.cc").replace(/\\/$/, "");
+const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID || "";
+const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
+const VIP_PRICE_RUB = parseVipPrice(process.env.VIP_PRICE_RUB);
+const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB);
 
 if (process.env.NODE_ENV === "production" &&
     (!FRONTEND_ORIGIN.startsWith("https://") || !BACKEND_PUBLIC_URL.startsWith("https://") || !FIREBASE_SERVICE_ACCOUNT_EMAIL)) {
@@ -43,7 +49,7 @@ app.use((req, res, next) => {
   if (req.headers.origin === FRONTEND_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
     res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   }
   if (req.method === "OPTIONS") {
@@ -232,6 +238,221 @@ app.post("/auth/steam/exchange", async (req, res) => {
   } catch (error) {
     console.error("Steam token exchange failed:", error?.message || "unknown error");
     return res.status(500).json({ error: "exchange_failed" });
+  }
+});
+
+
+async function requireSteamUser(req, res, next) {
+  const match = /^Bearer\\s+(.+)$/i.exec(req.headers.authorization || "");
+  if (!match) return res.status(401).json({ error: "authentication_required" });
+  try {
+    const decoded = await auth.verifyIdToken(match[1]);
+    const steamId64 = decoded.steamId64;
+    if (decoded.provider !== "steam" || !isValidSteamId64(steamId64) || decoded.uid !== "steam_" + steamId64) {
+      return res.status(403).json({ error: "steam_identity_required" });
+    }
+    req.steamUser = { uid: decoded.uid, steamId64, displayName: decoded.name || "Steam Player" };
+    return next();
+  } catch {
+    return res.status(401).json({ error: "invalid_session" });
+  }
+}
+
+async function plategaRequest(path, options = {}) {
+  const response = await fetch(PLATEGA_API_BASE + path, {
+    ...options,
+    headers: {
+      "X-MerchantId": PLATEGA_MERCHANT_ID,
+      "X-Secret": PLATEGA_SECRET,
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error("Platega request failed with HTTP " + response.status);
+    error.status = response.status;
+    error.providerCode = typeof payload.code === "string" ? payload.code : undefined;
+    throw error;
+  }
+  return payload;
+}
+
+app.get("/vip/config", (_req, res) => {
+  res.status(200).json({
+    available: PLATEGA_CONFIGURED,
+    durationDays: VIP_DURATION_DAYS,
+    priceRub: PLATEGA_CONFIGURED ? VIP_PRICE_RUB : null,
+    product: "VIP Queue Pass",
+  });
+});
+
+app.post("/vip/order", requireSteamUser, async (req, res) => {
+  if (!PLATEGA_CONFIGURED) return res.status(503).json({ error: "vip_checkout_not_configured" });
+  try {
+    const orderId = crypto.randomUUID();
+    const paymentBody = buildPlategaPaymentBody({
+      price: VIP_PRICE_RUB,
+      steamId64: req.steamUser.steamId64,
+      uid: req.steamUser.uid,
+      displayName: req.steamUser.displayName,
+      orderId,
+      successUrl: FRONTEND_ORIGIN + "/?vip=return",
+      failedUrl: FRONTEND_ORIGIN + "/?vip=failed",
+    });
+    const payment = await plategaRequest("/v2/transaction/process", {
+      method: "POST",
+      body: JSON.stringify(paymentBody),
+    });
+    const transactionId = payment.transactionId || payment.id;
+    const redirect = payment.redirect;
+    if (typeof transactionId !== "string" || typeof redirect !== "string" || new URL(redirect).protocol !== "https:") {
+      throw new Error("Platega returned an invalid payment response");
+    }
+    await db.collection("vipOrders").doc(transactionId).create({
+      transactionId,
+      orderId,
+      uid: req.steamUser.uid,
+      steamId64: req.steamUser.steamId64,
+      amount: VIP_PRICE_RUB,
+      currency: "RUB",
+      durationDays: VIP_DURATION_DAYS,
+      status: "pending",
+      createdAt: FieldValue.serverTimestamp(),
+      provider: "platega",
+    });
+    return res.status(201).json({ redirect, transactionId, status: "pending" });
+  } catch (error) {
+    console.error("VIP order creation failed:", error?.providerCode || error?.message || "unknown error");
+    return res.status(502).json({ error: "payment_creation_failed" });
+  }
+});
+
+app.get("/vip/me", requireSteamUser, async (req, res) => {
+  try {
+    const [entitlementSnapshot, ordersSnapshot] = await Promise.all([
+      db.collection("vipEntitlements").doc(req.steamUser.steamId64).get(),
+      db.collection("vipOrders").where("uid", "==", req.steamUser.uid).orderBy("createdAt", "desc").limit(20).get(),
+    ]);
+    const entitlement = entitlementSnapshot.exists ? entitlementSnapshot.data() : null;
+    const orders = ordersSnapshot.docs.map((item) => {
+      const data = item.data();
+      return {
+        transactionId: data.transactionId,
+        amount: data.amount,
+        currency: data.currency,
+        status: data.status,
+        createdAt: data.createdAt?.toDate?.().toISOString() || null,
+      };
+    });
+    return res.status(200).json({
+      entitlement: entitlement ? {
+        status: entitlement.status,
+        expiresAt: entitlement.expiresAt?.toDate?.().toISOString() || null,
+      } : null,
+      orders,
+    });
+  } catch (error) {
+    console.error("VIP account lookup failed:", error?.message || "unknown error");
+    return res.status(500).json({ error: "vip_account_unavailable" });
+  }
+});
+
+app.post("/payments/platega/callback", async (req, res) => {
+  if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET ||
+      !constantTimeSecretMatch(req.headers["x-merchantid"], PLATEGA_MERCHANT_ID) ||
+      !constantTimeSecretMatch(req.headers["x-secret"], PLATEGA_SECRET)) {
+    return res.sendStatus(401);
+  }
+  const callback = req.body || {};
+  const transactionId = callback.id;
+  if (typeof transactionId !== "string" || !/^[0-9a-f-]{36}$/i.test(transactionId) ||
+      typeof callback.status !== "string") {
+    return res.status(400).json({ error: "invalid_callback" });
+  }
+  const orderRef = db.collection("vipOrders").doc(transactionId);
+  try {
+    const orderSnapshot = await orderRef.get();
+    if (!orderSnapshot.exists) return res.status(503).json({ error: "order_not_ready" });
+    const order = orderSnapshot.data();
+    if (callback.payload !== order.orderId) return res.sendStatus(400);
+
+    // Never trust the callback alone: retrieve the current transaction from Platega.
+    const verified = await plategaRequest("/transaction/" + encodeURIComponent(transactionId));
+    const verifiedAmount = Number(verified.paymentDetails?.amount);
+    const verifiedCurrency = verified.paymentDetails?.currency;
+    const verifiedStatus = verified.status;
+    if (verified.id && verified.id !== transactionId) return res.sendStatus(400);
+
+    if (verifiedStatus !== "CONFIRMED") {
+      await orderRef.set({
+        status: typeof verifiedStatus === "string" ? verifiedStatus.toLowerCase() : "pending",
+        providerUpdatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return res.sendStatus(200);
+    }
+    if (verifiedAmount !== order.amount || verifiedCurrency !== order.currency ||
+        Number(callback.amount) !== order.amount || callback.currency !== order.currency ||
+        callback.status !== "CONFIRMED") {
+      await orderRef.set({ status: "manual_review", reviewReason: "payment_amount_or_currency_mismatch", providerUpdatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return res.sendStatus(200);
+    }
+
+    const paymentRef = db.collection("vipPayments").doc(transactionId);
+    const entitlementRef = db.collection("vipEntitlements").doc(order.steamId64);
+    const deliveryRef = db.collection("vipDeliveryQueue").doc(transactionId);
+    await db.runTransaction(async (transaction) => {
+      const [paymentSnapshot, entitlementSnapshot, currentOrderSnapshot] = await Promise.all([
+        transaction.get(paymentRef),
+        transaction.get(entitlementRef),
+        transaction.get(orderRef),
+      ]);
+      if (!currentOrderSnapshot.exists) throw new Error("VIP order disappeared");
+      if (paymentSnapshot.exists) return;
+      const now = Date.now();
+      const currentExpiry = entitlementSnapshot.data()?.expiresAt?.toMillis?.() || 0;
+      const expiresAtMs = nextVipExpiry(now, currentExpiry);
+      const startsAtMs = currentExpiry > now ? currentExpiry : now;
+      transaction.create(paymentRef, {
+        transactionId,
+        uid: order.uid,
+        steamId64: order.steamId64,
+        amount: order.amount,
+        currency: order.currency,
+        status: "confirmed",
+        durationDays: VIP_DURATION_DAYS,
+        expiresAt: Timestamp.fromMillis(expiresAtMs),
+        createdAt: FieldValue.serverTimestamp(),
+        deliveryStatus: "pending",
+      });
+      transaction.set(entitlementRef, {
+        uid: order.uid,
+        steamId64: order.steamId64,
+        status: "pending_delivery",
+        startsAt: Timestamp.fromMillis(startsAtMs),
+        expiresAt: Timestamp.fromMillis(expiresAtMs),
+        lastPaymentId: transactionId,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      transaction.create(deliveryRef, {
+        type: "grant_vip_queue_skip",
+        transactionId,
+        steamId64: order.steamId64,
+        status: "pending",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      transaction.set(orderRef, {
+        status: "confirmed",
+        confirmedAt: FieldValue.serverTimestamp(),
+        providerUpdatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    });
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("Platega callback processing failed:", error?.providerCode || error?.message || "unknown error");
+    return res.status(503).json({ error: "callback_processing_failed" });
   }
 });
 
