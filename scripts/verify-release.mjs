@@ -33,7 +33,7 @@ for (const [route, file, language] of routes) {
   assert.match(html, /<title>[^<]+<\/title>/, route + " must have a title");
   assert.match(html, /<meta name="description" content="[^"]+"/, route + " must have a description");
   assert.ok(html.includes("https://rusty-lub.online" + (route === "/" ? "/" : route)), route + " must include its canonical URL");
-  assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".svg"), route + " must have its own-domain OG image");
+  assert.ok(html.includes("https://rusty-lub.online/og-" + (language === "en" ? "en" : "ru") + ".png"), route + " must have its own-domain OG image");
   assert.match(html, /<meta name="twitter:card" content="summary_large_image"/, route + " must have a large Twitter card");
   assert.ok(html.includes('<html lang="' + language + '">'), route + " must have correct language");
   const h1Count = (html.match(/<h1/g) || []).length;
