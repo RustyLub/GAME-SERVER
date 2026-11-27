@@ -6,6 +6,8 @@ import { once } from "node:events";
 process.env.NODE_ENV = "test";
 process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
 process.env.FRONTEND_ORIGINS = "https://rusty-lub.online;https://rusty-lub.ru";
+process.env.DISCORD_CLIENT_ID = "test-client-id";
+process.env.DISCORD_CLIENT_SECRET = "test-client-secret";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
 process.env.FIREBASE_PROJECT_ID = "rustylub-test";
 // server.js captures RCON configuration at module initialization.
@@ -258,5 +260,39 @@ test("serves the Cloud Run compatible health endpoint", async () => {
     if (server.listening) {
       await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
+  }
+});
+
+test("rejects Discord OAuth form posts from origins outside the allowlist", async () => {
+  const server = createServer(app);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  try {
+    const address = server.address();
+    const response = await fetch(`http://127.0.0.1:${address.port}/auth/discord/start`, {
+      method: "POST",
+      headers: { Origin: "https://evil.example", "Content-Type": "application/x-www-form-urlencoded" },
+      body: "idToken=invalid",
+    });
+    assert.equal(response.status, 403);
+  } finally {
+    if (server.listening) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("accepts Discord OAuth form posts only from the secondary frontend origin", async () => {
+  const server = createServer(app);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  try {
+    const address = server.address();
+    const response = await fetch(`http://127.0.0.1:${address.port}/auth/discord/start`, {
+      method: "POST",
+      headers: { Origin: "https://rusty-lub.ru", "Content-Type": "application/x-www-form-urlencoded" },
+      body: "idToken=invalid",
+    });
+    assert.equal(response.status, 401);
+  } finally {
+    if (server.listening) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 });
