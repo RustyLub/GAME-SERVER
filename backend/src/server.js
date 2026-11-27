@@ -7,6 +7,7 @@ import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS, isSafePlategaRedirect, isCheckoutLockActive } from "./payments.js";
 import { createCachedServerStatusReader } from "./server-status.js";
+import { createVipEntitlementProcessor } from "./vip-entitlement.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -591,44 +592,15 @@ async function plategaRequest(url, options = {}) {
   return payload;
 }
 
-async function processVipEntitlement(entitlementRef) {
-  const snapshot = await entitlementRef.get();
-  if (!snapshot.exists) return "missing";
-  const data = snapshot.data();
-  const now = Date.now();
-  if (data.status === "active" && data.expiresAt?.toMillis?.() > now) return "active";
-
-  if (data.status === "grant_pending") {
-    if (data.expiresAt && data.expiresAt.toMillis() <= now) {
-      await entitlementRef.update({ status: "revoke_pending", revokeToStatus: "expired", updatedAt: FieldValue.serverTimestamp() });
-      return processVipEntitlement(entitlementRef);
-    }
-    await sendRconCommand(buildVipGrantCommand(data.steamId64, data.displayName), 7000);
-    await sendRconCommand("server.writecfg", 5000);
-    await entitlementRef.update({
-      status: "active",
-      grantedAt: data.grantedAt || FieldValue.serverTimestamp(),
-      expiresAt: data.expiresAt || Timestamp.fromMillis(Date.now() + VIP_DURATION_MS),
-      updatedAt: FieldValue.serverTimestamp(),
-      revokeToStatus: FieldValue.delete(),
-    });
-    return "active";
-  }
-
-  if (data.status === "revoke_pending") {
-    await sendRconCommand(buildVipRemoveCommand(data.steamId64), 7000);
-    await sendRconCommand("server.writecfg", 5000);
-    const targetStatus = data.revokeToStatus === "suspended" && !data.expiresAt ? "revoked" : (["expired", "suspended", "revoked"].includes(data.revokeToStatus) ? data.revokeToStatus : "expired");
-    await entitlementRef.update({
-      status: targetStatus,
-      revokedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      revokeToStatus: FieldValue.delete(),
-    });
-    return targetStatus;
-  }
-  return data.status || "unknown";
-}
+const processVipEntitlement = createVipEntitlementProcessor({
+  db,
+  FieldValue,
+  Timestamp,
+  sendRconCommand,
+  buildVipGrantCommand,
+  buildVipRemoveCommand,
+  durationMs: VIP_DURATION_MS,
+});
 
 async function processVipQueueWorker() {
   const pending = await db.collection("entitlements").where("status", "in", ["grant_pending", "revoke_pending"]).limit(100).get();
