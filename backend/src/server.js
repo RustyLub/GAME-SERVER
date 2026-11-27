@@ -477,6 +477,17 @@ app.post("/payments/platega/callback", async (req, res) => {
               status: "pending",
               createdAt: FieldValue.serverTimestamp(),
             }, { merge: true });
+          } else if (entitlementSnapshot.exists) {
+            transaction.set(entitlementRef, {
+              status: "expired",
+              reviewReason: FieldValue.delete(),
+              updatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+            transaction.set(paymentRef, {
+              status: "confirmed",
+              reviewRequired: false,
+              providerUpdatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
           }
           transaction.set(orderRef, {
             status: "confirmed",
