@@ -828,9 +828,12 @@ app.post("/payments/platega/callback", async (req, res) => {
           });
         } else {
           const currentEntitlement = entitlementSnapshot.data();
-          if (["suspended", "revoke_pending"].includes(currentEntitlement.status) &&
-              (currentEntitlement.status === "suspended" || currentEntitlement.revokeToStatus === "suspended") &&
-              (!currentEntitlement.expiresAt || currentEntitlement.expiresAt.toMillis() > Date.now())) {
+          const disputeResolvedBeforeFirstGrant = currentEntitlement.status === "revoked" &&
+            !currentEntitlement.expiresAt && currentOrder.data()?.lastProviderStatus === "DISPUTED";
+          if (disputeResolvedBeforeFirstGrant ||
+              (["suspended", "revoke_pending"].includes(currentEntitlement.status) &&
+                (currentEntitlement.status === "suspended" || currentEntitlement.revokeToStatus === "suspended") &&
+                (!currentEntitlement.expiresAt || currentEntitlement.expiresAt.toMillis() > Date.now()))) {
             transaction.update(entitlementRef, { status: "grant_pending", updatedAt: FieldValue.serverTimestamp() });
           }
         }
