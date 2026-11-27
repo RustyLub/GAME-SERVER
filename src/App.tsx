@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { HomePage, ServersPage, WipesPage, RulesPage, SupportPage, PrivacyPage, TermsPage, AccountPage, LinkPage, LeaderboardsPage, StorePage, NotFoundPage, pageMeta } from "./pages/Pages";
 
 const nav = [
@@ -22,7 +22,7 @@ function App() {
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute("href", "https://rusty-lub.online" + (path === "/" ? "/" : path));
   }, [path]);
-  const pages: Record<string, React.ReactNode> = {
+  const pages: Record<string, ReactNode> = {
     "/": <HomePage />, "/servers": <ServersPage />, "/wipes": <WipesPage />,
     "/rules": <RulesPage />, "/support": <SupportPage />, "/privacy": <PrivacyPage />,
     "/terms": <TermsPage />, "/account": <AccountPage />, "/link": <LinkPage />,
