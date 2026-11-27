@@ -183,6 +183,25 @@ export default function AccountPanel() {
     }
   }
 
+  async function refreshVipAccount() {
+    if (!user || !apiBase) return;
+    setVipBusy(true);
+    setVipError("");
+    try {
+      const token = await user.getIdToken(true);
+      const response = await fetch(apiBase + "/vip/me", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      if (!response.ok) throw new Error("Не удалось обновить статус VIP.");
+      setVipAccount(await response.json());
+      setVipNotice("Статус VIP обновлён по данным сервера.");
+    } catch (cause) {
+      setVipError(cause instanceof Error ? cause.message : "Не удалось обновить статус VIP.");
+    } finally {
+      setVipBusy(false);
+    }
+  }
+
   async function logout() {
     if (!auth) return;
     setBusy(true);
@@ -270,6 +289,9 @@ export default function AccountPanel() {
             <em>{vipStatusLabel(order.status)}</em>
           </div>)}
         </div> : null}
+        {apiBase && <button className="vip-refresh" type="button" onClick={refreshVipAccount} disabled={vipBusy}>
+          {vipBusy ? "ОБНОВЛЯЕМ…" : "ОБНОВИТЬ СТАТУС VIP ↻"}
+        </button>}
       </section>
 
       {message && <p className="account-message" role="status">{message}</p>}
