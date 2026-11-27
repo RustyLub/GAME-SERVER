@@ -1,5 +1,10 @@
+const servers = [
+  { id: "eu-long", slug: "eu-long", name: "Rusty.Lub EU Long", host: "202.36.95.125", port: 26227, address: "202.36.95.125:26227", maxPlayers: 200, region: "Europe", map: "Procedural", rates: "Vanilla x1", teamLimit: 12, wipe: "Monthly", statusAvailable: true },
+] as const;
+
 export const SITE_CONFIG = {
-  server: { name: "Rusty.Lub EU Long", host: "202.36.95.125", port: 26227, address: "202.36.95.125:26227", maxPlayers: 200, region: "Europe", map: "Procedural", rates: "Vanilla x1", teamLimit: 12, discord: "https://discord.gg/rustylub" },
+  servers,
+  server: servers[0],
   wipe: { timezone: "Europe/Moscow", summerMonths: [4, 5, 6, 7, 8, 9, 10], summerHour: 21, winterHour: 22, weekday: 4 },
 } as const;
 
