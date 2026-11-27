@@ -244,7 +244,7 @@ app.post("/auth/steam/exchange", async (req, res) => {
 
 
 async function requireSteamUser(req, res, next) {
-  const match = /^Bearer\\s+(.+)$/i.exec(req.headers.authorization || "");
+  const match = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || "");
   if (!match) return res.status(401).json({ error: "authentication_required" });
   try {
     const decoded = await auth.verifyIdToken(match[1]);
