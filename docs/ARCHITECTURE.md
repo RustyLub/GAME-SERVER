@@ -53,7 +53,8 @@ Keep Firebase Admin runtime identity configuration, service-account signing perm
 
 ## Repository layout
 
-- `src/` — React application and browser integrations.\n- `backend/` — standalone Node.js Steam OpenID verification and Firebase Admin service.
+- `src/` — React application and browser integrations.
+- `backend/` — standalone Node.js Steam OpenID verification and Firebase Admin service.
 - `public/` — static public assets, CNAME, robots and sitemap.
 - `docs/` — architecture and operational decisions.
 - `firestore.rules` — deny-by-default Firestore policy until reviewed rules are implemented.
@@ -77,6 +78,6 @@ Keep Firebase Admin runtime identity configuration, service-account signing perm
 - Platega order creation, callback credential checks, authoritative transaction-status lookup, amount/currency checks, and payment-ID idempotency are implemented in the trusted backend.
 - Confirmed payments create a seven-day Firestore entitlement and a durable Carbon delivery job. Renewal extends the existing expiry rather than overwriting remaining time.
 - The Carbon plugin in `carbon/RustyLubVipQueue.cs` consumes leased grant/expiry jobs using a backend-only shared secret. It uses Rust's native `global.skipqueueid` and `global.removeskipqueue` commands and persists changes with `server.writecfg`.
-- Price and Platega credentials are server-only environment values. Checkout remains disabled until the merchant credentials and an explicitly selected VIP price are configured.
+- Price and Platega credentials are server-only environment values. Checkout remains disabled until Platega credentials, an explicitly selected VIP price, the Carbon shared secret, and a recent authenticated Carbon heartbeat are present.
 - Chargebacks, partial refunds, and disputes are marked for manual review. They are not silently treated as paid orders.
 - The backend and Carbon plugin still require deployment and a live test on the actual Rust/Carbon server. No payment or VIP delivery is live merely because the code exists.
