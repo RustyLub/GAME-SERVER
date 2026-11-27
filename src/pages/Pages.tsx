@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import AccountPanel from "../AccountPanel";
+import { lazy, Suspense, type ReactNode } from "react";
+
+const AccountPanel = lazy(() => import("../AccountPanel"));
 
 export const pageMeta: Record<string, { title: string; description: string }> = {
   "/": { title: "Rusty.Lub — EU Long | Rust Server", description: "Rusty.Lub EU Long — классический Rust Vanilla x1 в Европе. Сервер, вайпы и сообщество." },
@@ -46,7 +47,7 @@ export function TermsPage() {
  return <section className="content-section page-section"><PageTitle eyebrow="LEGAL / TERMS" title={<>УСЛОВИЯ <em>ИСПОЛЬЗОВАНИЯ.</em></>} subtitle="Условия использования сайта Rusty.Lub." /><h3>1. Назначение сайта</h3><p className="page-lead">Сайт публикует информацию о Rusty.Lub EU Long, расписании вайпов и сообществе, а также предоставляет доступ к доступным функциям личного кабинета.</p><h3>2. Аккаунт</h3><p className="page-lead">Авторизация на сайте выполняется через Steam. Пользователь отвечает за безопасность своего Steam-аккаунта и соблюдение правил Steam.</p><h3>3. Игровой сервер</h3><p className="page-lead">Доступность сервера, расписание вайпов и игровые параметры могут изменяться. Актуальные объявления публикуются в официальном Discord.</p><h3>4. Обратная связь</h3><p className="page-lead">По вопросам использования сайта: rusty.lub-slq@inbox.ru.</p></section>;
 }
 export function AccountPage() {
- return <section className="account-band page-account"><div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h1>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h1><p>Войди через Steam. При первом входе профиль Rusty.Lub создаётся автоматически. Других способов регистрации нет.</p></div><AccountPanel /></section>;
+ return <section className="account-band page-account"><div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h1>ТВОЙ ПРОГРЕСС.<br /><em>В ОДНОМ МЕСТЕ.</em></h1><p>Войди через Steam. При первом входе профиль Rusty.Lub создаётся автоматически. Других способов регистрации нет.</p></div><Suspense fallback={<div className="page-panel" role="status">ЗАГРУЗКА ЛИЧНОГО КАБИНЕТА…</div>}><AccountPanel /></Suspense></section>;
 }
 export function LinkPage() {
  return <section className="content-section page-section"><PageTitle eyebrow="ACCOUNT LINKING" title={<>ПРИВЯЗКА <em>АККАУНТОВ.</em></>} subtitle="Раздел подготовлен для безопасной связи Steam и Discord." /><Panel><h2>ФУНКЦИЯ ЕЩЁ НЕ ПОДКЛЮЧЕНА</h2><p className="page-lead">Привязка появится после настройки серверной проверки Discord OAuth. Сейчас сайт не запрашивает Discord-токены и не создаёт фиктивную связь аккаунтов.</p><DiscordLink /></Panel></section>;
