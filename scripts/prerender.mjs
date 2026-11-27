@@ -80,7 +80,7 @@ for (const route of serverRoutes) {
   const url = "https://rusty-lub.online" + route;
   if (sitemap.includes("<loc>" + url + "</loc>")) continue;
   const priority = route.startsWith("/en/") ? "0.7" : "0.8";
-  sitemap = sitemap.replace("</urlset>", "  <url><loc>" + url + "</loc><changefreq>monthly</changefreq><priority>" + priority + "</priority></url>\\n</urlset>");
+  sitemap = sitemap.replace("</urlset>", "  <url><loc>" + url + "</loc><changefreq>monthly</changefreq><priority>" + priority + "</priority></url>\n</urlset>");
 }
 await fs.writeFile(sitemapPath, sitemap, "utf8");
 console.log("Updated sitemap with all configured server detail routes");
