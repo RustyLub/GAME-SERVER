@@ -82,11 +82,11 @@ It maps these Secret Manager versions into Cloud Run without writing secrets to 
 
 ## Local checks
 
-- npm install
-- npm test
-- npm start
+- `npm install --prefix backend`
+- `npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"` (requires Java 21+; uses only the local demo project and never touches production Firestore)
+- `npm start --prefix backend`
 
-A real Steam callback requires a publicly reachable HTTPS URL and the configured Firebase project. Do not treat unit tests as a substitute for a live end-to-end sign-in.
+The backend test suite includes Firestore Emulator rules tests. A real Steam callback requires a publicly reachable HTTPS URL and the configured Firebase project. Do not treat emulator/unit tests as a substitute for a live end-to-end sign-in.
 
 ## Firestore collections and TTL
 
