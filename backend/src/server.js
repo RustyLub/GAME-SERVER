@@ -725,18 +725,34 @@ app.post("/payments/orders", async (req, res) => {
     const orderId = crypto.randomUUID();
     const orderRef = db.collection("orders").doc(orderId);
     const idempotencyRef = db.collection("paymentRequests").doc(sha256(uid + ":" + requestId));
+    const orderLockRef = db.collection("paymentLocks").doc(uid);
     const reservation = await db.runTransaction(async (transaction) => {
-      const existing = await transaction.get(idempotencyRef);
+      const [existing, lock] = await Promise.all([
+        transaction.get(idempotencyRef),
+        transaction.get(orderLockRef),
+      ]);
       if (existing.exists) return { existing: true, ...existing.data() };
+      if (lock.exists) {
+        const lockData = lock.data();
+        if (lockData.expiresAt?.toMillis?.() > Date.now()) {
+          return { locked: true };
+        }
+      }
+
+      const expiresAt = Timestamp.fromMillis(Date.now() + 60 * 60 * 1000);
       transaction.create(idempotencyRef, { userId: uid, orderId, status: "creating", createdAt: FieldValue.serverTimestamp() });
       transaction.create(orderRef, {
         userId: uid, steamId64, displayName, product: "vip_queue_pass_7d",
         amount: VIP_PRICE_RUB, currency: "RUB", status: "creating",
-        createdAt: FieldValue.serverTimestamp(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+        createdAt: FieldValue.serverTimestamp(), expiresAt,
+      });
+      transaction.set(orderLockRef, {
+        userId: uid, orderId, status: "creating", expiresAt,
+        updatedAt: FieldValue.serverTimestamp(),
       });
       return { existing: false, orderId, status: "creating" };
     });
+    if (reservation.locked) return res.status(409).json({ error: "payment_already_pending" });
     if (reservation.existing) {
       if (reservation.redirectUrl) return res.status(200).json({ orderId: reservation.orderId, redirectUrl: reservation.redirectUrl });
       return res.status(409).json({ error: "order_creation_in_progress" });
@@ -761,10 +777,20 @@ app.post("/payments/orders", async (req, res) => {
         paymentMethod: PLATEGA_PAYMENT_METHOD, updatedAt: FieldValue.serverTimestamp(),
       });
       await idempotencyRef.update({ status: "created", redirectUrl: redirectUrl.toString(), updatedAt: FieldValue.serverTimestamp() });
+      await orderLockRef.update({ status: "pending", updatedAt: FieldValue.serverTimestamp() });
       return res.status(201).json({ orderId, redirectUrl: redirectUrl.toString(), amount: VIP_PRICE_RUB, currency: "RUB" });
     } catch (error) {
       await orderRef.update({ status: "creation_failed", updatedAt: FieldValue.serverTimestamp() });
       await idempotencyRef.update({ status: "failed", updatedAt: FieldValue.serverTimestamp() });
+      await db.runTransaction(async (transaction) => {
+        const lock = await transaction.get(orderLockRef);
+        if (lock.exists && lock.data()?.orderId === orderId) {
+          transaction.update(orderLockRef, {
+            status: "failed", expiresAt: Timestamp.fromMillis(Date.now()),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      });
       console.error("Platega order creation failed:", error?.message || "unknown error");
       return res.status(502).json({ error: "payment_creation_failed" });
     }
