@@ -9,6 +9,7 @@ import {
   paymentEventKey,
   toMinorUnits,
   validatePlategaTransaction,
+  VIP_DURATION_MS,
 } from "./payments.js";
 
 const steamId64 = "76561198000000000";
@@ -29,6 +30,10 @@ test("Platega credentials are compared without timing-safe length errors", () =>
   assert.equal(constantTimeEqual("secret", "secreT"), false);
   assert.equal(constantTimeEqual("secret", "short"), false);
   assert.equal(constantTimeEqual("", "secret"), false);
+});
+
+test("VIP Queue Pass duration is exactly seven days", () => {
+  assert.equal(VIP_DURATION_MS, 7 * 24 * 60 * 60 * 1000);
 });
 
 test("converts RUB amounts to integer minor units", () => {

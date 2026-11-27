@@ -5,7 +5,7 @@ import { isExpectedSchedulerIdentity } from "./scheduler-auth.js";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
-import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction } from "./payments.js";
+import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand, constantTimeEqual, isFullyRefunded, paymentEventKey, validatePlategaTransaction, VIP_DURATION_MS } from "./payments.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -48,7 +48,6 @@ const PLATEGA_PAYMENT_METHOD = Number(process.env.PLATEGA_PAYMENT_METHOD || 2);
 const VIP_SCHEDULER_SERVICE_ACCOUNT = process.env.VIP_SCHEDULER_SERVICE_ACCOUNT?.trim() || "";
 const LEGAL_DETAILS_COMPLETE = process.env.LEGAL_DETAILS_COMPLETE === "true";
 const googleAuthClient = new OAuth2Client();
-const VIP_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 
 if (process.env.NODE_ENV === "production" && !FIREBASE_SERVICE_ACCOUNT_EMAIL) {

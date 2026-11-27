@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+export const VIP_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const PLATEGA_STATUSES = new Set([
   "CONFIRMED",
   "CANCELED",
