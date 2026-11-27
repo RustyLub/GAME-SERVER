@@ -24,7 +24,8 @@ const STATE_COOKIE = "rustylub_steam_state";
 const EXCHANGE_COLLECTION = "steamAuthExchanges";
 const PLATEGA_API_BASE = (process.env.PLATEGA_API_BASE || "https://api.eu.payplatform.cc").replace(/\/+$/, "");
 const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID || "";
-const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";\nconst CARBON_SYNC_SECRET = process.env.CARBON_SYNC_SECRET || "";
+const PLATEGA_SECRET = process.env.PLATEGA_SECRET || "";
+const CARBON_SYNC_SECRET = process.env.CARBON_SYNC_SECRET || "";
 const VIP_PRICE_RUB = parseVipPrice(process.env.VIP_PRICE_RUB);
 const PLATEGA_CONFIGURED = Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET && VIP_PRICE_RUB);
 
@@ -347,7 +348,8 @@ app.get("/vip/me", requireSteamUser, async (req, res) => {
         createdAt: data.createdAt?.toDate?.().toISOString() || null,
       };
     });
-    orders.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));\n    return res.status(200).json({
+    orders.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    return res.status(200).json({
       entitlement: entitlement ? {
         status: entitlement.status,
         expiresAt: entitlement.expiresAt?.toDate?.().toISOString() || null,
@@ -461,6 +463,12 @@ app.post("/payments/platega/callback", async (req, res) => {
         startsAt: Timestamp.fromMillis(startsAtMs),
         expiresAt: Timestamp.fromMillis(expiresAtMs),
         lastPaymentId: transactionId,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      transaction.set(db.collection("vipExpiryQueue").doc(order.steamId64), {
+        steamId64: order.steamId64,
+        dueAt: Timestamp.fromMillis(expiresAtMs),
+        status: "scheduled",
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
       transaction.create(deliveryRef, {
