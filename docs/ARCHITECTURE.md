@@ -12,7 +12,7 @@ The public site serves Rusty.Lub EU Long in Russian and English. It is a React 1
 - Data: Firebase Authentication and Cloud Firestore.
 - Steam authentication: server-side Steam OpenID 2.0 verification followed by Firebase Custom Token issuance.
 - Discord linking: server-side OAuth2 authorization-code flow, identify scope only.
-- Live server status: read-only Rust WebRCON serverinfo command, optional until RCON is configured.
+- Live server status: read-only Rust WebRCON serverinfo command over secure WSS; unavailable until the TLS endpoint and RCON credentials are configured.
 - VIP queue: native Rust queue permission through backend RCON only; no game plugin.
 
 GitHub Pages cannot run backend code or store server secrets. It only serves static files.
@@ -51,7 +51,7 @@ The site prerenders all public Russian and English routes, with per-route title,
 
 ## Payment isolation
 
-Payment creation and Platega webhook handling live in a dedicated payment release branch and are merged only after the full build and payment test suite are green. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
+Payment creation and Platega webhook handling live in a dedicated payment release branch and are merged only after the full build and payment test suite are green. The callback checks Platega's documented X-MerchantId/X-Secret headers, then independently fetches the transaction and verifies merchant, amount, currency and order payload. Duplicate notifications are idempotent. VIP entitlements use native Rust queue commands over WSS-protected RCON; Cloud Scheduler OIDC drives retries and expiry. The game server remains Vanilla.
 
 ## Current release limitations
 

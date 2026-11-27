@@ -46,8 +46,12 @@ Firestore rules allow each user to read their own profile, update only customDis
    export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com
    export DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
    export RCON_HOST=YOUR_RUST_RCON_HOST
-   export RCON_PORT=YOUR_RUST_RCON_PORT
+   export RCON_PORT=443
+   export RCON_PROTOCOL=wss
    export RCON_PASSWORD_SECRET_NAME=YOUR_RCON_SECRET_NAME
+   # Optional, only if you configured a Serverless VPC Access connector and Cloud NAT:
+   export VPC_CONNECTOR=YOUR_SERVERLESS_VPC_CONNECTOR
+   export VPC_EGRESS=all-traffic
    export DISCORD_CLIENT_SECRET_SECRET_NAME=YOUR_DISCORD_SECRET_NAME
    export PLATEGA_SECRET_SECRET_NAME=YOUR_PLATEGA_SECRET_NAME
    # Payment release variables (set only after Platega approval and legal review):
@@ -91,7 +95,7 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
 ## 5. Live server status and Vanilla RCON
 
 1. Enable WebRCON in the Rust server panel and confirm the correct RCON host, port and password. Do not change gameplay settings or install Carbon/Oxide.
-2. Do not expose plain `ws://` WebRCON over the public internet. Production backend deliberately rejects plaintext RCON. Use a hosting-provider secure WebSocket endpoint (`wss://`) or a TLS reverse proxy that forwards WebSocket upgrades to the private WebRCON port.
+2. Do not expose plain `ws://` WebRCON over the public internet. Production backend deliberately rejects plaintext RCON. Use a hosting-provider secure WebSocket endpoint (`wss://`) or a TLS reverse proxy that forwards WebSocket upgrades to the private WebRCON port. The proxy hostname must have its own DNS record and a valid certificate; do not reuse the apex website record.
 3. If you manage the host yourself, place Nginx/another TLS proxy in front of the local WebRCON listener, install a valid certificate for a dedicated hostname, preserve the request path, and allow inbound access only from the Cloud Run egress IP. Example Nginx location:
    ```nginx
    location / {
@@ -104,7 +108,7 @@ The Cloud Run service must allow unauthenticated invocation because Steam and Di
    }
    ```
 4. Set RCON_PROTOCOL=wss, RCON_HOST to the TLS proxy hostname, RCON_PORT to its TLS port (usually 443), and store RCON_PASSWORD only in Secret Manager. Do not publish the RCON password in the browser or repository.
-5. Optionally configure a Cloud Run Serverless VPC Access connector and Cloud NAT with a reserved static egress IP, then allowlist that IP at the TLS proxy. The deployment script accepts VPC_CONNECTOR and VPC_EGRESS.
+5. Optionally configure a Cloud Run Serverless VPC Access connector and Cloud NAT with a reserved static egress IP, then allowlist that IP at the TLS proxy. The deployment script accepts VPC_CONNECTOR and VPC_EGRESS. If you use this option, set VPC_EGRESS=all-traffic and keep the Cloud NAT IP fixed.
 6. The public website requests only the read-only `serverinfo` command. Test `/public/server-status`; without secure RCON it intentionally displays “status unavailable” and VIP checkout remains disabled.
 
 ## 6. Platega activation (payment branch only)
