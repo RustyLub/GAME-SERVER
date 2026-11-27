@@ -112,12 +112,3 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Enforce HTTPS on the interim GitHub Pages hostname
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" -f cname=rusty-lub.online -F https_enforced=true >/dev/null; then
-            echo "HTTPS enforcement is enabled for rusty-lub.online."
-          else
-            echo "::warning::GitHub Pages could not enable HTTPS yet. Wait for the managed certificate, then enable Enforce HTTPS in Settings → Pages."
-          fi
