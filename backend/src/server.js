@@ -9,6 +9,7 @@ import { buildPlategaCreateRequest, buildVipGrantCommand, buildVipRemoveCommand,
 import { createCachedServerStatusReader } from "./server-status.js";
 import { createVipEntitlementProcessor } from "./vip-entitlement.js";
 import { persistCreatedVipOrder } from "./payment-order.js";
+import { parseFrontendOrigins, resolveFrontendOrigin } from "./frontend-origin.js";
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -30,6 +31,10 @@ function configuredOrigin(name) {
 
 const PORT = Number(process.env.PORT || 8080);
 const FRONTEND_ORIGIN = configuredOrigin("FRONTEND_ORIGIN");
+const FRONTEND_ORIGINS = parseFrontendOrigins(FRONTEND_ORIGIN, process.env.FRONTEND_ORIGINS);
+function requestFrontendOrigin(req) {
+  return resolveFrontendOrigin(req.headers.origin, FRONTEND_ORIGINS);
+}
 const BACKEND_PUBLIC_URL = configuredOrigin("BACKEND_PUBLIC_URL");
 const CLOUD_RUN_SERVICE_URL = process.env.CLOUD_RUN_SERVICE_URL?.trim()
   ? normalizeCloudRunAudience(process.env.CLOUD_RUN_SERVICE_URL)
@@ -87,14 +92,15 @@ app.use((req, res, next) => {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.setHeader("Vary", "Origin");
 
-  if (req.headers.origin === FRONTEND_ORIGIN) {
-    res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
+  const allowedOrigin = requestFrontendOrigin(req);
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
   if (req.method === "OPTIONS") {
-    if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+    if (!allowedOrigin) return res.sendStatus(403);
     return res.sendStatus(204);
   }
   next();
@@ -346,25 +352,51 @@ function clearStateCookie(res) {
     "; SameSite=Lax; Path=/auth/steam; Max-Age=0");
 }
 
-function frontendError(res) {
+function frontendError(res, frontendOrigin = FRONTEND_ORIGIN) {
   clearStateCookie(res);
-  return res.redirect(302, FRONTEND_ORIGIN + "/?steamError=verification_failed");
+  return res.redirect(302, frontendOrigin + "/?steamError=verification_failed");
 }
 
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
-app.get("/auth/steam", (_req, res) => {
+app.get("/auth/steam", async (req, res) => {
+  const frontendOrigin = req.query.origin === undefined
+    ? FRONTEND_ORIGIN
+    : resolveFrontendOrigin(req.query.origin, FRONTEND_ORIGINS);
+  if (!frontendOrigin) return res.sendStatus(400);
   const state = crypto.randomBytes(32).toString("base64url");
+  try {
+    await db.collection("steamAuthStates").doc(sha256(state)).create({
+      frontendOrigin,
+      expiresAt: Timestamp.fromMillis(Date.now() + 5 * 60 * 1000),
+    });
+  } catch {
+    return res.sendStatus(503);
+  }
   setStateCookie(res, state);
   return res.redirect(302, buildSteamOpenIdUrl(state));
 });
 
 app.get("/auth/steam/callback", async (req, res) => {
+  let frontendOrigin = FRONTEND_ORIGIN;
   try {
     const state = parseCookies(req.headers.cookie)[STATE_COOKIE];
     if (!state || typeof req.query.state !== "string" || req.query.state !== state) {
-      return frontendError(res);
+      return frontendError(res, frontendOrigin);
     }
+    const stateRef = db.collection("steamAuthStates").doc(sha256(state));
+    const stateData = await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(stateRef);
+      if (!snapshot.exists) return null;
+      const data = snapshot.data();
+      transaction.delete(stateRef);
+      if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() ||
+          !FRONTEND_ORIGINS.includes(data.frontendOrigin)) return null;
+      return data;
+    });
+    if (!stateData) return frontendError(res, frontendOrigin);
+    frontendOrigin = stateData.frontendOrigin;
+
     const params = new URL(req.originalUrl, BACKEND_PUBLIC_URL).searchParams;
     const steamId64 = await verifySteamAssertion(params, state);
     const uid = await createOrUpdateSteamUser(steamId64);
@@ -378,15 +410,15 @@ app.get("/auth/steam/callback", async (req, res) => {
     });
 
     clearStateCookie(res);
-    return res.redirect(303, FRONTEND_ORIGIN + "/?steamCode=" + encodeURIComponent(code));
+    return res.redirect(303, frontendOrigin + "/?steamCode=" + encodeURIComponent(code));
   } catch (error) {
     console.error("Steam sign-in failed:", error?.message || "unknown error");
-    return frontendError(res);
+    return frontendError(res, frontendOrigin);
   }
 });
 
 app.post("/auth/steam/exchange", async (req, res) => {
-  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  if (!requestFrontendOrigin(req)) return res.sendStatus(403);
   if (!req.is("application/json")) return res.sendStatus(415);
 
   const code = req.body?.code;
@@ -419,13 +451,15 @@ app.post("/auth/steam/exchange", async (req, res) => {
 
 
 app.post("/auth/discord/start", async (req, res) => {
-  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  const frontendOrigin = requestFrontendOrigin(req);
+  if (!frontendOrigin) return res.sendStatus(403);
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) return res.status(503).json({ error: "discord_not_configured" });
   try {
     const uid = await authenticatedSteamUid(req);
     const state = crypto.randomBytes(32).toString("base64url");
     await db.collection("discordAuthStates").doc(sha256(state)).create({
       uid,
+      frontendOrigin,
       expiresAt: Timestamp.fromMillis(Date.now() + 5 * 60 * 1000),
     });
     setDiscordStateCookie(res, state);
@@ -436,9 +470,10 @@ app.post("/auth/discord/start", async (req, res) => {
 });
 
 app.get("/auth/discord/callback", async (req, res) => {
+  let frontendOrigin = FRONTEND_ORIGIN;
   const fail = (reason = "link_failed") => {
     clearDiscordStateCookie(res);
-    return res.redirect(303, FRONTEND_ORIGIN + "/account?discordError=" + encodeURIComponent(reason));
+    return res.redirect(303, frontendOrigin + "/account?discordError=" + encodeURIComponent(reason));
   };
   try {
     const state = parseCookies(req.headers.cookie)[DISCORD_STATE_COOKIE];
@@ -446,15 +481,18 @@ app.get("/auth/discord/callback", async (req, res) => {
       return fail("state_invalid");
     }
     const stateRef = db.collection("discordAuthStates").doc(sha256(state));
-    const uid = await db.runTransaction(async (transaction) => {
+    const stateData = await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(stateRef);
       if (!snapshot.exists) return null;
       const data = snapshot.data();
       transaction.delete(stateRef);
-      if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() || !/^steam_\d{17}$/.test(data.uid || "")) return null;
-      return data.uid;
+      if (!data?.expiresAt || data.expiresAt.toMillis() <= Date.now() ||
+          !/^steam_\d{17}$/.test(data.uid || "") || !FRONTEND_ORIGINS.includes(data.frontendOrigin)) return null;
+      return data;
     });
-    if (!uid) return fail("state_expired");
+    if (!stateData) return fail("state_expired");
+    frontendOrigin = stateData.frontendOrigin;
+    const uid = stateData.uid;
 
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
@@ -514,7 +552,7 @@ app.get("/auth/discord/callback", async (req, res) => {
       }, { merge: true });
     });
     clearDiscordStateCookie(res);
-    return res.redirect(303, FRONTEND_ORIGIN + "/account?discordLinked=1");
+    return res.redirect(303, frontendOrigin + "/account?discordLinked=1");
   } catch (error) {
     console.error("Discord account linking failed:", error?.message || "unknown error");
     return fail(error?.message === "discord_already_linked" ? "already_linked" : "link_failed");
@@ -684,7 +722,8 @@ app.get("/vip/me", async (req, res) => {
 });
 
 app.post("/payments/orders", async (req, res) => {
-  if (req.headers.origin !== FRONTEND_ORIGIN) return res.sendStatus(403);
+  const frontendOrigin = requestFrontendOrigin(req);
+  if (!frontendOrigin) return res.sendStatus(403);
   if (!req.is("application/json")) return res.sendStatus(415);
   if (!isVipCheckoutEnabled()) return res.status(503).json({ error: "vip_checkout_not_configured" });
   try {
@@ -753,7 +792,7 @@ app.post("/payments/orders", async (req, res) => {
 
     const createRequest = buildPlategaCreateRequest({
       amount: VIP_PRICE_RUB, orderId, steamId64, displayName,
-      paymentMethod: PLATEGA_PAYMENT_METHOD, frontendOrigin: FRONTEND_ORIGIN,
+      paymentMethod: PLATEGA_PAYMENT_METHOD, frontendOrigin,
     });
     try {
       const providerResponse = await plategaRequest(PLATEGA_API_BASE.replace(/\/$/, "") + "/transaction/process", {
