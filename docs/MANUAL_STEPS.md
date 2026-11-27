@@ -4,7 +4,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
 
 ## 1. Firebase project and Web App
 
-1. In Firebase Console, select or create the dedicated project for GAME-SERVER. Do not silently reuse the legacy Rusty.Lub website project.
+1. Reuse the existing Firebase/Google Cloud project `rustylub`, as requested. Do not create a replacement project or rotate the existing Firebase Web App values.
 2. Create a Firebase Web App in Project settings → General → Your apps.
 3. Enable Firebase Authentication. Steam login uses Firebase Custom Tokens minted by the backend; Email/Password is not required.
 4. Add both `rusty-lub.online` and `rusty-lub.ru` to Authentication → Settings → Authorized domains.
@@ -13,7 +13,7 @@ This runbook contains the actions that require access to Firebase, Google Cloud,
    ```bash
    firebase login
    firebase use --add
-   firebase deploy --only firestore:rules,firestore:indexes --project YOUR_FIREBASE_PROJECT_ID
+   firebase deploy --only firestore:rules,firestore:indexes --project rustylub
    ```
 7. In GitHub → Settings → Secrets and variables → Actions → Variables, set these six public Firebase Web App values:
    - `VITE_FIREBASE_API_KEY`
@@ -29,11 +29,11 @@ Firestore rules allow a user to read only their own profile, update only `custom
 
 ## 2. Google Cloud and Cloud Run
 
-1. Select the Google Cloud project associated with the dedicated Firebase project. Enable Cloud Run, Cloud Build, Artifact Registry, IAM Credentials, Firebase Authentication, Firestore and Cloud Scheduler APIs. Configure billing.
+1. Select the existing Google Cloud project `rustylub` (the same project as Firebase). Enable Cloud Run, Cloud Build, Artifact Registry, IAM Credentials, Firebase Authentication, Firestore and Cloud Scheduler APIs. Configure billing.
 2. Create two separate service accounts:
    ```bash
-   gcloud iam service-accounts create rusty-lub-backend --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub Cloud Run backend"
-   gcloud iam service-accounts create rusty-lub-vip-scheduler --project YOUR_GCP_PROJECT_ID --display-name "Rusty.Lub VIP expiry scheduler"
+   gcloud iam service-accounts create rusty-lub-backend --project rustylub --display-name "Rusty.Lub Cloud Run backend"
+   gcloud iam service-accounts create rusty-lub-vip-scheduler --project rustylub --display-name "Rusty.Lub VIP expiry scheduler"
    ```
    Use the backend service account for Cloud Run. Set `VIP_SCHEDULER_SERVICE_ACCOUNT` to the scheduler account email.
 3. Grant the Cloud Run runtime service account:
@@ -49,12 +49,12 @@ Firestore rules allow a user to read only their own profile, update only `custom
    Grant the Cloud Run runtime service account `roles/secretmanager.secretAccessor` on each secret it uses. Do not grant broad project-wide secret access if per-secret access is practical.
 6. Run the deployment script from a trusted terminal with gcloud installed. Use the exact service account/project values you created:
    ```bash
-   export GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
+   export GCP_PROJECT_ID=rustylub
    export REGION=europe-west1
-   export FIREBASE_PROJECT_ID=YOUR_DEDICATED_FIREBASE_PROJECT_ID
+   export FIREBASE_PROJECT_ID=rustylub
    export FRONTEND_ORIGINS="https://rusty-lub.online;https://rusty-lub.ru"
-   export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@YOUR_PROJECT.iam.gserviceaccount.com
-   export VIP_SCHEDULER_SERVICE_ACCOUNT=rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com
+   export RUNTIME_SERVICE_ACCOUNT=rustylub-backend@rustylub.iam.gserviceaccount.com
+   export VIP_SCHEDULER_SERVICE_ACCOUNT=rusty-lub-vip-scheduler@rustylub.iam.gserviceaccount.com
    export DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
    export DISCORD_CLIENT_SECRET_SECRET_NAME=YOUR_DISCORD_SECRET_NAME
    export RCON_HOST=YOUR_TLS_WEBSOCKET_HOST
@@ -140,26 +140,26 @@ Payment code is already merged into `main` after a green build and payment test 
 5. Platega documents callback authentication with `X-MerchantId` and `X-Secret` headers, not an HMAC signature. The handler checks both values in constant time, then calls `GET /transaction/{id}` and verifies current status, merchant, amount, currency and order payload before granting anything. Duplicate status notifications and refund events are idempotent. For `CONFIRMED`, the backend first writes a durable `grant_pending` entitlement; if RCON is unavailable it returns 500 and provider / Cloud Scheduler retries can complete the action.
 6. Use the dedicated scheduler service account created in section 2. Grant it `roles/run.invoker` on the Cloud Run service:
    ```bash
-   gcloud run services add-iam-policy-binding rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --member="serviceAccount:rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com" --role="roles/run.invoker"
-   PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
-   gcloud iam service-accounts add-iam-policy-binding rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com --project YOUR_GCP_PROJECT_ID --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com" --role="roles/iam.serviceAccountTokenCreator"
+   gcloud run services add-iam-policy-binding rusty-lub-auth --project rustylub --region europe-west1 --member="serviceAccount:rusty-lub-vip-scheduler@rustylub.iam.gserviceaccount.com" --role="roles/run.invoker"
+   PROJECT_NUMBER=$(gcloud projects describe rustylub --format="value(projectNumber)")
+   gcloud iam service-accounts add-iam-policy-binding rusty-lub-vip-scheduler@rustylub.iam.gserviceaccount.com --project rustylub --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com" --role="roles/iam.serviceAccountTokenCreator"
    ```
    Ensure the Cloud Scheduler service agent exists and has its standard `roles/cloudscheduler.serviceAgent` project role. The Scheduler request goes directly to the Cloud Run `run.app` URL so the OIDC Authorization header is not dependent on the Firebase Hosting proxy. The OIDC audience must be the Cloud Run service origin, not the `/internal/vip/reconcile` path or the custom auth hostname. The deployment script writes this value to `CLOUD_RUN_SERVICE_URL` on the service. Retrieve the exact URL and create a Scheduler job with OIDC authentication (no shared secret):
    ```bash
-   CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project YOUR_GCP_PROJECT_ID --region YOUR_REGION --format="value(status.url)")
+   CLOUD_RUN_SERVICE_URL=$(gcloud run services describe rusty-lub-auth --project rustylub --region europe-west1 --format="value(status.url)")
    # For a new job:
    gcloud scheduler jobs create http rusty-lub-vip-reconcile \
-     --location YOUR_REGION \
+     --location europe-west1 \
      --schedule "*/5 * * * *" \
      --time-zone "Etc/UTC" \
      --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
      --http-method POST \
-     --oidc-service-account-email "rusty-lub-vip-scheduler@YOUR_PROJECT.iam.gserviceaccount.com" \
+     --oidc-service-account-email "rusty-lub-vip-scheduler@rustylub.iam.gserviceaccount.com" \
      --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
 
    # If the job already exists, update its URL and OIDC audience instead:
    gcloud scheduler jobs update http rusty-lub-vip-reconcile \
-     --location YOUR_REGION \
+     --location europe-west1 \
      --uri "$CLOUD_RUN_SERVICE_URL/internal/vip/reconcile" \
      --oidc-token-audience "$CLOUD_RUN_SERVICE_URL"
    ```
