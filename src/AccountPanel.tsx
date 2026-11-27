@@ -245,7 +245,7 @@ export default function AccountPanel() {
       <section className="vip-shop" aria-label="VIP Queue Pass">
         <div className="vip-shop-top"><span>RUSTY.LUB / QUEUE ACCESS</span><b>{vipConfig?.durationDays || 7} DAYS</b></div>
         <h3>VIP QUEUE PASS</h3>
-        <p>Пропуск очереди на Rusty.Lub EU Long. Проходка привязывается к подтверждённому SteamID64 и действует 7 дней после выдачи. Discord для активации не требуется.</p>
+        <p>Пропуск очереди на Rusty.Lub EU Long. Проходка привязывается к подтверждённому SteamID64 и действует 7 дней с момента подтверждения оплаты. Discord для активации не требуется.</p>
         <div className="vip-shop-price">
           {vipConfig?.available && vipConfig.priceRub !== null
             ? <><strong>{vipConfig.priceRub.toLocaleString("ru-RU")} ₽</strong><span>за 7 дней</span></>
