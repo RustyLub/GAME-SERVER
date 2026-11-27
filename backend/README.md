@@ -83,11 +83,11 @@ The Platega payment API currently uses `POST /v2/transaction/process` with `X-Me
 - `vipEntitlements/{steamId64}` — current entitlement and expiry; a renewal extends from the later of now or the existing expiry.
 - `vipDeliveryQueue/{transactionId}` — durable request for Carbon delivery. New grants are marked `pending` and the entitlement is `pending_delivery` until a trusted game-server integration acknowledges delivery.
 
-The callback marks chargebacks, partial refunds and disputes for review instead of silently treating them as ordinary successful payments. Automatic removal from the live Rust queue is not claimed by this backend yet: the Carbon-side worker and a verified removal command must be implemented and tested before VIP can be considered fully delivered or automatically expired on the game server.
+The callback marks chargebacks, partial refunds and disputes for review instead of silently treating them as ordinary successful payments. The repository includes a Carbon-side worker for grant and expiry jobs; it must still be installed, configured and tested on the actual Rust/Carbon server before VIP can be considered live.
 
 ### Important activation boundary
 
-A confirmed Platega payment creates the seven-day entitlement and a pending Carbon delivery job. It does **not** directly issue an RCON command from the public website. Do not advertise the pass as live until the Carbon worker consumes the queue, executes the server-supported queue-skip command, acknowledges the job, and an expiry-removal mechanism is verified.
+A confirmed Platega payment creates the seven-day entitlement and a pending Carbon delivery job. It does **not** directly issue an RCON command from the public website. Do not advertise the pass as live until the Carbon worker is installed and verified to consume the queue, execute the server-supported queue-skip and expiry-removal commands, and acknowledge jobs.
 
 ## Carbon delivery bridge
 
