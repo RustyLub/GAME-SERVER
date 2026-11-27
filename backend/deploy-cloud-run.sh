@@ -29,6 +29,7 @@ VPC_EGRESS="$(printenv VPC_EGRESS || true)"
 [[ -n "$FIREBASE_PROJECT_ID" ]] || { echo "Set FIREBASE_PROJECT_ID to the dedicated GAME-SERVER Firebase project"; exit 1; }
 [[ -n "$RUNTIME_SERVICE_ACCOUNT" ]] || { echo "Set RUNTIME_SERVICE_ACCOUNT"; exit 1; }
 [[ -n "$REGION" ]] || REGION="europe-west1"
+[[ "$REGION" == "europe-west1" ]] || { echo "Firebase Hosting auth proxy currently targets europe-west1; set REGION=europe-west1."; exit 1; }
 [[ -n "$SERVICE_NAME" ]] || SERVICE_NAME="rusty-lub-auth"
 
 FRONTEND_ORIGIN="https://rusty-lub.online"
