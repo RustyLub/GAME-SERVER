@@ -7,6 +7,11 @@ process.env.NODE_ENV = "test";
 process.env.FRONTEND_ORIGIN = "https://rusty-lub.online";
 process.env.BACKEND_PUBLIC_URL = "https://auth.example.com";
 process.env.FIREBASE_PROJECT_ID = "rustylub-test";
+// server.js captures RCON configuration at module initialization.
+process.env.RCON_HOST = "rcon.example.com";
+process.env.RCON_PORT = "443";
+process.env.RCON_PROTOCOL = "wss";
+process.env.RCON_PASSWORD = "test-password";
 
 const { app, parseCookies, sha256, steamIdFromClaim, buildSteamOpenIdUrl, verifySteamAssertion, buildDiscordAuthorizeUrl, parseRustServerInfo, sendRconCommand } =
   await import("./server.js");
