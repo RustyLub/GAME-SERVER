@@ -67,6 +67,7 @@ Remove conflicting apex A/AAAA records before switching the website to GitHub Pa
 This repository is intended to use its own second Firebase project. Do not reuse credentials from the existing Rusty.Lub website project.
 
 - Copy only the new project's Web App configuration into local `.env` values prefixed with `VITE_FIREBASE_`.
+- For production GitHub Pages builds, add the six matching `VITE_FIREBASE_*` values as Actions Variables; see [the setup guide](docs/FIREBASE_SETUP.md).
 - Never commit `.env`, service-account JSON, private keys, payment secrets or webhook secrets.
 - Keep Firestore denied by default until collection-specific rules and trusted server-side access are implemented.
 - Steam OpenID, Firebase Admin custom-token issuance, payment verification and VIP provisioning require a trusted backend. They cannot safely run in the browser or GitHub Pages.
@@ -82,6 +83,7 @@ This is an independent implementation using Rusty.Lub branding and original code
 ## Project documentation
 
 - [Architecture and integration boundaries](docs/ARCHITECTURE.md)
+- [Dedicated Firebase project setup](docs/FIREBASE_SETUP.md)
 - [Security policy](SECURITY.md)
 - [Dependency updates](.github/dependabot.yml) are checked weekly by Dependabot.
 
