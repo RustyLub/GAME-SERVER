@@ -46,10 +46,15 @@ jobs:
         run: |
           node --check backend/src/server.js
           bash -n backend/deploy-cloud-run.sh
+      - name: Setup Java for Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Test backend and Firestore rules
         run: |
           npm install --prefix backend --no-audit --no-fund
-          npm test --prefix backend
+          npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
