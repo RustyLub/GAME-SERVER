@@ -84,6 +84,7 @@ const EXCHANGE_COLLECTION = "steamAuthExchanges";
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2kb", type: "application/json" }));
+app.use(express.urlencoded({ extended: false, limit: "2kb", type: "application/x-www-form-urlencoded" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -265,12 +266,13 @@ function clearDiscordStateCookie(res) {
     "; SameSite=Lax; Path=/auth/discord; Max-Age=0");
 }
 
-async function authenticatedSteamUid(req) {
+async function authenticatedSteamUid(req, allowFormToken = false) {
   try {
     const authorization = req.headers.authorization || "";
     const match = /^Bearer\s+(.+)$/i.exec(authorization);
-    if (!match) throw new Error("unauthorized");
-    const decoded = await auth.verifyIdToken(match[1]);
+    const token = match?.[1] || (allowFormToken && typeof req.body?.idToken === "string" ? req.body.idToken : "");
+    if (!token) throw new Error("unauthorized");
+    const decoded = await auth.verifyIdToken(token);
     if (!/^steam_\d{17}$/.test(decoded.uid)) throw new Error("unauthorized");
     return decoded.uid;
   } catch {
@@ -455,7 +457,7 @@ app.post("/auth/discord/start", async (req, res) => {
   if (!frontendOrigin) return res.sendStatus(403);
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) return res.status(503).json({ error: "discord_not_configured" });
   try {
-    const uid = await authenticatedSteamUid(req);
+    const uid = await authenticatedSteamUid(req, true);
     const state = crypto.randomBytes(32).toString("base64url");
     await db.collection("discordAuthStates").doc(sha256(state)).create({
       uid,
