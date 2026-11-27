@@ -41,11 +41,11 @@ function DiscordLink() { return <a className="text-link" href="https://discord.g
 export function HomePage() {
  return <>
   <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
-   <div className="kicker"><span /> RUSTY.LUB / СЕТЬ СЕРВЕРОВ RUST</div>
-   <h1>МИР RUST.<br /><em>ТВОЯ</em> ИСТОРИЯ.</h1>
-   <p>Rusty.Lub — независимый игровой проект и сообщество Rust. Выбирай сервер, изучай особенности каждого мира и присоединяйся к игре.</p>
-   <div className="hero-cta"><a className="btn btn-red" href="#servers">ВЫБРАТЬ СЕРВЕР ↗</a><a className="btn btn-ghost" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">НАШЕ СООБЩЕСТВО ↗</a></div>
-   <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>НЕСКОЛЬКО МИРОВ · ОДНО СООБЩЕСТВО</span><span>ОФИЦИАЛЬНЫЙ САЙТ ПРОЕКТА</span></div>
+   <div className="kicker"><span /> RUSTY.LUB / RUST SERVER NETWORK</div>
+   <h1>СЕТЬ СЕРВЕРОВ<br /><em>RUSTY.LUB.</em></h1>
+   <p>Всё о наших серверах. В одном месте. Выбирай игровой мир, проверяй состояние серверов, следи за новостями и событиями, используй гайды и инструменты для Rust.</p>
+   <div className="hero-cta"><a className="btn btn-red" href="#servers">КАТАЛОГ СЕРВЕРОВ ↗</a><a className="btn btn-ghost" href="#community">О СООБЩЕСТВЕ ↗</a></div>
+   <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>СЕРВЕРЫ · СООБЩЕСТВО · ИНСТРУМЕНТЫ</span><span>ОФИЦИАЛЬНЫЙ САЙТ ПРОЕКТА</span></div>
   </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
   <section className="network-intro content-section"><div className="section-heading"><div><div className="eyebrow">О ПРОЕКТЕ / RUSTY.LUB</div><h2>ОДНО СООБЩЕСТВО.<br /><em>РАЗНЫЕ МИРЫ.</em></h2></div><div className="section-note">Rusty.Lub объединяет игровые серверы, полезные материалы и игроков Rust в одном пространстве.</div></div></section>
   <section className="content-section network-servers" id="servers"><div className="section-heading"><div><div className="eyebrow">НАШИ СЕРВЕРЫ / NETWORK</div><h2>ВЫБЕРИ СВОЙ <em>МИР.</em></h2></div><span className="section-note">Сейчас доступен первый сервер сети. Новые направления будут появляться в этом каталоге.</span></div>
