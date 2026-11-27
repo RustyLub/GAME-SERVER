@@ -1,0 +1,27 @@
+name: Recover stale GitHub Pages deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/recover-stale-pages.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel queued Pages runs and dispatch the current main commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow deploy-pages.yml --branch main --json databaseId,status --limit 30 \
+            | jq -r '.[] | select(.status == "in_progress" or .status == "queued" or .status == "pending") | .databaseId' \
+            | while IFS= read -r run_id; do
+                echo "Cancelling stale GitHub Pages run $run_id"
+                gh run cancel "$run_id" --repo "$GITHUB_REPOSITORY" || true
+              done
+          gh workflow run deploy-pages.yml --ref main --repo "$GITHUB_REPOSITORY"
