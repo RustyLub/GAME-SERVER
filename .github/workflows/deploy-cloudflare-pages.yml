@@ -33,13 +33,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Audit production frontend dependencies
+      - name: Audit all frontend dependencies
         run: npm audit --audit-level=moderate
 
       - name: Install backend dependencies
         run: npm ci --prefix backend --no-audit --no-fund
 
-      - name: Audit production backend dependencies
+      - name: Audit all backend dependencies
         run: npm audit --prefix backend --audit-level=moderate
 
       - name: Build and verify rusty-lub.online
@@ -47,6 +47,7 @@ jobs:
           SITE_ORIGIN: https://rusty-lub.online
         run: |
           node scripts/check-public-config.mjs
+          npm run test:config
           npm run build
           npm run verify:release
           mv dist dist-online
