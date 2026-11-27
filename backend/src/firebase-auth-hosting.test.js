@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 const configUrl = new URL("../../firebase.auth.json", import.meta.url);
 const config = JSON.parse(await readFile(configUrl, "utf8"));
