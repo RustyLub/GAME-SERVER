@@ -68,14 +68,14 @@ function App({ initialPath }: { initialPath?: string } = {}) {
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">{isEnglish ? "Skip to content" : "Перейти к содержимому"}</a>
     <div className="topline">
-      <span><i className="live-dot" /> RUSTY.LUB COMMUNITY</span>
+      <span><i className="live-dot" /> RUSTY.LUB NETWORK</span>
       <span className="topline-center">EUROPE · CLASSIC RUST</span>
       <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">{isEnglish ? "OUR DISCORD" : "НАШ DISCORD"} <b>↗</b></a>
     </div>
     <header className="header">
       <a className="logo" href={localize("/")} aria-label="Rusty.Lub — home">
         <span className="logo-symbol">R<span>.</span></span>
-        <span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span>
+        <span className="logo-word">RUSTY<span>.LUB</span><small>RUST SERVER NETWORK</small></span>
       </a>
       <nav id="primary-navigation" className={"main-nav " + (menuOpen ? "nav-open" : "")} aria-label={isEnglish ? "Main navigation" : "Основная навигация"}>
         {nav.map(([url, label]) => <a key={url} href={localize(url)} aria-current={routePath === url ? "page" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
@@ -89,8 +89,8 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     <main id="main-content">{currentPages[routePath] || (isEnglish ? <NotFoundPageEn /> : <NotFoundPage />)}</main>
     <footer className="footer">
       <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span></a>
-      <span>RUSTY.LUB EU LONG · VANILLA X1</span>
-      <span><a href={localize("/servers")}>{isEnglish ? "SERVER" : "СЕРВЕР"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/cookies")}>{isEnglish ? "COOKIES" : "COOKIES"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
+      <span>RUSTY.LUB / RUST SERVER NETWORK</span>
+      <span><a href={localize("/servers")}>{isEnglish ? "SERVERS" : "СЕРВЕРЫ"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/cookies")}>{isEnglish ? "COOKIES" : "COOKIES"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
     </footer>
   </div>;
 }
