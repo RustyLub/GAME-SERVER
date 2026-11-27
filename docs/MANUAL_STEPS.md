@@ -199,6 +199,7 @@ The repository uses a custom GitHub Actions Pages workflow. The `public/CNAME` f
 
 ## 10. Final acceptance
 
+- [ ] The exact original `IMG_0512.jpeg` logo is present at `public/brand/rustylub-logo.jpeg`; preserve its original 1280×853 pixels and bytes without cropping, redrawing, recoloring, resizing, filters or effects.
 - [ ] RU/EN routes and language switch work, including the 404 fallback.
 - [ ] Check 360px and 390px phone widths, open/close the mobile navigation, and confirm there is no horizontal page overflow.
 - [ ] Home shows the configured server address, copy action, Steam connect link, next wipe and server status.
