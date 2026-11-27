@@ -3,7 +3,7 @@ import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "f
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./lib/firebase";
 
-type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string };
+type SteamProfile = { displayName?: string; steamId?: string; avatarUrl?: string };\ntype VipConfig = { available: boolean; durationDays: number; priceRub: number | null };\ntype VipAccount = { entitlement: { status: string; expiresAt: string | null } | null; orders: { transactionId: string; amount: number; currency: string; status: string; createdAt: string | null }[] };
 const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
 
 export default function AccountPanel() {
@@ -12,7 +12,7 @@ export default function AccountPanel() {
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("");\n  const [vipConfig, setVipConfig] = useState<VipConfig | null>(null);\n  const [vipAccount, setVipAccount] = useState<VipAccount | null>(null);\n  const [vipBusy, setVipBusy] = useState(false);\n  const [vipError, setVipError] = useState("");\n  const [vipNotice, setVipNotice] = useState("");
 
   useEffect(() => {
     if (!auth) { setChecking(false); setError("Firebase пока не настроен."); return; }
