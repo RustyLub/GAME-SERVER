@@ -12,6 +12,7 @@ import {
   VIP_DURATION_MS,
   isSafePlategaRedirect,
   isCheckoutLockActive,
+  isValidVipRuntimeConfig,
 } from "./payments.js";
 
 const steamId64 = "76561198000000000";
@@ -130,4 +131,29 @@ test("blocks a live VIP checkout lock and allows an expired one to be reclaimed"
   assert.equal(isCheckoutLockActive({ expiresAt: { toMillis: () => now } }, now), false);
   assert.equal(isCheckoutLockActive({ expiresAt: { toMillis: () => now - 1000 } }, now), false);
   assert.equal(isCheckoutLockActive({}, now), false);
+});
+
+test("enables VIP checkout only with a complete and valid production runtime configuration", () => {
+  const valid = {
+    legalDetailsComplete: true, merchantId: "merchant-test", plategaSecret: "secret",
+    plategaApiBase: "https://api.eu.payplatform.cc",
+    schedulerServiceAccount: "rusty-lub-vip-scheduler@example.iam.gserviceaccount.com",
+    rconHost: "rcon.example.com", rconPort: 443, rconProtocol: "wss", rconPassword: "password",
+    vipPriceRub: 149, paymentMethod: 2,
+  };
+  assert.equal(isValidVipRuntimeConfig(valid), true);
+  for (const rconPort of [0, -1, 1.5, 65536, NaN]) {
+    assert.equal(isValidVipRuntimeConfig({ ...valid, rconPort }), false, "rejects RCON port " + rconPort);
+  }
+  for (const rconHost of ["", "wss://rcon.example.com", "rcon.example.com/path", "bad host"]) {
+    assert.equal(isValidVipRuntimeConfig({ ...valid, rconHost }), false, "rejects RCON host " + rconHost);
+  }
+  for (const plategaApiBase of [
+    "http://api.eu.payplatform.cc", "https://api.eu.payplatform.cc/v1",
+    "https://api.eu.payplatform.cc?redirect=example", "https://api.attacker.example",
+  ]) {
+    assert.equal(isValidVipRuntimeConfig({ ...valid, plategaApiBase }), false, "rejects Platega API origin " + plategaApiBase);
+  }
+  assert.equal(isValidVipRuntimeConfig({ ...valid, legalDetailsComplete: false }), false);
+  assert.equal(isValidVipRuntimeConfig({ ...valid, rconProtocol: "ws" }), false);
 });
