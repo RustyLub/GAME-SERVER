@@ -61,7 +61,7 @@ export function AccountPageEn() {
  return <section className="account-band page-account"><div><div className="eyebrow">PLAYER ACCOUNT / RUSTY.LUB</div><h1>YOUR PROGRESS.<br /><em>IN ONE PLACE.</em></h1><p>Sign in through Steam. Your Rusty.Lub profile is created automatically on first sign-in. No other registration methods are available.</p></div><Suspense fallback={<div className="page-panel" role="status">LOADING ACCOUNT…</div>}><AccountPanel language="en" /></Suspense></section>;
 }
 export function LinkPageEn() {
- return <section className="content-section page-section">{title("ACCOUNT LINKING",<>LINK YOUR <em>ACCOUNTS.</em></>,"A planned secure connection between Steam and Discord.")}{panel(<><h2>NOT CONNECTED YET</h2><p className="page-lead">Account linking will be available after Discord OAuth verification is configured. The website does not request Discord tokens or create a fake account link.</p>{discord}</>)}</section>;
+ return <section className="content-section page-section">{title("ACCOUNT LINKING",<>LINK YOUR <em>ACCOUNTS.</em></>,"Sign in through Steam, then link Discord to your Rusty.Lub profile.")}<Suspense fallback={<div className="page-panel" role="status">LOADING…</div>}><AccountPanel language="en" /></Suspense></section>;
 }
 export function LeaderboardsPageEn() {
  return <section className="content-section page-section">{title("COMMUNITY / RANKING",<>PLAYER <em>LEADERBOARDS.</em></>,"The leaderboard is coming soon.")}{panel(<><h2>COMING SOON</h2><p className="page-lead">The leaderboard will appear after a verified source of game statistics is connected. No player data is collected or fabricated at this time.</p></>)}</section>;
