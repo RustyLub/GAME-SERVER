@@ -624,9 +624,24 @@ async function processVipQueueWorker() {
   const pending = await db.collection("entitlements").where("status", "in", ["grant_pending", "revoke_pending"]).limit(100).get();
   const expired = await db.collection("entitlements").where("status", "==", "active")
     .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
+  const staleOrders = await db.collection("orders").where("status", "in", ["creating", "pending"])
+    .where("expiresAt", "<=", Timestamp.now()).limit(100).get();
   let processed = 0;
   for (const doc of pending.docs) {
     await processVipEntitlement(doc.ref);
+    processed += 1;
+  }
+  for (const orderDoc of staleOrders.docs) {
+    const orderLockRef = db.collection("paymentLocks").doc(orderDoc.data()?.userId || "");
+    await db.runTransaction(async (transaction) => {
+      const [currentOrder, lock] = await Promise.all([transaction.get(orderDoc.ref), transaction.get(orderLockRef)]);
+      if (!currentOrder.exists || !["creating", "pending"].includes(currentOrder.data()?.status) ||
+          currentOrder.data()?.expiresAt?.toMillis?.() > Date.now()) return;
+      transaction.update(orderDoc.ref, { status: "expired", updatedAt: FieldValue.serverTimestamp() });
+      if (lock.exists && lock.data()?.orderId === orderDoc.id) {
+        transaction.update(orderLockRef, { status: "expired", expiresAt: Timestamp.fromMillis(Date.now()), updatedAt: FieldValue.serverTimestamp() });
+      }
+    });
     processed += 1;
   }
   for (const doc of expired.docs) {
