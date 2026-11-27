@@ -44,7 +44,7 @@ Add a new entry to the `servers` array in `src/config/site.ts` with a unique `id
 
 ## Local checks
 
-Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime remains Node.js 22+.
+Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime remains Node.js 22+. Java 21+ is needed for local Firestore Emulator tests.
 
 - npm install
 - npm run build
@@ -53,7 +53,7 @@ Requirements: Node.js 24.12+ and npm for the frontend; Cloud Run backend runtime
 - npm audit --audit-level=moderate
 - npm audit --prefix backend --audit-level=moderate
 - npm install --prefix backend
-- npm test --prefix backend
+- npx --yes firebase-tools@latest emulators:exec --only firestore --project demo-rustylub-rules "npm test --prefix backend"
 - bash -n backend/deploy-cloud-run.sh
 - bash -n backend/deploy-auth-hosting.sh
 
