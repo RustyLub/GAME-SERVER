@@ -609,7 +609,7 @@ async function processVipEntitlement(entitlementRef) {
   if (data.status === "revoke_pending") {
     await sendRconCommand(buildVipRemoveCommand(data.steamId64), 7000);
     await sendRconCommand("server.writecfg", 5000);
-    const targetStatus = ["expired", "suspended", "revoked"].includes(data.revokeToStatus) ? data.revokeToStatus : "expired";
+    const targetStatus = data.revokeToStatus === "suspended" && !data.expiresAt ? "revoked" : (["expired", "suspended", "revoked"].includes(data.revokeToStatus) ? data.revokeToStatus : "expired");
     await entitlementRef.update({
       status: targetStatus,
       revokedAt: FieldValue.serverTimestamp(),
@@ -830,7 +830,7 @@ app.post("/payments/platega/callback", async (req, res) => {
           const currentEntitlement = entitlementSnapshot.data();
           if (["suspended", "revoke_pending"].includes(currentEntitlement.status) &&
               (currentEntitlement.status === "suspended" || currentEntitlement.revokeToStatus === "suspended") &&
-              currentEntitlement.expiresAt?.toMillis?.() > Date.now()) {
+              (!currentEntitlement.expiresAt || currentEntitlement.expiresAt.toMillis() > Date.now())) {
             transaction.update(entitlementRef, { status: "grant_pending", updatedAt: FieldValue.serverTimestamp() });
           }
         }
