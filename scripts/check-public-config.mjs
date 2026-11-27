@@ -15,7 +15,7 @@ const defaults = {
   VITE_FIREBASE_STORAGE_BUCKET: "rustylub.firebasestorage.app",
   VITE_FIREBASE_MESSAGING_SENDER_ID: "835038801032",
   VITE_FIREBASE_APP_ID: "1:835038801032:web:643113413df82f7af9033d",
-  VITE_API_BASE_URL: "https://auth.rusty-lub.online",
+  VITE_API_BASE_URL: "",
 };
 const values = Object.fromEntries(required.map((name) => [name, process.env[name]?.trim() || defaults[name]]));
 const missing = required.filter((name) => !values[name]);
