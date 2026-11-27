@@ -291,11 +291,8 @@ async function sendRconCommand(command, timeoutMs = 5000) {
   const socketUrl = RCON_PROTOCOL + "://" + RCON_HOST + ":" + RCON_PORT + "/" + encodeURIComponent(RCON_PASSWORD);
   return await new Promise((resolve, reject) => {
     const socket = new WebSocket(socketUrl);
-    const timer = setTimeout(() => {
-      socket.close();
-      reject(new Error("RCON command timed out"));
-    }, timeoutMs);
     let settled = false;
+    let timer;
     const finish = (error, value) => {
       if (settled) return;
       settled = true;
@@ -303,6 +300,7 @@ async function sendRconCommand(command, timeoutMs = 5000) {
       try { socket.close(); } catch {}
       if (error) reject(error); else resolve(value);
     };
+    timer = setTimeout(() => finish(new Error("RCON command timed out")), timeoutMs);
     socket.addEventListener("open", () => {
       socket.send(JSON.stringify({ Identifier: identifier, Message: command, Name: "Rusty.Lub" }));
     }, { once: true });
