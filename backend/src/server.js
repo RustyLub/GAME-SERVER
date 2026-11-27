@@ -823,10 +823,11 @@ app.post("/payments/platega/callback", async (req, res) => {
     const fullyRefunded = isFullyRefunded(verified.refundedAmount, order.amount);
     const eventRef = db.collection("paymentEvents").doc(paymentEventKey(callback.id, status, callback.refundId || "", verified.refundedAmount));
     const entitlementRef = db.collection("entitlements").doc(order.id);
+    const orderLockRef = db.collection("paymentLocks").doc(order.userId);
 
     await db.runTransaction(async (transaction) => {
-      const [currentOrder, eventSnapshot, entitlementSnapshot] = await Promise.all([
-        transaction.get(orderRef), transaction.get(eventRef), transaction.get(entitlementRef),
+      const [currentOrder, eventSnapshot, entitlementSnapshot, lockSnapshot] = await Promise.all([
+        transaction.get(orderRef), transaction.get(eventRef), transaction.get(entitlementRef), transaction.get(orderLockRef),
       ]);
       if (!currentOrder.exists) throw new Error("Order disappeared during callback processing");
       if (eventSnapshot.exists && currentOrder.data()?.lastProviderStatus === status) return;
@@ -843,6 +844,13 @@ app.post("/payments/platega/callback", async (req, res) => {
         status: orderStatus, lastProviderStatus: status,
         refundedAmount: verified.refundedAmount, updatedAt: FieldValue.serverTimestamp(),
       });
+      if (lockSnapshot.exists && lockSnapshot.data()?.orderId === order.id) {
+        transaction.update(orderLockRef, {
+          status: orderStatus,
+          expiresAt: Timestamp.fromMillis(Date.now()),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       if (status === "CONFIRMED") {
         if (!entitlementSnapshot.exists) {
