@@ -381,3 +381,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .page-heading h1 { font-size: 48px; overflow-wrap: anywhere; }
   .page-account { padding: 55px 18px; }
 }
+
+
+.header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+.language-switch {
+  display: inline-flex; min-width: 34px; height: 34px; align-items: center; justify-content: center;
+  border: 1px solid #45463e; color: #d6d4cb; font-size: 9px; font-weight: 900; letter-spacing: .08em;
+}
+.language-switch:hover { border-color: var(--red); color: #fff; }
+@media (max-width: 700px) {
+  .header-actions { margin-left: auto; }
+  .language-switch { min-width: 32px; height: 32px; }
+}
