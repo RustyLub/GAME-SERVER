@@ -9,11 +9,11 @@ import {
 } from "./pages/EnglishPages";
 
 const ruNav = [
-  ["/servers", "Сервер"], ["/wipes", "Вайпы"], ["/rules", "Правила"],
+  ["/servers", "Серверы"], ["/wipes", "Вайпы"], ["/rules", "Сообщество"],
   ["/support", "Поддержка"], ["/leaderboards", "Рейтинг"], ["/store", "Магазин"], ["/account", "Личный кабинет"],
 ] as const;
 const enNav = [
-  ["/servers", "Server"], ["/wipes", "Wipes"], ["/rules", "Rules"],
+  ["/servers", "Servers"], ["/wipes", "Wipes"], ["/rules", "Community"],
   ["/support", "Support"], ["/leaderboards", "Leaderboard"], ["/store", "Store"], ["/account", "Account"],
 ] as const;
 
@@ -69,7 +69,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     <a className="skip-link" href="#main-content">{isEnglish ? "Skip to content" : "Перейти к содержимому"}</a>
     <div className="topline">
       <span><i className="live-dot" /> RUSTY.LUB NETWORK</span>
-      <span className="topline-center">EUROPE · CLASSIC RUST</span>
+      <span className="topline-center">RUST SERVERS · COMMUNITY</span>
       <a href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">{isEnglish ? "OUR DISCORD" : "НАШ DISCORD"} <b>↗</b></a>
     </div>
     <header className="header">
@@ -88,7 +88,7 @@ function App({ initialPath }: { initialPath?: string } = {}) {
     </header>
     <main id="main-content">{currentPages[routePath] || (isEnglish ? <NotFoundPageEn /> : <NotFoundPage />)}</main>
     <footer className="footer">
-      <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>EU LONG · RUST SERVER</small></span></a>
+      <a className="logo" href={localize("/")}><span className="logo-symbol">R<span>.</span></span><span className="logo-word">RUSTY<span>.LUB</span><small>RUST SERVER NETWORK</small></span></a>
       <span>RUSTY.LUB / RUST SERVER NETWORK</span>
       <span><a href={localize("/servers")}>{isEnglish ? "SERVERS" : "СЕРВЕРЫ"}</a> · <a href={localize("/wipes")}>{isEnglish ? "WIPES" : "ВАЙПЫ"}</a> · <a href={localize("/rules")}>{isEnglish ? "RULES" : "ПРАВИЛА"}</a> · <a href={localize("/support")}>{isEnglish ? "SUPPORT" : "ПОДДЕРЖКА"}</a> · <a href={localize("/link")}>{isEnglish ? "LINK ACCOUNTS" : "ПРИВЯЗКА"}</a> · <a href={localize("/leaderboards")}>{isEnglish ? "RANKING" : "РЕЙТИНГ"}</a> · <a href={localize("/store")}>{isEnglish ? "STORE" : "МАГАЗИН"}</a> · <a href={localize("/privacy")}>{isEnglish ? "PRIVACY" : "КОНФИДЕНЦИАЛЬНОСТЬ"}</a> · <a href={localize("/cookies")}>{isEnglish ? "COOKIES" : "COOKIES"}</a> · <a href={localize("/terms")}>{isEnglish ? "TERMS" : "УСЛОВИЯ"}</a> · <a href="mailto:rusty.lub-slq@inbox.ru">CONTACT</a> · © 2026 RUSTY.LUB</span>
     </footer>
