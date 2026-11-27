@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir && node scripts/prerender.mjs",
     "preview": "vite preview",
     "verify:release": "node scripts/verify-release.mjs",
-    "prebuild": "node scripts/generate-og.mjs"
+    "prebuild": "node scripts/generate-og.mjs",
+    "test:config": "node --test scripts/check-public-config.test.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",
