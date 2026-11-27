@@ -148,7 +148,7 @@ Payment code is already merged into `main` after a green build and payment test 
    global.removeskipqueue <SteamID64>
    server.writecfg
    ```
-   Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, reconnect, seven-day expiry and removal before sales. Facepunch references: https://wiki.facepunch.com/rust/Creating_a_hidden_whitelisted_server and https://commits.facepunch.com/Rohan/rust_reboot/main/general_qol/skipqueue.
+   Keep the production `server.maxplayers` value unchanged (200); the Facepunch hidden-whitelist example that sets it to 0 is not part of this VIP setup. Check that the SteamID64 does not already have a manually assigned queue-skip permission; Rust stores this as a single permission and automatic expiry could remove an independently granted right. Test issue, reconnect, seven-day expiry and removal before sales. Facepunch references: https://wiki.facepunch.com/rust/Creating_a_hidden_whitelisted_server and https://commits.facepunch.com/Rohan/rust_reboot/main/general_qol/skipqueue.
 9. Run the payment tests in CI. Use a provider test payment or a low-value approved live test only after the merchant has confirmed the callback configuration.
 10. For a refund request, verify the order and entitlement in Firestore, process the refund in the Platega merchant dashboard, then verify the provider callback changes the order status and revokes the native queue permission on full refund or chargeback. Partial refunds do not automatically revoke a pass unless the provider reports the full amount refunded.
 
