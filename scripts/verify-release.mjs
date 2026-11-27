@@ -17,6 +17,7 @@ const parsedSiteOrigin = new URL(configuredSiteOrigin);
 assert.equal(parsedSiteOrigin.protocol, "https:", "SITE_ORIGIN must use HTTPS");
 assert.equal(parsedSiteOrigin.origin, configuredSiteOrigin, "SITE_ORIGIN must be an origin without path or credentials");
 const SITE_ORIGIN = parsedSiteOrigin.origin;
+assert.equal(resolveSiteOrigin(parsedSiteOrigin.hostname), SITE_ORIGIN, "SITE_ORIGIN must be one of the supported independent production domains");
 const dist = path.resolve("dist");
 const { serverRoutes, noindexRoutes } = await import(pathToFileURL(path.join(process.cwd(), "dist-ssr", "entry-server.js")).href);
 const routes = [
