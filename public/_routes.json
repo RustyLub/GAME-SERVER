@@ -1,6 +1,8 @@
 {
   "version": 1,
-  "include": ["/*"],
+  "include": [
+    "/*"
+  ],
   "exclude": [
     "/assets/*",
     "/*.svg",
@@ -15,6 +17,8 @@
     "/*.ttf",
     "/*.css",
     "/*.js",
-    "/*.map"
+    "/*.map",
+    "/CNAME",
+    "/_routes.json"
   ]
 }
