@@ -1,0 +1,38 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+const root = process.cwd();
+const dist = path.join(root, "dist");
+const template = await fs.readFile(path.join(dist, "index.html"), "utf8");
+const serverEntry = pathToFileURL(path.join(root, "dist-ssr", "entry-server.js")).href;
+const { render } = await import(serverEntry);
+const routes = [
+  "/", "/servers", "/wipes", "/rules", "/support", "/privacy", "/terms",
+  "/account", "/link", "/leaderboards", "/store",
+];
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character]);
+}
+
+for (const route of routes) {
+  const result = render(route);
+  const canonical = "https://rusty-lub.online" + (route === "/" ? "/" : route);
+  let html = template
+    .replace(/<html lang="[^"]*">/, '<html lang="ru">')
+    .replace(/<title>[^<]*<\/title>/, "<title>" + escapeHtml(result.meta.title) + "</title>")
+    .replace(/<meta name="description" content="[^"]*"\s*\/>/, '<meta name="description" content="' + escapeHtml(result.meta.description) + '" />')
+    .replace(/<meta name="robots" content="[^"]*"\s*\/>/, '<meta name="robots" content="' + (result.noindex ? "noindex, nofollow" : "index, follow") + '" />')
+    .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, '<link rel="canonical" href="' + canonical + '" />')
+    .replace(/<meta property="og:title" content="[^"]*"\s*\/>/, '<meta property="og:title" content="' + escapeHtml(result.meta.title) + '" />')
+    .replace(/<meta property="og:description" content="[^"]*"\s*\/>/, '<meta property="og:description" content="' + escapeHtml(result.meta.description) + '" />')
+    .replace(/<meta property="og:url" content="[^"]*"\s*\/>/, '<meta property="og:url" content="' + canonical + '" />')
+    .replace('<div id="root"></div>', '<div id="root">' + result.html + '</div>');
+  const output = route === "/" ? path.join(dist, "index.html") : path.join(dist, route.slice(1), "index.html");
+  await fs.mkdir(path.dirname(output), { recursive: true });
+  await fs.writeFile(output, html, "utf8");
+  console.log("Prerendered " + route + " -> " + path.relative(dist, output));
+}
