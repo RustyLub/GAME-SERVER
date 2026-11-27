@@ -5,7 +5,7 @@ import ServerStatus from "../components/ServerStatus";
 const AccountPanel = lazy(() => import("../AccountPanel"));
 
 export const pageMeta: Record<string, { title: string; description: string }> = {
-  "/": { title: "Rusty.Lub — EU Long | Rust Server", description: "Rusty.Lub EU Long — классический Rust Vanilla x1 в Европе. Сервер, вайпы и сообщество." },
+  "/": { title: "Rusty.Lub — сеть серверов Rust и игровое сообщество", description: "Официальный сайт проекта Rusty.Lub: игровые серверы Rust, сообщество, новости, гайды и полезные инструменты." },
   "/servers": { title: "Сервер — Rusty.Lub EU Long", description: "Параметры Rusty.Lub EU Long: Europe, Vanilla x1, процедурная карта, команды до 12 игроков." },
   "/wipes": { title: "Вайпы — Rusty.Lub EU Long", description: "Расписание ежемесячных вайпов Rusty.Lub EU Long." },
   "/rules": { title: "Правила — Rusty.Lub", description: "Правила честной игры и поведения в сообществе Rusty.Lub." },
@@ -17,7 +17,7 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   "/link": { title: "Привязка аккаунтов — Rusty.Lub", description: "Связь игровых и community-аккаунтов Rusty.Lub." },
   "/leaderboards": { title: "Рейтинг игроков — скоро | Rusty.Lub", description: "Рейтинг игроков Rusty.Lub EU Long скоро появится." },
   "/store": { title: "VIP Queue Pass — Магазин Rusty.Lub", description: "Разовый VIP Queue Pass на 7 дней для Rusty.Lub EU Long." },
-  "/en": { title: "Rusty.Lub — EU Long | Rust Server", description: "Rusty.Lub EU Long — classic Rust Vanilla x1 in Europe. Server details, wipes and community." },
+  "/en": { title: "Rusty.Lub — Rust server network and gaming community", description: "Official Rusty.Lub project website: Rust game servers, community, news, guides and useful tools." },
   "/en/servers": { title: "Server — Rusty.Lub EU Long", description: "Rusty.Lub EU Long server details: Europe, Vanilla x1, procedural map and teams of up to 12." },
   "/en/wipes": { title: "Wipes — Rusty.Lub EU Long", description: "Monthly wipe schedule for Rusty.Lub EU Long." },
   "/en/rules": { title: "Rules — Rusty.Lub", description: "Fair play and community rules for Rusty.Lub." },
@@ -37,26 +37,23 @@ function Panel({ children }: { children: ReactNode }) { return <div className="s
 function DiscordLink() { return <a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ОТКРЫТЬ DISCORD ↗</a>; }
 
 export function HomePage() {
- const [copied, setCopied] = useState(false);
- const copyAddress = async () => { try { await navigator.clipboard.writeText(SITE_CONFIG.server.address); setCopied(true); } catch { setCopied(false); } };
  const wipe = formatNextWipe("ru-RU");
  return <>
-  <section className="hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
-   <div className="kicker"><span /> RUSTY.LUB / EU LONG COMMUNITY SERVER</div>
-   <h1>ТВОЙ СЛЕДУЮЩИЙ<br /><em>WIPE.</em> ПОД ТВОИМ КОНТРОЛЕМ.</h1>
-   <p>Классический Rust без модифицированных рейтов. Собирай команду, строй базу и начинай новую историю на Rusty.Lub.</p>
-   <div className="hero-cta"><a className="btn btn-red" href="/servers">О СЕРВЕРЕ ↗</a><a className="btn btn-ghost" href="/wipes">РАСПИСАНИЕ ВАЙПОВ</a></div>
-   <div className="hero-server-connect"><div><small>ПОДКЛЮЧЕНИЕ К СЕРВЕРУ</small><strong>{SITE_CONFIG.server.address}</strong></div>
-    <button className="copy-button" type="button" onClick={copyAddress}>{copied ? "СКОПИРОВАНО" : "КОПИРОВАТЬ"}</button>
-    <a className="btn btn-steam" href={"steam://connect/" + SITE_CONFIG.server.address}>ИГРАТЬ ЧЕРЕЗ STEAM ↗</a>
-   </div>
-   <div className="hero-meta"><span>EU LONG SERVER</span><span>VANILLA X1 / MONTHLY WIPE</span><ServerStatus /></div>
-  </div><div className="hero-vertical">SURVIVE / BUILD / DOMINATE</div></section>
-  <section className="quick-stats"><div><small>РЕГИОН</small><strong>EUROPE</strong><span>Европейский сервер</span></div><div><small>РЕЖИМ</small><strong>VANILLA X1</strong><span>Классический Rust</span></div><div><small>КОМАНДА</small><strong>12 ИГРОКОВ</strong><span>Лимит группы</span></div><div><small>СЛЕДУЮЩИЙ ВАЙП</small><strong>{wipe.date}</strong><span>{wipe.time} · первый четверг месяца</span></div></section>
-  <section className="content-section"><div className="section-heading"><div><div className="eyebrow">RUSTY.LUB / EU LONG</div><h2>ОДИН СЕРВЕР.<br /><em>ЧИСТЫЙ RUST.</em></h2></div><div className="section-note">Без лишних модификаций. Только вы, ваша команда и остров.</div></div>
-   <div className="feature-grid"><div><small>01 / SERVER</small><strong>Параметры сервера</strong><span>Европа, процедурная карта, 200 слотов и стандартные рейты Vanilla x1.</span><a className="text-link" href="/servers">ПОДРОБНЕЕ ↗</a></div><div><small>02 / WIPE</small><strong>Понятный вайп</strong><span>Следующий вайп: {wipe.date}, {wipe.time}. План — первый четверг месяца.</span><a className="text-link" href="/wipes">РАСПИСАНИЕ ↗</a></div><div><small>03 / COMMUNITY</small><strong>Сообщество</strong><span>Новости, объявления и помощь игрокам в Discord.</span><a className="text-link" href={SITE_CONFIG.server.discord} target="_blank" rel="noreferrer">ОТКРЫТЬ DISCORD ↗</a></div></div>
+  <section className="hero network-hero"><div className="hero-image" /><div className="hero-shade" /><div className="hero-inner">
+   <div className="kicker"><span /> RUSTY.LUB / СЕТЬ СЕРВЕРОВ RUST</div>
+   <h1>МИР RUST.<br /><em>ТВОЯ</em> ИСТОРИЯ.</h1>
+   <p>Rusty.Lub — независимый игровой проект и сообщество Rust. Выбирай сервер, изучай особенности каждого мира и присоединяйся к игре.</p>
+   <div className="hero-cta"><a className="btn btn-red" href="#servers">ВЫБРАТЬ СЕРВЕР ↗</a><a className="btn btn-ghost" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">НАШЕ СООБЩЕСТВО ↗</a></div>
+   <div className="hero-meta"><span>RUSTY.LUB NETWORK</span><span>НЕСКОЛЬКО МИРОВ · ОДНО СООБЩЕСТВО</span><span>ОФИЦИАЛЬНЫЙ САЙТ ПРОЕКТА</span></div>
+  </div><div className="hero-vertical">PLAY / SURVIVE / CONNECT</div></section>
+  <section className="network-intro content-section"><div className="section-heading"><div><div className="eyebrow">О ПРОЕКТЕ / RUSTY.LUB</div><h2>ОДНО СООБЩЕСТВО.<br /><em>РАЗНЫЕ МИРЫ.</em></h2></div><div className="section-note">Rusty.Lub объединяет игровые серверы, полезные материалы и игроков Rust в одном пространстве.</div></div></section>
+  <section className="content-section network-servers" id="servers"><div className="section-heading"><div><div className="eyebrow">НАШИ СЕРВЕРЫ / NETWORK</div><h2>ВЫБЕРИ СВОЙ <em>МИР.</em></h2></div><span className="section-note">Сейчас доступен первый сервер сети. Новые направления будут появляться в этом каталоге.</span></div>
+   <div className="network-server-list"><article className="network-server-row"><div className="network-server-index">01</div><div className="network-server-main"><div className="network-server-tags"><span>EUROPE</span><span>VANILLA X1</span><span>MONTHLY WIPE</span></div><h3>Rusty.Lub EU Long</h3><p>Классический Rust · процедурная карта · команда до 12 игроков</p></div><div className="network-server-live"><ServerStatus /><small>200 СЛОТОВ</small></div><div className="network-server-actions"><a className="btn btn-red" href="/servers">О СЕРВЕРЕ ↗</a><a className="text-link" href={"steam://connect/" + SITE_CONFIG.server.address}>ИГРАТЬ</a></div></article></div>
   </section>
-  <section className="content-section rules-preview"><div className="section-heading"><div><div className="eyebrow">FAIR PLAY / COMMUNITY</div><h2>КОРОТКО О <em>ПРАВИЛАХ.</em></h2></div><a className="text-link" href="/rules">ВСЕ ПРАВИЛА ↗</a></div><div className="rule-preview-grid"><div><b>01</b><strong>Честная игра</strong><span>Читы и нечестные модификации запрещены.</span></div><div><b>02</b><strong>Уважение</strong><span>Без травли, угроз и целенаправленных оскорблений.</span></div><div><b>03</b><strong>Команды</strong><span>До 12 игроков в группе. Кланы и альянсы разрешены.</span></div></div><a className="btn btn-ghost" href={SITE_CONFIG.server.discord} target="_blank" rel="noreferrer">ПРИСОЕДИНИТЬСЯ К DISCORD ↗</a></section>
+  <section className="content-section network-directions" id="community"><div className="section-heading"><div><div className="eyebrow">БОЛЬШЕ, ЧЕМ СЕРВЕРЫ</div><h2>ПРОСТРАНСТВО ДЛЯ <em>ИГРОКОВ.</em></h2></div><div className="section-note">Всё необходимое для игры, общения и знакомства с проектом.</div></div>
+   <div className="feature-grid"><div id="news"><small>01 / COMMUNITY</small><strong>Новости и события</strong><span>Объявления проекта, важные изменения и события сообщества.</span><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">СЛЕДИТЬ ЗА НОВОСТЯМИ ↗</a></div><div id="guides"><small>02 / KNOWLEDGE</small><strong>Гайды и инструменты</strong><span>Практические материалы, игровые справочники и полезные калькуляторы Rust.</span><a className="text-link" href="/support">ПОЛЕЗНАЯ ИНФОРМАЦИЯ ↗</a></div><div id="stats"><small>03 / PLAYERS</small><strong>Игроки и рейтинги</strong><span>Статистика и таблицы лидеров будут развиваться вместе с сетью.</span><a className="text-link" href="/leaderboards">ОТКРЫТЬ РЕЙТИНГ ↗</a></div></div>
+  </section>
+  <section className="content-section rules-preview"><div className="section-heading"><div><div className="eyebrow">RUSTY.LUB COMMUNITY</div><h2>ИГРАЕМ ВМЕСТЕ. <em>ОБЩАЕМСЯ.</em></h2></div><a className="text-link" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">DISCORD ↗</a></div><div className="rule-preview-grid"><div><b>01</b><strong>Сообщество</strong><span>Общение, поиск команды и новости проекта.</span></div><div><b>02</b><strong>Поддержка</strong><span>Помощь по серверам и работе сайта.</span></div><div><b>03</b><strong>Развитие</strong><span>Новые серверы и игровые возможности по мере роста проекта.</span></div></div><a className="btn btn-ghost" href="https://discord.gg/rustylub" target="_blank" rel="noreferrer">ПРИСОЕДИНИТЬСЯ К DISCORD ↗</a></section>
  </>;
 }
 export function ServersPage() {
