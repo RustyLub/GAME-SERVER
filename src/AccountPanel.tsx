@@ -107,7 +107,7 @@ export default function AccountPanel() {
           updatedAt: serverTimestamp(),
         });
       }
-      setUser({ ...user });
+      setUser(auth.currentUser);
       setEditingName(false);
       setMessage("Имя профиля обновлено.");
     } catch {
