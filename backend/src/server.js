@@ -676,7 +676,7 @@ app.post("/payments/orders", async (req, res) => {
     const entitlements = await db.collection("entitlements").where("userId", "==", uid).limit(20).get();
     const active = entitlements.docs.some((doc) => {
       const item = doc.data();
-      return ["active", "grant_pending", "revoke_pending"].includes(item.status) && item.expiresAt?.toMillis?.() > Date.now();
+      return ["active", "grant_pending", "revoke_pending", "suspended"].includes(item.status) && item.expiresAt?.toMillis?.() > Date.now();
     });
     if (active) return res.status(409).json({ error: "vip_already_active" });
     const recentOrders = await db.collection("orders").where("userId", "==", uid).limit(20).get();
