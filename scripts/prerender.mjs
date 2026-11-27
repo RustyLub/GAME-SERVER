@@ -2,6 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+const configuredSiteOrigin = process.env.SITE_ORIGIN?.trim() || "https://rusty-lub.online";
+const parsedSiteOrigin = new URL(configuredSiteOrigin);
+if (parsedSiteOrigin.protocol !== "https:" || parsedSiteOrigin.username || parsedSiteOrigin.password ||
+    parsedSiteOrigin.pathname !== "/" || parsedSiteOrigin.search || parsedSiteOrigin.hash) {
+  throw new Error("SITE_ORIGIN must be an HTTPS origin without a path, query or credentials.");
+}
+const SITE_ORIGIN = parsedSiteOrigin.origin;
+
 const root = process.cwd();
 const dist = path.join(root, "dist");
 const template = await fs.readFile(path.join(dist, "index.html"), "utf8");
@@ -24,8 +32,8 @@ function escapeHtml(value) {
 for (const route of routes) {
   const result = render(route);
   const english = route.startsWith("/en");
-  const canonical = "https://rusty-lub.online" + (route === "/" ? "/" : route);
-  const image = "https://rusty-lub.online/" + (english ? "og-en.png" : "og-ru.png");
+  const canonical = SITE_ORIGIN + (route === "/" ? "/" : route);
+  const image = SITE_ORIGIN + "/" + (english ? "og-en.png" : "og-ru.png");
   let html = template
     .replace(/<html lang="[^"]*">/, '<html lang="' + (english ? "en" : "ru") + '">')
     .replace(/<title>[^<]*<\/title>/, "<title>" + escapeHtml(result.meta.title) + "</title>")
@@ -50,7 +58,7 @@ for (const route of routes) {
 function notFoundHtml(pathname, english) {
   const result = render(pathname);
   const canonical = english ? "https://rusty-lub.online/en/404.html" : "https://rusty-lub.online/404.html";
-  const image = "https://rusty-lub.online/" + (english ? "og-en.png" : "og-ru.png");
+  const image = SITE_ORIGIN + "/" + (english ? "og-en.png" : "og-ru.png");
   const title = english ? "Page not found — Rusty.Lub" : "Страница не найдена — Rusty.Lub";
   const description = english ? "The requested page could not be found." : "Запрошенная страница не найдена.";
   return template
@@ -76,11 +84,15 @@ console.log("Prerendered RU and EN 404 pages");
 
 const sitemapPath = path.join(dist, "sitemap.xml");
 let sitemap = await fs.readFile(sitemapPath, "utf8");
+sitemap = sitemap.replaceAll("https://rusty-lub.online", SITE_ORIGIN);
 for (const route of serverRoutes) {
-  const url = "https://rusty-lub.online" + route;
+  const url = SITE_ORIGIN + route;
   if (sitemap.includes("<loc>" + url + "</loc>")) continue;
   const priority = route.startsWith("/en/") ? "0.7" : "0.8";
   sitemap = sitemap.replace("</urlset>", "  <url><loc>" + url + "</loc><changefreq>monthly</changefreq><priority>" + priority + "</priority></url>\n</urlset>");
 }
 await fs.writeFile(sitemapPath, sitemap, "utf8");
+const robotsPath = path.join(dist, "robots.txt");
+const robots = (await fs.readFile(robotsPath, "utf8")).replaceAll("https://rusty-lub.online", SITE_ORIGIN);
+await fs.writeFile(robotsPath, robots, "utf8");
 console.log("Updated sitemap with all configured server detail routes");
