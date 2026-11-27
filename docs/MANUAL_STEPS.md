@@ -119,7 +119,15 @@ Payment code is already merged into `main` after a green build and payment test 
 
 1. Obtain Merchant ID and API secret from Platega. Store the secret in Secret Manager as `PLATEGA_SECRET`; set `PLATEGA_MERCHANT_ID` and `PLATEGA_API_BASE=https://api.eu.payplatform.cc` as Cloud Run environment variables.
 2. Confirm payment method `2` (SBP QR) is enabled for the merchant. The request sends the permanent SteamID64 as `metadata.userId` and `SteamID64@mail.ru` as `metadata.user_email`, following Platega guidance for a stable pseudonymous buyer ID when no email is collected. It is not represented as the customer's real mailbox. Confirm this format and payment method with the Platega manager for your merchant category.
-3. Set `PLATEGA_PAYMENT_METHOD=2` and `VIP_PRICE_RUB` (integer rubles) as Cloud Run environment variables. Set `PLATEGA_SECRET_SECRET_NAME` to the Secret Manager secret name before running the deploy script; never put the secret value in the terminal command, GitHub Variables or repository.
+3. Export the non-secret payment settings in the same terminal session used for deployment:
+   ```bash
+   export PLATEGA_API_BASE=https://api.eu.payplatform.cc
+   export PLATEGA_MERCHANT_ID=YOUR_MERCHANT_ID
+   export PLATEGA_PAYMENT_METHOD=2
+   export VIP_PRICE_RUB=YOUR_PRICE_IN_RUBLES
+   export PLATEGA_SECRET_SECRET_NAME=YOUR_PLATEGA_SECRET_NAME
+   ```
+   Then run `bash backend/deploy-cloud-run.sh` to apply them. Never put the Platega secret value in the terminal command, GitHub Variables or repository.
 4. Set the merchant callback URL to `https://auth.rusty-lub.online/payments/platega/callback`.
 5. Platega documents callback authentication with `X-MerchantId` and `X-Secret` headers, not an HMAC signature. The handler checks both values in constant time, then calls `GET /transaction/{id}` and verifies current status, merchant, amount, currency and order payload before granting anything. Duplicate status notifications and refund events are idempotent. For `CONFIRMED`, the backend first writes a durable `grant_pending` entitlement; if RCON is unavailable it returns 500 and provider / Cloud Scheduler retries can complete the action.
 6. Use the dedicated scheduler service account created in section 2. Grant it `roles/run.invoker` on the Cloud Run service:
@@ -140,7 +148,7 @@ Payment code is already merged into `main` after a green build and payment test 
      --oidc-token-audience "https://auth.rusty-lub.online/internal/vip/reconcile"
    ```
    Confirm the Cloud Scheduler service agent can mint OIDC tokens for that service account. The backend verifies the Google-signed token and exact service-account email.
-7. Publish the final seller/operator identity, legal address/contact details required by applicable law, tax status, payment recipient details, approved price and reviewed refund/cancellation terms on the legal pages. Have the actual operator jurisdiction and Platega merchant agreement reviewed. Only after this review, set `LEGAL_DETAILS_COMPLETE=true` in Cloud Run and run the deployment script again. This server-side gate keeps checkout disabled until those details are complete.
+7. Publish the final seller/operator identity, legal address/contact details required by applicable law, tax status, payment recipient details, approved price and reviewed refund/cancellation terms on the legal pages. Have the actual operator jurisdiction and Platega merchant agreement reviewed. Only after this review, export `LEGAL_DETAILS_COMPLETE=true` in the trusted deployment terminal and run `bash backend/deploy-cloud-run.sh` again. Do not set this flag earlier. This server-side gate keeps checkout disabled until those details are complete.
 8. Test the native Rust commands on a non-production/test SteamID64 first:
    ```text
    global.skipqueueid <SteamID64> "<nickname>" "Rusty.Lub VIP Queue Pass"
