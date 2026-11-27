@@ -6,8 +6,9 @@ const nav = [
   ["/support", "Поддержка"], ["/account", "Личный кабинет"],
 ] as const;
 
-function App() {
-  const [path, setPath] = useState(window.location.pathname.replace(/\/$/, "") || "/");
+function App({ initialPath }: { initialPath?: string } = {}) {
+  const getPath = () => initialPath ?? (typeof window !== "undefined" ? window.location.pathname.replace(/\/$/, "") || "/" : "/");
+  const [path, setPath] = useState(getPath);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const onPop = () => { setPath(window.location.pathname.replace(/\/$/, "") || "/"); setMenuOpen(false); };
