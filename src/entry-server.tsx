@@ -1,12 +1,13 @@
 import { renderToString } from "react-dom/server";
 import App from "./App";
 import { pageMeta } from "./pages/Pages";
-import { SITE_CONFIG } from "./config/site";
+import { SITE_CONFIG, isNoindexRoute } from "./config/site";
 
 export const serverRoutes = SITE_CONFIG.servers.flatMap((server) => [
   "/servers/" + server.slug,
   "/en/servers/" + server.slug,
 ]);
+export { NOINDEX_ROUTES as noindexRoutes } from "./config/site";
 
 export function render(path: string) {
   const normalizedPath = path.replace(/\/$/, "") || "/";
@@ -18,6 +19,6 @@ export function render(path: string) {
   return {
     html: renderToString(<App initialPath={normalizedPath} />),
     meta,
-    noindex: !pageMeta[normalizedPath] || ["/account", "/link", "/leaderboards", "/store", "/en/account", "/en/link", "/en/leaderboards", "/en/store"].includes(normalizedPath),
+    noindex: !pageMeta[normalizedPath] || isNoindexRoute(normalizedPath),
   };
 }
